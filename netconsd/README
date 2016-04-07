@@ -1,0 +1,20 @@
+The overall design is very simple: N listener threads divide remote hosts across
+M worker threads using a consistent hashing scheme. Each worker thread keeps
+track of the ncrx objects for its hosts in a probing hashtable.  Output is
+accomplished through shared object "modules", which makes extending the daemon
+to do whatever you want really easy.
+
+An output module only needs to expose one C symbol:
+    void netconsd_output_handler(int thread, struct in6_addr *, struct msgbuf *, struct ncrx_msg *)
+
+Output modules must be reentrant. However, you may assume that they will not be
+reentrant for the same remote host. The "thread" argument indicates which worker
+thread is currently calling the function, so you can easily maintain per-worker
+state in your output handler. The NETCONSD_MAX_WORKER_THREADNUM macro from the
+msgbuf-struct.h header file tells you the maximum number of allowed threads.
+
+For non-extended messages, the ncrx_msg argument will be NULL. For extended
+messages, the msgbuf argument will be NULL. The in6_addr argument will always
+point to the source address of the message.
+
+Output modules MUST NOT modify any fields of msgbuf or ncrx_msg.

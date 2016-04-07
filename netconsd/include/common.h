@@ -1,0 +1,69 @@
+/*
+ * Copyright (C) 2016, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the LICENSE
+ * file in the root directory of this source tree. An additional grant of patent
+ * rights can be found in the PATENTS file in the same directory.
+ */
+
+#ifndef __COMMON_H__
+#define __COMMON_H__
+
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+#include <errno.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+#include "log.h"
+#include "jhash.h"
+
+#define min(x, y) ({							\
+	typeof(x) _min1 = (x);						\
+	typeof(y) _min2 = (y);						\
+	(void) (&_min1 == &_min2);					\
+	_min1 < _min2 ? _min1 : _min2; })
+
+#define max(x, y) ({							\
+	typeof(x) _max1 = (x);						\
+	typeof(y) _max2 = (y);						\
+	(void) (&_max1 == &_max2);					\
+	_max1 > _max2 ? _max1 : _max2; })
+
+#define clamp(val, lo, hi) min((typeof(val))max(val, lo), hi)
+
+#define container_of(ptr, type, member) ({			\
+	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
+	(type *)( (char *)__mptr - __builtin_offsetof(type,member) );})
+
+static void assert_pthread_mutex_locked(pthread_mutex_t *mutex)
+{
+	if (pthread_mutex_trylock(mutex) != EBUSY)
+		fatal("assert_pthread_mutex_locked found unlocked mutex!\n");
+}
+
+static inline unsigned long now_epoch_ms(void)
+{
+	struct timespec t;
+	int ret;
+
+	ret = clock_gettime(CLOCK_REALTIME, &t);
+	fatal_on(ret, "Oops, clock_gettime() barfed: %m (-%d)\n", errno);
+
+	return t.tv_sec * 1000 + t.tv_nsec / 1000000L;
+}
+
+struct netconsd_params {
+	int nr_workers;
+	int nr_listeners;
+	int mmsg_batch;
+	int udp_listen_port;
+	unsigned int gc_int_ms;
+	unsigned int gc_age_ms;
+};
+
+#endif /* __COMMON_H__ */
