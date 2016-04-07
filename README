@@ -1,0 +1,28 @@
+fbkutils: Linux kernel utilities from Facebook
+
+================================================================================
+
+ncrx:		A library for processing extended netconsole messages from the
+		Linux kernel. See Documentation/networking/netconsole.txt in the
+		kernel source for details about extended netconsole.
+
+netconsd:	A daemon which uses libncrx to receive and process netconsole
+		messages from a large number of remote hosts. We use this daemon
+		for collecting kernel logs from all the servers at Facebook.
+
+================================================================================
+
+Contributing
+============
+
+Contributions to fbkutils are welcome and encouraged!
+
+Please read the guidelines in CONTRIBUTING, and make sure you've signed the CLA
+before sending the pull request.
+
+Whitehat
+========
+
+Facebook has a bounty program (https://www.facebook.com/whitehat) for the the
+safe disclosure of security bugs. If you find a vulnerability, please go through
+the process outlined on that page and do not file a public issue.
