@@ -382,7 +382,6 @@ static void make_room(struct ncrx *ncrx, int delta)
 		 */
 		ncrx->head_seq++;
 		ncrx->head = (ncrx->head + 1) % ncrx->p.nr_slots;
-		slot = &ncrx->slots[ncrx->head];
 		if (slot_dist(ncrx->tail, ncrx) > max_busy)
 			retire_tail(ncrx);
 	}
