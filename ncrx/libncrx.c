@@ -382,7 +382,6 @@ static void make_room(struct ncrx *ncrx, int delta)
 		 */
 		ncrx->head_seq++;
 		ncrx->head = (ncrx->head + 1) % ncrx->p.nr_slots;
-		slot = &ncrx->slots[ncrx->head];
 		if (slot_dist(ncrx->tail, ncrx) > max_busy)
 			retire_tail(ncrx);
 	}
@@ -508,10 +507,8 @@ static int queue_oos_msg(struct ncrx_msg *tmsg, struct ncrx *ncrx)
 	 * queueing it to reset the seq and then queueing all other oos
 	 * msgs.  If a msg is still oos after reset, just retire it.
 	 */
-	while (ncrx->tail != ncrx->head) {
-		slot = &ncrx->slots[ncrx->tail];
+	while (ncrx->tail != ncrx->head)
 		retire_tail(ncrx);
-	}
 
 	ncrx->head_seq = 0;
 	ncrx->acked_seq = UINT64_MAX;
