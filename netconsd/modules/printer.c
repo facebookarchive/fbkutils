@@ -15,6 +15,17 @@
 #include <msgbuf-struct.h>
 #include <ncrx-struct.h>
 
+int netconsd_output_init(void)
+{
+	puts("From init hook");
+	return 0;
+}
+
+void netconsd_output_exit(void)
+{
+	puts("From exit hook");
+}
+
 /*
  * This is the actual function called by netconsd.
  */
