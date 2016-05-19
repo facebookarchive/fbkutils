@@ -322,7 +322,7 @@ static void try_to_garbage_collect(struct ncrx_worker *cur)
 	unsigned long i, now, end, count = 0;
 	struct bucket *bkt;
 
-	now = now_epoch_ms();
+	now = now_mono_ms();
 	for (i = 0; i < (1UL << cur->ht->order); i++) {
 		bkt = &cur->ht->table[i];
 
@@ -331,7 +331,7 @@ static void try_to_garbage_collect(struct ncrx_worker *cur)
 			count++;
 		}
 	}
-	end = now_epoch_ms();
+	end = now_mono_ms();
 
 	log("Worker %d GC'd %lu in %lums\n", cur->thread_nr, count, end - now);
 }
@@ -343,7 +343,7 @@ static void maybe_garbage_collect(struct ncrx_worker *cur)
 	if (!cur->gc_int_ms)
 		return;
 
-	nowgc = now_epoch_ms() / cur->gc_int_ms;
+	nowgc = now_mono_ms() / cur->gc_int_ms;
 	if (nowgc > cur->lastgc) {
 		try_to_garbage_collect(cur);
 		cur->lastgc = nowgc;
@@ -373,7 +373,7 @@ static void schedule_ncrx_callback(struct ncrx_worker *cur, struct bucket *bkt,
 	 * from least to most recent: at any given moment only one callback time
 	 * corresponds to each bucket, and time cannot go backwards.
 	 */
-	now = now_epoch_ms();
+	now = now_mono_ms();
 	when = clamp(when, now + 1, now + NETCONS_RTO);
 
 	/*
@@ -459,7 +459,7 @@ static void do_ncrx_callbacks(struct ncrx_worker *cur,
 static unsigned long run_ncrx_callbacks(struct ncrx_worker *cur,
 		unsigned long lastrun)
 {
-	unsigned long i, now = now_epoch_ms();
+	unsigned long i, now = now_mono_ms();
 
 	if (now == lastrun)
 		goto out;
@@ -499,7 +499,8 @@ static void consume_msgbuf(struct ncrx_worker *cur, struct msgbuf *buf)
 	ncrx_bucket->last_seen = buf->rcv_time;
 
 	buf->buf[buf->rcv_bytes] = '\0';
-	if (!ncrx_process(buf->buf, buf->rcv_time, 0, ncrx_bucket->ncrx)) {
+	if (!ncrx_process(buf->buf, now_mono_ms(), buf->rcv_time,
+			ncrx_bucket->ncrx)) {
 		drain_bucket_ncrx(cur, ncrx_bucket);
 		return;
 	}
@@ -522,7 +523,7 @@ void *ncrx_worker_thread(void *arg)
 {
 	struct ncrx_worker *cur = arg;
 	struct msgbuf *curbuf, *tmp;
-	unsigned long lastrun = now_epoch_ms();
+	unsigned long lastrun = now_mono_ms();
 	int nr_dequeued;
 
 	cur->ht = create_hashtable(16, NULL);
