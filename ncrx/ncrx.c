@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 		now = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 
 		/* process the payload and perform rx operations */
-		if (ncrx_process(payload, now, ncrx) && errno != ENOENT) {
+		if (ncrx_process(payload, now, 0, ncrx) && errno != ENOENT) {
 			if (errno == EINVAL) {
 				while (len && isspace(payload[len - 1]))
 					payload[--len] = '\0';

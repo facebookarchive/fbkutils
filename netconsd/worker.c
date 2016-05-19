@@ -434,7 +434,7 @@ static void do_ncrx_callbacks(struct ncrx_worker *cur,
 		timerlist_del(tnode);
 
 		bkt = bucket_from_timernode(tnode);
-		ncrx_process(NULL, now, bkt->ncrx);
+		ncrx_process(NULL, now, 0, bkt->ncrx);
 		drain_bucket_ncrx(cur, bkt);
 	}
 }
@@ -499,7 +499,7 @@ static void consume_msgbuf(struct ncrx_worker *cur, struct msgbuf *buf)
 	ncrx_bucket->last_seen = buf->rcv_time;
 
 	buf->buf[buf->rcv_bytes] = '\0';
-	if (!ncrx_process(buf->buf, buf->rcv_time, ncrx_bucket->ncrx)) {
+	if (!ncrx_process(buf->buf, buf->rcv_time, 0, ncrx_bucket->ncrx)) {
 		drain_bucket_ncrx(cur, ncrx_bucket);
 		return;
 	}

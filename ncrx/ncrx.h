@@ -100,9 +100,13 @@ void ncrx_destroy(struct ncrx *ncrx);
  * machine that the user can feed data into and get the results out of.
  *
  * ncrx_process()
- *	Process @payload of a packet.  @now is the current time in msecs.
+ *	Process @payload of a packet.  @now_mono is the current time in msecs.
  *	The origin doesn't matter as long as it's monotonously increasing.
  *	@payload may be NULL.  See ncrx_invoke_process_at().
+ *
+ *	@now_real is an optional timestamp which will be stored at rx_at_real
+ *	in the resulting ncrx_msg struct. The library does not use this value
+ *	at all, so it can be zero.
  *
  *	Returns 0 on success.  1 on failure with errno set.  EINVAL
  *	indicates that @payload is not a valid extended netconsole message.
@@ -137,7 +141,8 @@ void ncrx_destroy(struct ncrx *ncrx);
  *
  * See tools/ncrx/ncrx.c for a simple example.
  */
-int ncrx_process(const char *payload, uint64_t now, struct ncrx *ncrx);
+int ncrx_process(const char *payload, uint64_t now_mono, uint64_t now_real,
+		struct ncrx *ncrx);
 const char *ncrx_response(struct ncrx *ncrx, int *lenp);
 struct ncrx_msg *ncrx_next_msg(struct ncrx *ncrx);
 uint64_t ncrx_invoke_process_at(struct ncrx *ncrx);

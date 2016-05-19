@@ -41,7 +41,7 @@ struct ncrx_slot {
 struct ncrx {
 	struct ncrx_param	p;
 
-	uint64_t		now;		/* latest time in msecs */
+	uint64_t		now_mono;	/* latest time in msecs */
 
 	int			head;		/* next slot to use */
 	int			tail;		/* last slot in use */
@@ -372,7 +372,7 @@ static void make_room(struct ncrx *ncrx, int delta)
 		slot = &ncrx->slots[ncrx->head];
 		assert(slot_is_free(slot));
 		list_append(&slot->hole_node, &ncrx->hole_list);
-		slot->timestamp = ncrx->now;
+		slot->timestamp = ncrx->now_mono;
 		slot->retx_timestamp = 0;
 
 		/*
@@ -426,19 +426,19 @@ static struct ncrx_slot *get_seq_slot(struct ncrx_msg *tmsg, struct ncrx *ncrx)
 
 		if (!tmsg->emg &&
 		    (!is_free ||
-		     slot->timestamp + ncrx->p.oos_intv < ncrx->now)) {
+		     slot->timestamp + ncrx->p.oos_intv < ncrx->now_mono)) {
 			errno = ERANGE;
 			return NULL;
 		}
 
 		if (is_free)
-			slot->timestamp = ncrx->now;
+			slot->timestamp = ncrx->now_mono;
 		errno = ENOENT;
 		return NULL;
 	}
 
 	make_room(ncrx, delta);
-	slot->timestamp = ncrx->now;
+	slot->timestamp = ncrx->now_mono;
 
 	return slot;
 }
@@ -537,7 +537,8 @@ static int queue_oos_msg(struct ncrx_msg *tmsg, struct ncrx *ncrx)
 }
 
 /* @payload has just been received, parse and queue it */
-static int ncrx_queue_payload(const char *payload, struct ncrx *ncrx)
+static int ncrx_queue_payload(const char *payload, struct ncrx *ncrx,
+		uint64_t now_real)
 {
 	struct ncrx_msg tmsg;
 	struct ncrx_slot *slot;
@@ -546,7 +547,8 @@ static int ncrx_queue_payload(const char *payload, struct ncrx *ncrx)
 	if (parse_packet(payload, &tmsg))
 		return -1;
 
-	tmsg.rx_at = ncrx->now;
+	tmsg.rx_at_mono = ncrx->now_mono;
+	tmsg.rx_at_real = now_real;
 	ncrx->oos_history <<= 1;
 
 	/* ack immediately if logging source is doing emergency transmissions */
@@ -600,7 +602,7 @@ static void ncrx_build_resp(struct ncrx_slot *slot, struct ncrx *ncrx)
 	/* "ncrx<ack-seq>" */
 	if (!ncrx->resp_len) {
 		ncrx->acked_seq = tail_seq(ncrx) - 1;
-		ncrx->acked_at = ncrx->now;
+		ncrx->acked_at = ncrx->now_mono;
 
 		ncrx->resp_len = snprintf(ncrx->resp_buf, NCRX_PKT_MAX,
 					  "ncrx%"PRIu64, ncrx->acked_seq);
@@ -621,18 +623,19 @@ static void ncrx_build_resp(struct ncrx_slot *slot, struct ncrx *ncrx)
 	}
 }
 
-int ncrx_process(const char *payload, uint64_t now, struct ncrx *ncrx)
+int ncrx_process(const char *payload, uint64_t now_mono, uint64_t now_real,
+		struct ncrx *ncrx)
 {
 	struct ncrx_slot *slot, *tmp_slot;
 	struct ncrx_msg *msg;
 	uint64_t old_head_seq = ncrx->head_seq;
 	int dist_retx, ret = 0;
 
-	if (now < ncrx->now)
+	if (now_mono < ncrx->now_mono)
 		fprintf(stderr, "ncrx: time regressed %"PRIu64"->%"PRIu64"\n",
-			ncrx->now, now);
+			ncrx->now_mono, now_mono);
 
-	ncrx->now = now;
+	ncrx->now_mono = now_mono;
 	ncrx->resp_len = 0;
 
 	/*
@@ -640,25 +643,25 @@ int ncrx_process(const char *payload, uint64_t now, struct ncrx *ncrx)
 	 * messages arriving doesn't trigger ack timeout immediately.
 	 */
 	if (ncrx->acked_seq == tail_seq(ncrx) - 1)
-		ncrx->acked_at = now;
+		ncrx->acked_at = now_mono;
 
 	/* parse and queue @payload */
 	if (payload)
-		ret = ncrx_queue_payload(payload, ncrx);
+		ret = ncrx_queue_payload(payload, ncrx, now_real);
 
 	/* retire complete & timed-out msgs from tail */
 	while (ncrx->tail != ncrx->head) {
 		struct ncrx_slot *slot = &ncrx->slots[ncrx->tail];
 
 		if ((!slot->msg || !list_empty(&slot->hole_node)) &&
-		    slot->timestamp + ncrx->p.msg_timeout > now)
+		    slot->timestamp + ncrx->p.msg_timeout > now_mono)
 			break;
 		retire_tail(ncrx);
 	}
 
 	/* retire timed-out oos msgs */
 	while ((msg = msg_list_peek(&ncrx->oos_list))) {
-		if (msg->rx_at + ncrx->p.oos_timeout > now)
+		if (msg->rx_at_mono + ncrx->p.oos_timeout > now_mono)
 			break;
 		msg->oos = 1;
 		msg_list_del(msg, &ncrx->oos_list);
@@ -667,7 +670,7 @@ int ncrx_process(const char *payload, uint64_t now, struct ncrx *ncrx)
 
 	/* if enabled, ack pending and timeout expired? */
 	if (ncrx->p.ack_intv && ncrx->acked_seq != tail_seq(ncrx) - 1 &&
-	    ncrx->acked_at + ncrx->p.ack_intv < now)
+	    ncrx->acked_at + ncrx->p.ack_intv < now_mono)
 		ncrx_build_resp(NULL, ncrx);
 
 	/* head passed one or more re-transmission boundaries? */
@@ -687,9 +690,9 @@ int ncrx_process(const char *payload, uint64_t now, struct ncrx *ncrx)
 			retx = 1;
 
 		/* request re-tx every retx_intv */
-		if (now - max(slot->timestamp, slot->retx_timestamp) >=
+		if (now_mono - max(slot->timestamp, slot->retx_timestamp) >=
 		    (unsigned)ncrx->p.retx_intv) {
-			slot->retx_timestamp = now;
+			slot->retx_timestamp = now_mono;
 			retx = 1;
 		}
 
@@ -729,14 +732,14 @@ uint64_t ncrx_invoke_process_at(struct ncrx *ncrx)
 	 * condition but way longer.  Checking on retx_intv is enough.
 	 */
 	if (!list_empty(&ncrx->hole_list))
-		when = min(when, ncrx->now + ncrx->p.retx_intv);
+		when = min(when, ncrx->now_mono + ncrx->p.retx_intv);
 
 	/* oos timeout */
 	if ((msg = msg_list_peek(&ncrx->oos_list)))
-		when = min(when, msg->rx_at + ncrx->p.oos_timeout);
+		when = min(when, msg->rx_at_mono + ncrx->p.oos_timeout);
 
 	/* min 10ms intv to avoid busy loop in case something goes bonkers */
-	return max(when, ncrx->now + 10);
+	return max(when, ncrx->now_mono + 10);
 }
 
 struct ncrx *ncrx_create(const struct ncrx_param *param)
