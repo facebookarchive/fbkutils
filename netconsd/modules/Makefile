@@ -4,7 +4,7 @@ CCC = g++
 CFLAGS = -O2 -D_GNU_SOURCE -fPIC -fno-strict-aliasing -Wall -Wextra \
 	-Wno-unused-function -Wno-unused-parameter \
 	-Wno-missing-field-initializers
-CCFLAGS = -std=c++17 $(CFLAGS)
+CCFLAGS = -std=c++11 $(CFLAGS)
 INCLUDES = -I../../ncrx -I ../include
 
 mods = printer.so logger.so
