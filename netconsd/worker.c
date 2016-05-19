@@ -234,6 +234,7 @@ static struct hashtable *create_hashtable(int order, struct hashtable *old)
 
 	new->load = old->load;
 
+	free(old->table);
 	free(old);
 	return new;
 }
@@ -246,6 +247,7 @@ static void destroy_hashtable(struct hashtable *ht)
 		if (ht->table[i].ncrx)
 			ncrx_destroy(ht->table[i].ncrx);
 
+	free(ht->table);
 	free(ht);
 }
 
