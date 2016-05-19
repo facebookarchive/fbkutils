@@ -31,6 +31,7 @@ static int nr_outputs;
 int register_output_module(char *path)
 {
 	void *dl, *dlsym_addr;
+	int (*mod_init)(void);
 
 	if (nr_outputs == MAXOUTS)
 		return -1;
@@ -40,22 +41,34 @@ int register_output_module(char *path)
 		return -1;
 
 	dlsym_addr = dlsym(dl, "netconsd_output_handler");
-	if (!dlsym_addr) {
-		dlclose(dl);
-		return -1;
-	}
+	if (!dlsym_addr)
+		goto err_close;
+
+	mod_init = dlsym(dl, "netconsd_output_init");
+	if (mod_init && mod_init())
+		goto err_close;
 
 	output_dlhandles[nr_outputs] = dl;
 	outputs[nr_outputs] = dlsym_addr;
 	nr_outputs++;
 	return 0;
+
+err_close:
+	dlclose(dl);
+	return -1;
 }
 
 void destroy_output_modules(void)
 {
 	int i, ret;
+	void (*mod_exit)(void);
 
 	for (i = 0; i < nr_outputs; i++) {
+		mod_exit = dlsym(output_dlhandles[i], "netconsd_output_exit");
+
+		if (mod_exit)
+			mod_exit();
+
 		ret = dlclose(output_dlhandles[i]);
 		if (ret)
 			warn("dlclose() failed: %s\n", dlerror());
