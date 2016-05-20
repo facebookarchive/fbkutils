@@ -48,7 +48,8 @@ struct ncrx_msg {
 
 	/* private fields */
 	struct ncrx_list	node;
-	uint64_t		rx_at;		/* rx timestamp in msec */
+	uint64_t		rx_at_mono;	/* monotonic rx time in msec */
+	uint64_t		rx_at_real;	/* real rx time in msec */
 	int			ncfrag_off;	/* netconsole frag offset */
 	int			ncfrag_len;	/* netconsole frag len */
 	int			ncfrag_left;	/* number of missing bytes */

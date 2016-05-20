@@ -160,7 +160,7 @@ void *udp_listener_thread(void *arg)
 
 		debug("recvmmsg() got %d packets\n", nr_recv);
 
-		now = now_epoch_ms();
+		now = now_real_ms();
 		for (i = 0; i < nr_recv; i++) {
 			cur = msgbuf_from_iovec(vec[i].msg_hdr.msg_iov);
 

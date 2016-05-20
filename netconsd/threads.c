@@ -142,14 +142,14 @@ static void create_worker_threads(struct tctl *ctl, struct netconsd_params *p)
 
 		pthread_mutex_init(&cur->queuelock, NULL);
 		pthread_condattr_init(&cur->condattr);
-		pthread_condattr_setclock(&cur->condattr, CLOCK_REALTIME);
+		pthread_condattr_setclock(&cur->condattr, CLOCK_MONOTONIC);
 		pthread_cond_init(&cur->cond, &cur->condattr);
 		cur->queue_head = NULL;
 		cur->thread_nr = i;
 
 		cur->gc_int_ms = p->gc_int_ms;
 		cur->gc_age_ms = p->gc_age_ms;
-		cur->lastgc = p->gc_int_ms ? now_epoch_ms() / p->gc_int_ms : 0;
+		cur->lastgc = p->gc_int_ms ? now_mono_ms() / p->gc_int_ms : 0;
 
 		r = pthread_create(&cur->id, NULL, ncrx_worker_thread, cur);
 		if (r)
