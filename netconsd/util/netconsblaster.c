@@ -26,7 +26,13 @@
 #include <netinet/ip6.h>
 #include <netinet/udp.h>
 
-#include "include/common.h"
+static inline unsigned long now_epoch_ms(void)
+{
+	struct timespec t;
+
+	clock_gettime(CLOCK_REALTIME, &t);
+	return t.tv_sec * 1000 + t.tv_nsec / 1000000L;
+}
 
 static struct params {
 	int srcaddr_order;
@@ -40,7 +46,8 @@ static struct params {
 
 static int ones_complement_sum(unsigned short *data, int len, int sum)
 {
-	unsigned int tmp, i;
+	unsigned int tmp;
+	int i;
 
 	for (i = 0; i < len / 2; i++) {
 		tmp = ntohs(data[i]);
@@ -58,8 +65,10 @@ static int ones_complement_sum(unsigned short *data, int len, int sum)
 		}
 	}
 
-	if (len & 1)
-		fatal("Calvin is lazy\n");
+	if (len & 1) {
+		puts("Calvin is lazy\n");
+		abort();
+	}
 
 	return sum;
 }
@@ -108,7 +117,6 @@ static int write_message(int sockfd, struct in6_addr *src, struct in6_addr *dst,
 	struct sockaddr_in6 bogus = {
 		.sin6_family = AF_INET6,
 	};
-	int ret;
 
 	char raw[sizeof(struct ip6_hdr) + sizeof(struct udphdr) + len];
 	struct ip6_hdr *ipv6hdr = (void*)raw;
@@ -145,8 +153,10 @@ static int get_raw_socket(void)
 	int fd;
 
 	fd = socket(AF_INET6, SOCK_RAW, IPPROTO_RAW);
-	if (fd == -1)
-		fatal("Couldn't get raw socket: %m\n");
+	if (fd == -1) {
+		printf("Couldn't get raw socket: %m\n");
+		abort();
+	}
 
 	return fd;
 }
@@ -225,12 +235,16 @@ static void parse_arguments(int argc, char **argv, struct params *p)
 			p->srcaddr_order = atoi(optarg);
 			break;
 		case 's':
-			if (inet_pton(AF_INET6, optarg, &p->src) != 1)
-				fatal("Bad src '%s': %m\n", optarg);
+			if (inet_pton(AF_INET6, optarg, &p->src) != 1) {
+				printf("Bad src '%s': %m\n", optarg);
+				abort();
+			}
 			break;
 		case 'd':
-			if (inet_pton(AF_INET6, optarg, &p->dst) != 1)
-				fatal("Bad dst '%s': %m\n", optarg);
+			if (inet_pton(AF_INET6, optarg, &p->dst) != 1) {
+				printf("Bad dst '%s': %m\n", optarg);
+				abort();
+			}
 			break;
 		case 't':
 			p->nr_threads = atoi(optarg);
@@ -239,7 +253,8 @@ static void parse_arguments(int argc, char **argv, struct params *p)
 			p->blastcount = atol(optarg);
 			break;
 		default:
-			fatal("Invalid command line parameters\n");
+			puts("Invalid command line parameters");
+			abort();
 		}
 	}
 }
@@ -266,8 +281,10 @@ int main(int argc, char **argv)
 	start = now_epoch_ms();
 	for (i = 0; i < params.nr_threads; i++) {
 		ret = pthread_create(&ids[i], NULL, blast, &params);
-		if (ret)
-			fatal("Couldn't spawn thread: %d\n", ret);
+		if (ret) {
+			printf("Couldn't spawn thread: %d\n", ret);
+			abort();
+		}
 	}
 
 	count = 0;
