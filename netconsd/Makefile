@@ -11,6 +11,9 @@ debug: CFLAGS += -Og -gdwarf-4 -fno-omit-frame-pointer -fstack-protector-all \
 	-fsanitize=address -fsanitize=undefined
 debug: LDFLAGS := -lasan -lubsan $(LDFLAGS)
 
+netconsblaster:
+	$(CC) $(LDFLAGS) $(CFLAGS) util/netconsblaster.c -o util/netconsblaster
+
 binary = netconsd
 lib = ../ncrx/libncrx.o
 obj = threads.o listener.o worker.o output.o main.o
