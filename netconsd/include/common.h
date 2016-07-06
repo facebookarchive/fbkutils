@@ -40,6 +40,11 @@
 	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
 	(type *)( (char *)__mptr - __builtin_offsetof(type,member) );})
 
+static inline void *zalloc(size_t n)
+{
+	return calloc(1, n);
+}
+
 static void assert_pthread_mutex_locked(pthread_mutex_t *mutex)
 {
 	if (pthread_mutex_trylock(mutex) != EBUSY)

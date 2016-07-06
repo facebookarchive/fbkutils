@@ -48,7 +48,7 @@ struct bucket {
 struct hashtable {
 	unsigned long order;
 	unsigned long load;
-	struct bucket *table;
+	struct bucket table[];
 };
 
 static unsigned long hash_srcaddr(struct in6_addr *addr)
@@ -201,12 +201,8 @@ static struct hashtable *create_hashtable(int order, struct hashtable *old)
 	struct bucket *bkt;
 	unsigned long i;
 
-	new = calloc(1, sizeof(*new));
+	new = zalloc(sizeof(*new) + sizeof(struct bucket) * (1UL << order));
 	if (!new)
-		fatal("Unable to allocate hashtable\n");
-
-	new->table = calloc(1UL << order, sizeof(struct bucket));
-	if (!new->table)
 		fatal("Unable to allocate hashtable\n");
 
 	new->order = order;
@@ -235,7 +231,6 @@ static struct hashtable *create_hashtable(int order, struct hashtable *old)
 
 	new->load = old->load;
 
-	free(old->table);
 	free(old);
 	return new;
 }
@@ -248,7 +243,6 @@ static void destroy_hashtable(struct hashtable *ht)
 		if (ht->table[i].ncrx)
 			ncrx_destroy(ht->table[i].ncrx);
 
-	free(ht->table);
 	free(ht);
 }
 
