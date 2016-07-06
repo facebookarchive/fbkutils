@@ -53,8 +53,9 @@ struct hashtable {
 
 static unsigned long hash_srcaddr(struct in6_addr *addr)
 {
-	return jhash2((uint32_t *)addr, sizeof(*addr) / sizeof(uint32_t),
-			0xbeefdead);
+	uint32_t *addrptr = (uint32_t *)addr;
+
+	return jhash2(addrptr, sizeof(*addr) / sizeof(*addrptr), WORKER_SEED);
 }
 
 static unsigned long order_mask(int order)

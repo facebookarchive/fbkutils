@@ -44,8 +44,9 @@ static struct msgbuf *msgbuf_from_iovec(struct iovec *vecptr)
 
 static unsigned long hash_srcaddr(struct in6_addr *addr)
 {
-	return jhash2((uint32_t *)addr, sizeof(*addr) / sizeof(uint32_t),
-			0xdeadbeef);
+	uint32_t *addrptr = (uint32_t *)addr;
+
+	return jhash2(addrptr, sizeof(*addr) / sizeof(*addrptr), LISTEN_SEED);
 }
 
 static void prequeue_msgbuf(struct ncrx_listener *listener, struct msgbuf *buf)
