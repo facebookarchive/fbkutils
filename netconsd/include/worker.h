@@ -38,10 +38,10 @@ struct ncrx_worker {
 
 	unsigned int gc_age_ms;
 	unsigned int gc_int_ms;
-	unsigned long lastgc;
+	uint64_t lastgc;
 
-	unsigned long processed;
-	unsigned long hosts_seen;
+	uint64_t processed;
+	uint64_t hosts_seen;
 	int thread_nr;
 
 	/*

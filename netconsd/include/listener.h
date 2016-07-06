@@ -30,7 +30,7 @@ struct ncrx_listener {
 	int nr_workers;
 	int port;
 	int batch;
-	unsigned long processed;
+	uint64_t processed;
 
 	/*
 	 * Flags

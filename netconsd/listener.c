@@ -8,6 +8,8 @@
  */
 
 #include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
@@ -144,7 +146,7 @@ static int get_listen_socket(int port)
 void *udp_listener_thread(void *arg)
 {
 	int fd, nr_recv, i;
-	unsigned long now;
+	uint64_t now;
 	struct ncrx_listener *us = arg;
 	struct mmsghdr *vec;
 	struct msgbuf *cur;

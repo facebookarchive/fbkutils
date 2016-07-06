@@ -8,6 +8,8 @@
  */
 
 #include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <signal.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -85,7 +87,7 @@ void enqueue_and_wake_all(struct ncrx_listener *listener)
 static void stop_and_wait_for_workers(struct tctl *ctl)
 {
 	int i;
-	unsigned long total_processed = 0, total_hosts = 0;
+	uint64_t total_processed = 0, total_hosts = 0;
 
 	for (i = 0; i < ctl->nr_workers; i++) {
 		ctl->workers[i].stop = 1;
@@ -98,11 +100,12 @@ static void stop_and_wait_for_workers(struct tctl *ctl)
 
 		total_processed += ctl->workers[i].processed;
 		total_hosts += ctl->workers[i].hosts_seen;
-		log("Exiting worker %d got %lu msgs from %lu hosts\n", i,
-			ctl->workers[i].processed, ctl->workers[i].hosts_seen);
+		log("Exiting worker %d got %" PRIu64 " msgs from %" PRIu64 " hosts\n",
+				i, ctl->workers[i].processed,
+				ctl->workers[i].hosts_seen);
 	}
 
-	log("Total messages processed by workers: %lu from %lu hosts\n",
+	log("Total messages processed by workers: %" PRIu64 " from %" PRIu64 " hosts\n",
 			total_processed, total_hosts);
 	free(ctl->workers);
 }
@@ -110,7 +113,7 @@ static void stop_and_wait_for_workers(struct tctl *ctl)
 static void stop_and_wait_for_listeners(struct tctl *ctl)
 {
 	int i;
-	unsigned long total_processed = 0;
+	uint64_t total_processed = 0;
 
 	for (i = 0; i < ctl->nr_listeners; i++) {
 		ctl->listeners[i].stop = 1;
@@ -120,11 +123,12 @@ static void stop_and_wait_for_listeners(struct tctl *ctl)
 		free(ctl->listeners[i].prequeues);
 
 		total_processed += ctl->listeners[i].processed;
-		log("Exiting listener %d queued %lu messages\n", i,
+		log("Exiting listener %d queued %" PRIu64 " messages\n", i,
 				ctl->listeners[i].processed);
 	}
 
-	log("Total messages processed by listeners: %lu\n", total_processed);
+	log("Total messages processed by listeners: %" PRIu64 "\n",
+			total_processed);
 	free(ctl->listeners);
 }
 

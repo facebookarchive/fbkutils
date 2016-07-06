@@ -8,6 +8,8 @@
  */
 
 #include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <pthread.h>
 #include <string.h>
 #include <limits.h>
@@ -35,13 +37,13 @@ static const struct ncrx_param ncrx_param = {
 struct timerlist {
 	struct timerlist *prev;
 	struct timerlist *next;
-	unsigned long when;
+	uint64_t when;
 };
 
 struct bucket {
 	struct in6_addr src;
 	struct ncrx *ncrx;
-	unsigned long last_seen;
+	uint64_t last_seen;
 	struct timerlist timernode;
 };
 
@@ -93,32 +95,46 @@ static struct bucket *hlookup(struct hashtable *h, struct in6_addr *src)
 	return &h->table[idx];
 }
 
-
+/*
+ * Use -1 to represent "no wake needed"
+ */
 static void reset_waketime(struct ncrx_worker *cur)
 {
-	/*
-	 * Use a large value, but one that won't overflow in the subsequent
-	 * multiplication by 1000 in maybe_update_wake() below.
-	 */
-	cur->wake.tv_sec = 1L << 48;
-	cur->wake.tv_nsec = 0;
+	cur->wake.tv_sec = -1;
 }
 
-static unsigned long ms_from_timespec(struct timespec *t)
+static uint64_t ms_from_timespec(struct timespec *t)
 {
-	return t->tv_sec * 1000 + t->tv_nsec / 1000000L;
+	return t->tv_sec * 1000LL + t->tv_nsec / 1000000L;
 }
 
 /*
- * We may need to make the wakeup time for pthread_cond_timedwait() sooner.
+ * Update the waketime if @when is before the current waketime.
+ *
+ * We assume that CLOCK_MONOTONIC cannot wrap: strictly speaking this is wrong,
+ * since POSIX allows the MONOTONIC clock to start from any arbitrary value; but
+ * since it starts from zero on Linux I'm not going to jump through the hoops.
  */
-static void maybe_update_wake(struct ncrx_worker *cur, unsigned long when)
+static void maybe_update_wake(struct ncrx_worker *cur, uint64_t when)
 {
-	if (ms_from_timespec(&cur->wake) <= when)
+	uint64_t curwake = ms_from_timespec(&cur->wake);
+	if ((int64_t)curwake >= 0LL && curwake <= when)
 		return;
 
-	cur->wake.tv_sec = when / 1000;
-	cur->wake.tv_nsec = (when % 1000) * 1000000L;
+	cur->wake.tv_sec = when / 1000LL;
+	cur->wake.tv_nsec = (when % 1000LL) * 1000000L;
+}
+
+static const struct timespec end_of_time = {
+	.tv_sec = (time_t)((1ULL << ((sizeof(time_t) << 3) - 1)) - 1),
+};
+
+static const struct timespec *next_waketime(struct ncrx_worker *cur)
+{
+	if (cur->wake.tv_sec == -1)
+		return &end_of_time;
+
+	return &cur->wake;
 }
 
 static struct bucket *bucket_from_timernode(struct timerlist *node)
@@ -163,7 +179,7 @@ static void timerlist_del(struct timerlist *node)
 /*
  * Return the callback time of the newest item on the list
  */
-static unsigned long timerlist_peek(struct timerlist *list)
+static uint64_t timerlist_peek(struct timerlist *list)
 {
 	if (timerlist_empty(list))
 		return 0;
@@ -314,7 +330,8 @@ static void hdelete(struct hashtable *h, struct bucket *victim)
  */
 static void try_to_garbage_collect(struct ncrx_worker *cur)
 {
-	unsigned long i, now, end, count = 0;
+	unsigned long i, count = 0;
+	uint64_t now, end;
 	struct bucket *bkt;
 
 	now = now_mono_ms();
@@ -328,12 +345,13 @@ static void try_to_garbage_collect(struct ncrx_worker *cur)
 	}
 	end = now_mono_ms();
 
-	log("Worker %d GC'd %lu in %lums\n", cur->thread_nr, count, end - now);
+	log("Worker %d GC'd %lu in %" PRIu64 "ms\n", cur->thread_nr, count,
+			end - now);
 }
 
 static void maybe_garbage_collect(struct ncrx_worker *cur)
 {
-	unsigned long nowgc;
+	uint64_t nowgc;
 
 	if (!cur->gc_int_ms)
 		return;
@@ -346,10 +364,10 @@ static void maybe_garbage_collect(struct ncrx_worker *cur)
 }
 
 static void schedule_ncrx_callback(struct ncrx_worker *cur, struct bucket *bkt,
-		unsigned long when)
+		uint64_t when)
 {
 	struct timerlist *tgtlist;
-	unsigned long now;
+	uint64_t now;
 
 	if (when == UINT64_MAX) {
 		/*
@@ -397,7 +415,7 @@ static void schedule_ncrx_callback(struct ncrx_worker *cur, struct bucket *bkt,
 static void drain_bucket_ncrx(struct ncrx_worker *cur, struct bucket *bkt)
 {
 	struct ncrx_msg *out;
-	unsigned long when;
+	uint64_t when;
 
 	while ((out = ncrx_next_msg(bkt->ncrx))) {
 		execute_output_pipeline(cur->thread_nr, &bkt->src, NULL, out);
@@ -412,8 +430,8 @@ static void drain_bucket_ncrx(struct ncrx_worker *cur, struct bucket *bkt)
  * Execute callbacks for a specific timerlist, until either the list is empty or
  * we reach an entry that was queued for a time in the future.
  */
-static void do_ncrx_callbacks(struct ncrx_worker *cur,
-		struct timerlist *list, unsigned long now)
+static void do_ncrx_callbacks(struct ncrx_worker *cur, struct timerlist *list,
+		uint64_t now)
 {
 	struct timerlist *tnode, *tmp;
 	struct bucket *bkt;
@@ -451,10 +469,9 @@ static void do_ncrx_callbacks(struct ncrx_worker *cur,
  *	We wrapped, so just iterate over the entire wheel and drain until we see
  *	a callback where ->when is later than NOW.
  */
-static unsigned long run_ncrx_callbacks(struct ncrx_worker *cur,
-		unsigned long lastrun)
+static uint64_t run_ncrx_callbacks(struct ncrx_worker *cur, uint64_t lastrun)
 {
-	unsigned long i, now = now_mono_ms();
+	uint64_t i, now = now_mono_ms();
 
 	if (now == lastrun)
 		goto out;
@@ -518,7 +535,7 @@ void *ncrx_worker_thread(void *arg)
 {
 	struct ncrx_worker *cur = arg;
 	struct msgbuf *curbuf, *tmp;
-	unsigned long lastrun = now_mono_ms();
+	uint64_t lastrun = now_mono_ms();
 	int nr_dequeued;
 
 	cur->ht = create_hashtable(16, NULL);
@@ -527,7 +544,9 @@ void *ncrx_worker_thread(void *arg)
 	reset_waketime(cur);
 	pthread_mutex_lock(&cur->queuelock);
 	while (!cur->stop) {
-		pthread_cond_timedwait(&cur->cond, &cur->queuelock, &cur->wake);
+		pthread_cond_timedwait(&cur->cond, &cur->queuelock,
+				next_waketime(cur));
+
 		reset_waketime(cur);
 morework:
 		curbuf = grab_prequeue(cur);

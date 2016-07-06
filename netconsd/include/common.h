@@ -11,6 +11,7 @@
 #define __COMMON_H__
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <time.h>
 #include <string.h>
 #include <errno.h>
@@ -51,7 +52,7 @@ static void assert_pthread_mutex_locked(pthread_mutex_t *mutex)
 		fatal("assert_pthread_mutex_locked found unlocked mutex!\n");
 }
 
-static inline unsigned long now_ms(clockid_t clock)
+static inline uint64_t now_ms(clockid_t clock)
 {
 	struct timespec t;
 	int ret;
@@ -59,15 +60,15 @@ static inline unsigned long now_ms(clockid_t clock)
 	ret = clock_gettime(clock, &t);
 	fatal_on(ret, "Oops, clock_gettime() barfed: %m (-%d)\n", errno);
 
-	return t.tv_sec * 1000 + t.tv_nsec / 1000000L;
+	return t.tv_sec * 1000LL + t.tv_nsec / 1000000L;
 }
 
-static inline unsigned long now_mono_ms(void)
+static inline uint64_t now_mono_ms(void)
 {
 	return now_ms(CLOCK_MONOTONIC);
 }
 
-static inline unsigned long now_real_ms(void)
+static inline uint64_t now_real_ms(void)
 {
 	return now_ms(CLOCK_REALTIME);
 }
