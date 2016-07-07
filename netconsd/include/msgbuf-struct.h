@@ -22,11 +22,11 @@ struct msgbuf {
 
 	struct iovec iovec;
 	struct sockaddr_in6 src;
+	uint64_t rcv_time;
 	int rcv_flags;
 	int rcv_bytes;
-	unsigned long rcv_time;
 
-	char buf[0];
+	char buf[];
 };
 
 #endif /* __MSGBUF_STRUCT_H__ */

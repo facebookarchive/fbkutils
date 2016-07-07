@@ -8,6 +8,8 @@
  */
 
 #include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
@@ -44,8 +46,9 @@ static struct msgbuf *msgbuf_from_iovec(struct iovec *vecptr)
 
 static unsigned long hash_srcaddr(struct in6_addr *addr)
 {
-	return jhash2((uint32_t *)addr, sizeof(*addr) / sizeof(uint32_t),
-			0xdeadbeef);
+	uint32_t *addrptr = (uint32_t *)addr;
+
+	return jhash2(addrptr, sizeof(*addr) / sizeof(*addrptr), LISTEN_SEED);
 }
 
 static void prequeue_msgbuf(struct ncrx_listener *listener, struct msgbuf *buf)
@@ -143,7 +146,7 @@ static int get_listen_socket(int port)
 void *udp_listener_thread(void *arg)
 {
 	int fd, nr_recv, i;
-	unsigned long now;
+	uint64_t now;
 	struct ncrx_listener *us = arg;
 	struct mmsghdr *vec;
 	struct msgbuf *cur;

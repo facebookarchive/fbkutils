@@ -66,8 +66,12 @@ static inline uint32_t rol32(uint32_t word, unsigned int shift)
 	c ^= b; c -= rol32(b, 24);		\
 }
 
-/* An arbitrary initial parameter */
-#define JHASH_INITVAL		0xdeadbeef
+/*
+ * Arbitrary initial parameters
+ */
+#define JHASH_INITVAL	0xdeadbeef
+#define LISTEN_SEED	0xfaceb00c
+#define WORKER_SEED	0xb00cface
 
 /* jhash2 - hash an array of uint32_t's
  * @k: the key which must be an array of uint32_t's
@@ -76,7 +80,8 @@ static inline uint32_t rol32(uint32_t word, unsigned int shift)
  *
  * Returns the hash value of the key.
  */
-static inline uint32_t jhash2(const uint32_t *k, uint32_t length, uint32_t initval)
+static inline __attribute__((pure)) uint32_t jhash2(const uint32_t *k,
+		uint32_t length, uint32_t initval)
 {
 	uint32_t a, b, c;
 
@@ -104,34 +109,6 @@ static inline uint32_t jhash2(const uint32_t *k, uint32_t length, uint32_t initv
 	}
 
 	return c;
-}
-
-
-/* __jhash_nwords - hash exactly 3, 2 or 1 word(s) */
-static inline uint32_t __jhash_nwords(uint32_t a, uint32_t b, uint32_t c, uint32_t initval)
-{
-	a += initval;
-	b += initval;
-	c += initval;
-
-	__jhash_final(a, b, c);
-
-	return c;
-}
-
-static inline uint32_t jhash_3words(uint32_t a, uint32_t b, uint32_t c, uint32_t initval)
-{
-	return __jhash_nwords(a, b, c, initval + JHASH_INITVAL + (3 << 2));
-}
-
-static inline uint32_t jhash_2words(uint32_t a, uint32_t b, uint32_t initval)
-{
-	return __jhash_nwords(a, b, 0, initval + JHASH_INITVAL + (2 << 2));
-}
-
-static inline uint32_t jhash_1word(uint32_t a, uint32_t initval)
-{
-	return __jhash_nwords(a, 0, 0, initval + JHASH_INITVAL + (1 << 2));
 }
 
 #endif /* _LINUX_JHASH_H */
