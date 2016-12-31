@@ -1,0 +1,74 @@
+#
+# Basic rate tests
+#
+# Consists of the following 15 tests:
+#        1) 1->1:  1x1M             1s1c1fr
+#        2) 1->1:  1XS              1s1c1fs
+#        3) 1->1:  1x1M,10K         1s1c2fvr
+#        4) 2->1:  1x1M,10K         1s2c2fvr
+#        5) 3->1:  2x1M,10K         1s3c3fvr
+#        6) 3->1:  4x1M,10K         1s3c5fvr
+#        7) 3->1:  4x1M,10K  3mins  1s3c5fvr
+#        8) 3->1:  1M               1s3c1fr
+#        9) 3->1:  2x1M             1s3c2fr
+#       10) 3->1:  4x1M             1s3c4fr
+#       11) 3->1:  8x1M             1s3c8fr
+#       12) 3->1: 16x1M             1s3c16fr
+#       13) 3->1: 4xSTREAM          1s3c4fs
+#       14) 3->1: 8xSTREAM          1s3c8fs
+#       15) 3->1:16xSTREAM          1s3c16fs
+#
+
+# Set default host suffix
+HOST_SUFFIX mynetwork.com
+
+# Set hosts for 1, 2, 3 or 4 client host experiments
+# replace with your own hostnames
+SET client1=kerneltest010
+SET client2=kerneltest011
+SET client3=kerneltest012
+SET servers1=kerneltest014
+SET ca=dctcp
+DESC ECN_800:3600
+#DESC ECN_9k:10K+100msRTT
+#DESC ECN_400:1802+100msRTT
+
+
+SET clients1=$client1
+SET clients2=$client1,$client2
+SET clients3=$client1,$client2,$client3
+
+# Load library with macros
+# DEBUG_DISABLE
+SOURCE inlib
+SOURCE inlib.rateTest
+# DEBUG_RESTORE
+
+SET instances=1				# how many flow instances per host
+SET dur=60						# duration of each run in seconds
+
+# set default reply size of RPCs
+SET reply=1						# use RPC reply size of 1 byte
+
+#
+# Define commands to run before each test
+# 
+# On Server(s)
+#
+BEGIN preServer
+# set large receive buffers in server
+SET_SYSCTL host=$host net.ipv4.tcp_rmem=10000,262144,20971520
+END preServer
+#
+# On Client(s)
+#
+BEGIN preClient
+# set large send buffers in client
+SET_SYSCTL host=$host net.ipv4.tcp_wmem=10000,262144,20971520
+END preClient
+
+
+RUN ExpRate
+
+END
+

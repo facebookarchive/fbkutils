@@ -1,0 +1,1 @@
+#list of ipv6 addresses that can use the netesto server

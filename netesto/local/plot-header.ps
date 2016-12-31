@@ -1,0 +1,1081 @@
+%!PS-Adobe-2.0
+%%DocumentFonts: Courier Helvetica Helvetica-Bold
+%%%BoundingBox: 0 0 535 502
+%%EndComments
+%%BeginProcSet: trace.ps 1 0
+
+% plot-header.ps - Postscript library for graphing
+%
+% Copyright (C) 2016, Lawrence Brakmo
+% All rights reserved.
+%
+% This source code is licensed under the BSD-style license found in the LICENSE
+% file in the root directory of this source tree.
+
+%
+% Define fonts
+%
+200 dict begin
+/Cfont {
+  /Courier findfont exch scalefont setfont
+}def
+%
+/Hfont {
+  /Helvetica findfont exch scalefont setfont
+} def
+/VHfont {
+  /Helvetica findfont exch scalefont 90 matrix rotate makefont setfont
+} def
+%
+/HBfont {
+  /Helvetica-Bold findfont exch scalefont setfont
+} def
+%
+% Other defines
+%
+/in {72 mul} def
+/str 128 string def
+.4 setlinewidth
+%
+%xpos ypos xlen [tic1 tic2 ... ticn] title haxis
+%
+/haxis {
+  /title exch def
+  /vals exch def
+  /xlen exch in def
+  /yt exch in def /xpos exch in def
+  /ymin 10 in def
+  9 Hfont
+  0 setgray
+  xpos yt moveto xlen 0 rlineto closepath stroke
+  /xinc xlen vals length div def
+  1 1 vals length dup /xtics exch def { 
+    dup /i667 exch def
+    dup /x exch xinc mul xpos add def
+    x yt moveto  
+    x yt 0.08 in sub dup /ytt exch def lineto stroke
+    vals exch 1 sub get 
+    { 
+      token { 40 string cvs 
+    dup stringwidth pop 2 div neg
+    x add ytt 0.12 in sub dup /ytt exch def moveto show
+    } { exit } ifelse } loop
+    ytt ymin lt { /ymin ytt def } if
+  } for
+  12 HBfont
+  title stringwidth pop 2 div neg
+  xpos xlen 2 div add add ymin .20 in sub moveto title show
+} def
+%
+%
+%xpos ypos ylen [tic1 tic2 ... ticn] title vaxis
+%
+/vaxis {
+  /title exch def
+  /vals exch def
+  /ylen exch in def
+  /ypos exch in def /xt exch in def
+%  /xmin xt .4 in sub def
+   /xmin xt def
+  9 Hfont
+  0 setgray
+  xt ypos moveto 0 ylen rlineto closepath stroke
+  /yinc1 ylen vals length div def
+  /yinc yinc1 def
+  1 1 vals length dup /ytics exch def { 
+    dup /y exch yinc mul ypos add def
+    xt y moveto  
+    xt 0.08 in sub y lineto stroke
+    vals exch 1 sub get dup stringwidth pop neg
+    xt add 0.12 in sub     
+    dup xmin lt { dup /xmin exch def } if 
+    y 0.04 in sub moveto show
+  } for
+  /Helvetica-Bold findfont [0 12 -12 0 0 0] makefont setfont  
+  title stringwidth exch pop 2 div neg
+  xmin .1 in sub exch ypos ylen 2 div add add moveto title show
+} def
+/yinc1 0 def
+/yinc2 0 def
+/vaxis2 {
+  /title exch def
+  /vals exch def
+  /ylen exch in def
+  /ypos exch in def /xt exch in def
+  /xmin xt .6 in add def
+  9 Hfont
+%  0 setgray
+%  0.0 0.5 0.5 setrgbcolor
+%   AquaC
+    RedC
+  xt ypos moveto 0 ylen rlineto closepath stroke
+  /yinc2 ylen vals length div def
+  /yinc yinc2 def
+  1 1 vals length dup /ytics exch def {
+    dup /y exch yinc mul ypos add def
+    xt y moveto
+    xt 0.08 in add y lineto stroke
+    vals exch 1 sub get 
+%dup stringwidth pop neg
+    xt 0.12 in add
+    y 0.04 in sub moveto show
+  } for
+  /Helvetica-Bold findfont [0 12 -12 0 0 0] makefont setfont
+  title stringwidth exch pop 2 div neg
+  xmin exch ypos ylen 2 div add add moveto title show
+} def
+%
+% Set origin and size of axes
+%
+/xAxisLen 6.0 def
+/graph1of1 {
+  /axpos 1.25 def
+  /aypos 1.75 def
+  /axlen xAxisLen def
+  /aylen 6.5 def
+} def
+/graph1of2 {
+  /axpos 1.25 def
+  /aypos 6.25 def
+  /axlen xAxisLen def
+  /aylen 3.75 def
+} def  
+/graph2of2 {
+  /axpos 1.25 def
+  /aypos 1.00 def
+  /axlen xAxisLen def
+  /aylen 3.75 def
+} def  
+/graph1of2small {
+  /axpos 1.25 def
+  /aypos 6.25 def
+  /axlen xAxisLen def
+  /aylen 2.2 def
+} def  
+/graph2of2small {
+  /axpos 1.25 def
+  /aypos 1.00 def
+  /axlen xAxisLen def
+  /aylen 2.2 def
+} def
+/graph1of4v {
+  /axpos 1.0 def
+  /aypos 7.7 def
+  /axlen xAxisLen def
+  /aylen 1.5 def
+} def
+/graph2of4v {
+  /axpos 1.0 def
+  /aypos 5.4 def
+  /axlen xAxisLen def
+  /aylen 1.5 def
+} def
+/graph3of4v {
+  /axpos 1.0 def
+  /aypos 3.1 def
+  /axlen xAxisLen def
+  /aylen 1.5 def
+} def
+/graph4of4v {
+  /axpos 1.0 def
+  /aypos .7 def
+  /axlen xAxisLen def
+  /aylen 1.5 def
+} def
+/Flag2Yaxes 0 def
+/graph4v {
+  /axpos 1.0 def
+  /aypos 10.2 def
+  Flag2Yaxes 0 eq { /axlen xAxisLen def } { /axlen xAxisLen 0.5 sub def } ifelse
+  /aylen 1.2 def
+  /graph4vN 0 def
+} def
+/nextGraph4v {
+    /graph4vN graph4vN 1 add def
+    /aypos aypos 2.3 sub def
+    graph4vN 4 gt { showpage graph4v nextGraph4v } if
+} def
+/graph2v {
+  Flag2Yaxes 0 eq { /axlen xAxisLen def } { /axlen xAxisLen 0.5 sub def } ifelse
+  /aylen 3.70 def
+  /axpos 1.0 def
+  /aypos 11.5 def
+  /graph2vN 0 def
+} def
+/nextGraph2v {
+  /graph2vN graph2vN 1 add def
+  /aypos aypos aylen 1.65 add sub def
+  graph2vN 2 gt { showpage graph2v nextGraph2v } if
+} def
+/graph1v {
+  Flag2Yaxes 0 eq { /axlen xAxisLen def } { /axlen xAxisLen 0.5 sub def } ifelse
+  /aylen 3.70 def
+  /axpos 1.0 def
+  /aypos 6.0 def
+  /graph1vN 0 def
+} def
+/nextGraph1v {
+  /graph1vN graph1vN 1 add def
+  /aypos aypos aylen 1.65 add sub def
+  graph1vN 1 gt { showpage graph1v nextGraph1v } if
+} def
+
+/doGraph {
+    graph4v
+}def
+/nextGraph {
+    nextGraph4v
+} def
+/endGraph {
+    showpage
+} def
+%
+% Axes
+%
+/plotBgLevel 0.8 def
+/axes { % xanot yanot xtitle ytitle
+  /ytitle exch def
+  /xtitle exch def
+  /yanot exch def
+  /xanot exch def
+%  /aylen exch def
+%  /axlen exch def
+%  /aypos exch def
+%  /axpos exch def
+  axpos in aypos in moveto axlen in 0 rlineto 0 aylen in rlineto 
+    axlen in neg 0 rlineto 0 aylen in neg rlineto 
+    plotBgLevel setgray fill 0 setgray
+  axpos aypos axlen xanot xtitle haxis
+  axpos aypos aylen yanot ytitle vaxis
+} def
+%
+% define graph symbols
+%
+/symsize .025 in def
+/g0 { % small dot
+  symsize .8 mul dup 0 rmoveto 0 360 arc fill
+} def
+/g1 { % small circle
+   .1 setlinewidth symsize 1.17 mul dup 0 rmoveto 0 360 arc stroke
+} def
+/g2 {
+  .1 setlinewidth
+  /t symsize def /nt symsize neg def /t2 symsize dup add def
+  moveto nt nt rmoveto 0 t2 rlineto t2 0 rlineto
+  0 t2 neg rlineto t2 neg 0 rlineto stroke
+} def
+/g3 {
+  2 copy
+  /t symsize def .1 setlinewidth 
+  moveto 0 t rmoveto t t neg rlineto t neg t neg rlineto
+  t neg t rlineto t t rlineto stroke
+  /t symsize .3 mul def 0 setlinewidth 1 setgray
+  moveto 0 t rmoveto t t neg rlineto t neg t neg rlineto
+  t neg t rlineto t t rlineto fill 0 setgray
+} def
+/g4 {
+  .1 setlinewidth symsize 1.17 mul dup 0 rmoveto 0 360 arc fill
+} def
+/g5 {
+  .1 setlinewidth 
+  /t symsize def /nt symsize neg def /t2 symsize dup add def
+  moveto nt nt rmoveto 0 t2 rlineto t2 0 rlineto
+  0 t2 neg rlineto t2 neg 0 rlineto fill
+} def
+/g6 {
+  /t symsize def .1 setlinewidth 
+  moveto 0 t rmoveto t t neg rlineto t neg t neg rlineto
+  t neg t rlineto t t rlineto fill
+} def
+/g7 {
+  /t .03 in def  0 setlinewidth
+  moveto 0 t rmoveto 0 -2.2 t mul rlineto stroke
+} bind def
+/g8 {
+  /t .03 in def  0 setlinewidth
+  moveto 0 t rmoveto 0 -2.2 t mul rlineto 
+  t neg t neg rmoveto t t rlineto t t neg rlineto
+%      -.04 in 0 rmoveto .08 in 0 rlineto
+  stroke
+} bind def
+/g9 {
+  /t .03 in def  0 setlinewidth
+  /ywq exch def /xwq exch def xwq ywq moveto 0 t rmoveto 
+  0 -2.2 t mul rlineto 
+  xwq ywq t -1.2 mul add .015 in dup 0 rmoveto 0 360 arc stroke
+} bind def
+/g10 {
+  /t .03 in def  0 setlinewidth
+  /ywq exch def /xwq exch def xwq ywq moveto 0 t rmoveto 0 -2.2 t mul rlineto 
+  xwq ywq t -1.2 mul add .015 in dup 0 rmoveto 0 360 arc fill
+} bind def
+/g11 {
+  /t .03 in def  0 setlinewidth
+  /ywq exch def /xwq exch def xwq ywq moveto 0 t rmoveto 
+  0 -3.2 t mul rlineto 
+  xwq ywq t -2.2 mul add .015 in dup 0 rmoveto 0 360 arc stroke
+} bind def
+/g12 {
+  /t .03 in def  0 setlinewidth
+  /ywq exch def /xwq exch def xwq ywq moveto 0 t rmoveto 0 -2.2 t mul rmoveto 
+  xwq ywq t -1.2 mul add .015 in dup 0 rmoveto 0 360 arc fill
+} bind def
+/g13 {
+  /t .03 in def  0 setlinewidth
+  /ywq exch def /xwq exch def xwq ywq moveto 0 t rmoveto 
+  0 -3.2 t mul rmoveto
+  xwq ywq t -2.2 mul add .015 in dup 0 rmoveto 0 360 arc stroke
+} bind def
+/g14 { % line to upper right /
+  /t .03 in def 0 setlinewidth
+  /ywq exch def /xwq exch def xwq ywq moveto t t rlineto stroke
+} bind def
+/g15 { % line to upper left \ 
+  /t .03 in def 0 setlinewidth
+  /ywq exch def /xwq exch def xwq ywq moveto t neg t rlineto stroke
+} bind def
+/g16 { % line to lower right \
+  /t .03 in def 0 setlinewidth   
+  /ywq exch def /xwq exch def xwq ywq moveto t t neg rlineto stroke
+} bind def
+/g17 { % line to lower left /
+  /t .03 in def 0 setlinewidth   
+  /ywq exch def /xwq exch def xwq ywq moveto t neg t neg rlineto stroke
+} bind def
+/g18 { % line to right -
+  /t 0.03 in def 0 setlinewidth
+  /ywq exch def /xwq exch def xwq ywq moveto t 0 rlineto stroke
+} bind def
+/g19 { % line to left -
+  /t 0.03 in def 0 setlinewidth
+  /ywq exch def /xwq exch def xwq ywq moveto t neg 0 rlineto stroke
+} bind def
+/g20 { % plus +
+  /t 0.03 in def 0 setlinewidth
+  /ywq exch def /xwq exch def xwq t sub ywq moveto t 2 mul 0 rlineto stroke
+  xwq ywq t sub moveto 0 t 2 mul rlineto stroke
+} bind def
+/garray [ {g0} {g1} {g2} {g3} {g4} {g5} {g6} {g7} {g8} {g9} {g10} {g11} {g12} {g13} {g14} {g15} {g16} {g17} {g18} {g19} {g20} ] def
+%
+% grid lines
+%
+/xgridlines {  % lines-per-tic xgridlines
+%  0.78 setgray
+  [0.5 2] 0 setdash
+  0.1 setlinewidth
+  dup xtics { 
+    xinc mul xpos add dup ypos moveto ypos ylen add lineto stroke
+  } for
+  [] 0 setdash
+  0.4 setlinewidth
+%  0 setgray
+} def
+/ygridlines {  % lines-per-tic ygridlines
+%  0.78 setgray
+  [.5 2] 0 setdash
+  0.1 setlinewidth
+  dup ytics { 
+    yinc mul ypos add dup xpos exch moveto xpos xlen add exch lineto 
+    stroke
+  } for
+  [] 0 setdash
+  0.4 setlinewidth
+%  0 setgray
+} def
+/grid {  % lines-per-xtic lines-per-ytic grid
+  dup 0 ne { 1 exch div ygridlines } {pop} ifelse
+  dup 0 ne { 1 exch div xgridlines } {pop} ifelse
+} def
+%
+% fdescriptions 
+%
+/fdescriptions {
+  1 setlinewidth
+  count 2 idiv /n031 exch def
+  /x xpos xlen 2 div add def
+  /y ypos ylen add 0.15 in add def
+  10 Hfont
+  n031 { 
+    /i exch def
+    x y moveto x y garray i get exec 
+    x 0.15 in add y 0.03 in sub moveto
+    show y .2 in add /y exch def
+    i 1 add /i exch def
+  } repeat
+  /ymtitle y .07 in add def
+  0.4 setlinewidth
+} def
+/fdescriptionsC { % desc [text color]+
+  2 setlinewidth
+  count 1 sub 2 idiv /n031 exch def
+  /x xpos xlen add 0.25 in add def
+  Flag2Yaxes 1 eq { x 0.4 in add /x exch def } if
+  /y ypos ylen add 0.5 in sub def
+  12 HBfont
+  n031 { 
+    exec
+    x y moveto x 0.3 in add y lineto stroke 
+    x 0.4 in add y 0.03 in sub moveto
+    show y .2 in sub /y exch def
+  } repeat
+  0 setgray x ypos ylen add 0.3 in sub moveto
+  show
+  /ymtitle y .07 in add def
+  0.4 setlinewidth
+} def
+%
+% main-title [other titles] Mtitles
+%
+/ymtitleOffset 0 def
+/Mtitles {
+  /Helvetica findfont 12 scalefont setfont
+  .25 setgray
+  count /n031 exch def
+  /y ymtitle ymtitleOffset add def
+  n031 1 sub { 
+    dup stringwidth pop 2 div neg xpos xlen 2 div add add 
+    y moveto y 0.18 in add /y exch def show
+  } repeat
+  /Helvetica-Bold findfont 16 scalefont setfont
+  0 setgray
+  dup stringwidth pop 2 div neg xpos xlen 2 div add add 
+  y moveto
+  show
+} def
+%
+/xplot 2500 array def
+/yplot 2500 array def  
+/zplot 2500 array def
+/xval 2500 array def
+/yval 2500 array def
+/zval 2500 array def
+/xfix { 0 add } def
+/yfix { 0 add } def
+% /g0n 1 def
+/beginFunction {
+%  /g0 { garray g0n get exec } def
+  /n031 -1 def
+  mark
+} def
+/beginSwapFunction {
+  /n035 -1 def
+  mark
+} def
+/endFunction {
+  counttomark /m exch 2 idiv def
+  /n0 n031 def
+  /n031 n031 m add def
+  m n0 add   -1   1 n0 add {
+    /i exch def
+    dup yval exch i exch put
+    yplot exch i exch yfix yinc mul ypos add put
+    xplot exch i exch xfix xinc mul xpos add put
+  } for
+  cleartomark
+} bind def
+/endSwapFunction {
+  counttomark /m exch 2 idiv def
+  /n0 n035 def
+  /n035 n035 m add def
+  n031 1 n031 m add 1 sub {
+    /i exch def
+    dup yval exch i exch put
+    yplot exch i exch yfix yinc mul ypos add put
+    xplot exch i exch xfix xinc mul xpos add put
+  } for
+  cleartomark
+  /n031 n031 m add 1 sub def
+} bind def
+/endFunctionInter {
+  counttomark /m exch 2 idiv def
+  /n0 n031 def
+  /n031 n031 m add def
+  m n0 add   -1   1 n0 add {
+    /i exch def
+    dup yval exch i exch put
+    yplot exch i exch yfix yinc mul ypos add put
+    xplot exch i exch xfix xinc mul xpos add put
+  } for
+  cleartomark
+  mark 
+} bind def
+%/endFunctionZ {
+%  counttomark /m exch 3 idiv def
+%  /n0 n031 def
+%  /n031 n031 m add def
+%  m n0 add   -1   1 n0 add {
+%    /i exch def
+%    dup zval exch i exch put
+%    zplot exch i exch yfix yinc mul ypos add put
+%    dup yval exch i exch put
+%    yplot exch i exch yfix yinc mul ypos add put
+%    xplot exch i exch xfix xinc mul xpos add put
+%  } for
+%  cleartomark
+%} bind def
+%/endFunctionZInter {
+%  counttomark /m exch 3 idiv def
+%  /n0 n031 def
+%  /n031 n031 m add def
+%  m n0 add   -1   1 n0 add {
+%    /i exch def
+%    dup zval exch i exch put
+%    zplot exch i exch yfix yinc mul ypos add put
+%    dup yval exch i exch put
+%    yplot exch i exch yfix yinc mul ypos add put
+%    xplot exch i exch xfix xinc mul xpos add put
+%  } for
+%  cleartomark
+%  mark
+%} bind def
+/endFunctionW {
+  counttomark /m exch 3 idiv def
+  /n0 n031 def
+  /n031 n031 m add def
+  m n0 add   -1   1 n0 add {
+    /i exch def
+    zval exch i exch put
+    dup zplot exch i exch yfix yinc mul ypos add put
+%    dup yval exch i exch put
+    yplot exch i exch xfix xinc mul xpos add put
+    xplot exch i exch xfix xinc mul xpos add put
+  } for
+  cleartomark
+} bind def
+/endFunctionWInter {
+  counttomark /m exch 3 idiv def
+  /n0 n031 def
+  /n031 n031 m add def
+  m n0 add   -1   1 n0 add {
+    /i exch def
+    dup yval exch i exch put
+    zplot exch i exch yfix yinc mul ypos add put
+    yplot exch i exch xfix xinc mul xpos add put
+    xplot exch i exch xfix xinc mul xpos add put
+  } for
+  cleartomark
+  mark
+} bind def
+/plotZbarsC { % <linewidth in points> <over in points> <color function>
+              % uses endFunctionW. plots vertical bars  x y1 y2
+  exec
+  plotZbarsB
+} def
+/plotZbars { % <linewidth in points> <over in points> <graylevel>
+             % uses endFunctionW. plots vertical bars  x y1 y2
+ setgray
+ plotZbarsB
+} def
+/plotZbarsB { % <linewidth in points> <over in points>
+             % uses endFunctionW. plots vertical bars  x y1 y2
+  /j exch def
+  setlinewidth
+  0 1 n031 {
+    dup dup dup xplot exch get 
+      exch yplot exch get j add moveto 
+    xplot exch get exch zplot exch get lineto stroke
+  } for
+%  0 setgray
+%  1 setlinewidth
+} bind def
+/plotWbarsC { % <linewidth in points> <over in points> <color fun>
+              % uses endFunctionW. plots horizontal lines x1 x2 y
+  exec
+  plotWbars0
+} def
+/plotWbars0 { % <linewidth in points> <over in points>
+             % uses endFunctionW. plots horiz bars x1 x2 y
+  /j exch def
+  setlinewidth
+  0 1 n031 {
+    dup dup dup xplot exch get 
+      exch zplot exch get moveto 
+    yplot exch get exch zplot exch get lineto stroke
+  } for
+  0 setgray
+  1 setlinewidth
+} bind def
+/plotStraightLinesC { % <linewidth in points> <color fun>
+ exec setlinewidth plotStraightLinesB
+} def
+/plotStraightLines { % <linewidth in points> <graylevel>
+  setgray
+  setlinewidth
+  plotStraightLinesB
+} def
+/plotStraightLinesB { % <linewidth in points>
+  xplot 0 get yplot 0 get moveto
+  1 1 n031 {
+    dup xplot exch get 
+    exch yplot exch get lineto 
+  } for
+  stroke
+  0 setgray 1 setlinewidth
+} bind def
+/plotCumulativeC { % <linewidth in points> <color fun>
+  exec setlinewidth plotCumulativeB
+} def
+/plotCumulative { % <linewidth in points> <graylevel>
+  setgray
+  setlinewidth
+  plotCumulativeC
+} def
+/plotCumulativeB { %
+  /zsum 0 def
+  xplot 0 get yval 0 get 
+    dup zsum add /zsum exch def 
+    yfix yinc mul ypos add moveto
+  1 1 n031 {
+    dup xplot exch get
+    exch yval exch get 
+      zsum add dup /zsum exch def
+      yfix yinc mul ypos add lineto
+  } for
+  stroke
+  0 setgray 1 setlinewidth
+} bind def
+/plotAverageC { %<linewidth> <color fun>
+  exec setlinewidth
+  plotAverageB
+} def
+/plotAverageB {
+  /ysum 2 def
+  /zsum 1 def
+  0 1 n031 {
+    dup xval exch get
+    exch yval exch get
+    dup ysum add /ysum exch def
+    mul zsum add /zsum exch def
+  } for
+  zsum ysum div /xavg exch def
+  xavg xfix xinc mul xpos add dup
+  0 yinc mul ypos add moveto
+  2 yinc mul ypos add lineto
+  stroke
+  0 setgray 1 setlinewidth
+} bind def
+/plotStairLinesC { % <linewidth in points> <color fun>
+ exec setlinewidth plotStairLinesB
+} def
+/plotStairLines { % <linewidth in points> <graylevel>
+  setgray
+  setlinewidth
+  plotStairLinesB
+} def
+/plotStairLinesB { % <linewidth in points>
+  yplot 0 get dup xplot 0 get exch moveto
+  1 1 n031 {
+    dup xplot exch get dup 4 -1 roll lineto
+    exch yplot exch get dup 3 1 roll lineto
+  } for
+  pop
+  stroke
+  0 setgray 1 setlinewidth
+} bind def
+
+/plotArea {
+  0 setlinewidth exec
+  xplot 0 get yplot 0 get moveto
+  1 1 n031 {
+    dup xplot exch get
+    exch yplot exch get lineto
+  } for
+  closepath fill 0 setgray 1 setlinewidth
+} bind def
+/plot3AvgStraightLinesC {
+ exec
+ setlinewidth
+ plot3AvgStraightLinesB
+} def
+/plot3AvgStraightLines { % <linewidth in points> <graylevel>
+  setgray
+  setlinewidth
+  plot3AvgStraightLinesB
+} def
+/plot3AvgStraightLinesB {
+  xplot 0 get yplot 0 get moveto
+  2 1 n031 1 sub {
+    /ii exch def
+    xplot ii get
+    yval ii get yval ii 1 sub get yval ii 1 add get add add 3 div
+    yfix yinc mul ypos add lineto
+  } for 
+  stroke 
+  0 setgray 1 setlinewidth
+} bind def
+/plotNAvgStraightLinesC { % <avg size> <linewidth> <color proc>
+  exec
+  setlinewidth
+  plotNAvgStraightLinesB
+} def
+/plotNAvgStralightLines { % <avg size> <linewidth> <graylevel>
+  setgray
+  setlinewidth
+  plotNAvgStraightLinesB
+} def
+/plotNAvgStraightLinesB { % <avg size>
+  /a031 exch def
+  /ii 0 def     xplot ii a031 2 idiv add get
+  yval ii get
+  1 1 a031 1 sub { /iii exch def yval ii iii add get add
+           } for
+  a031 div
+  yfix yinc mul ypos add moveto
+  0 a031 n031 a031 sub {
+    /ii exch def     xplot ii a031 2 idiv add get
+    yval ii get
+    1 1 a031 1 sub { /iii exch def yval ii iii add get add
+             } for
+    a031 div
+    yfix yinc mul ypos add lineto
+  } for
+  stroke
+  0 setgray 1 setlinewidth
+} bind def
+/plotNMovAvgStraightLinesC { % <avg size (odd)> <linewidth> <color proc>
+  exec
+  setlinewidth
+  plotNMovAvgStraightLinesB
+} def
+/plotNMovAvgStralightLines { % <avg size (odd)> <linewidth> <graylevel> 
+  setgray
+  setlinewidth
+  plotNMovAvgStraightLinesB
+} def
+/plotNMovAvgStraightLinesB { % <avg size (odd)>
+  1 sub 2 idiv /a031 exch def
+  xplot 0 get yplot 0 get moveto
+  a031 1 n031 a031 sub {
+    /ii exch def
+    xplot ii get
+    yval ii get 
+    1 1 a031 { /iii exch def yval ii iii add get  
+               yval ii iii sub get add add 
+             } for
+    a031 2 mul 1 add div
+    yfix yinc mul ypos add lineto
+  } for
+  stroke
+  0 setgray 1 setlinewidth
+} bind def
+/plotSymbolsC {
+  exec
+/symsize .055 in def
+  plotSymbols
+/symsize .025 in def
+  0 setgray
+} def
+/plotSymbols {
+%  0 setgray
+  /g0n exch def
+  /g0 garray g0n get def
+  1 setlinewidth
+  0 1 n031 {
+    dup xplot exch get 
+      exch yplot exch get moveto currentpoint g0
+  } for
+  0.4 setlinewidth
+} bind def
+/plotVBars {
+%  0 setgray
+  gtvars
+  0 setlinewidth
+  0 1 n031 {
+    xplot exch get dup ypos moveto ypos ylen add lineto stroke
+  } for
+  0.4 setlinewidth
+  bw
+} bind def
+/plotVBarsC {
+%  0 setgray
+%  gtvars
+  exec
+  0 setlinewidth
+  0 1 n031 {
+    xplot exch get dup ypos moveto ypos ylen add lineto stroke
+  } for
+  0.4 setlinewidth
+  bw
+} bind def
+/plotBars0 { % <width in inches>
+  /w exch 2 div in def
+  2 setlinewidth
+  0 1 n031 {
+    dup xplot exch get /x exch def
+    yplot exch get /y exch def
+    x w sub dup ypos moveto
+    y lineto x w add dup y lineto ypos lineto x w sub ypos lineto fill
+  } for
+%  0 setgray
+} def
+/plotBars { % <width in inches> <gray>
+    setgray
+    plotBars0
+} bind def
+/plotBarsC { % <width in inches> <color function>
+    exec
+    plotBars0
+} bind def
+/plotBarsCline { % <width in inches> <color function>
+  exec
+  /w exch 2 div in def
+  0 setlinewidth
+  2 setlinewidth
+  0 1 n031 {
+    dup xplot exch get /x exch def
+    yplot exch get /y exch def
+    x w sub y moveto
+    x w add y lineto stroke
+  } for
+} def
+/plotScatter0 { % <size in inches>
+  /w exch 2 div in def
+  0.1 setlinewidth
+  0 1 n031 {
+    dup xplot exch get /x exch def
+    yplot exch get /y exch def
+    x y w add moveto x y w sub lineto stroke
+    x w sub y moveto x w add y lineto stroke
+  } for
+  0 setgray
+} def
+/plotScatter { % <size in inches> <gray>
+    setgray
+    plotScatter0
+} bind def
+/plotScatterC { % <width in inches> <color function>
+    exec
+    plotScatter0
+} bind def
+/plotyNum { % <decimal places> <vertical offset from (x,y)> <font size>
+  Hfont
+  /h exch in def
+  /d exch def
+  0 1 n031 { 
+    dup dup xplot exch get /x exch def
+    yplot exch get /y exch def
+    0 1 16 { str exch 0 put } for
+    yval exch get str cvs pop /j 0 def 
+    0 1 16 { str exch get dup 0 eq 
+      { str j 46 put /j j 1 add def
+        1 1 d { pop str j 48 put /j j 1 add def } for exit 
+      } if
+      46 eq 
+      { /j j 1 add def 1 1 d 
+        { pop str j get 0 eq { str j 48 put } if /j j 1 add def } for exit
+      } if
+      /j j 1 add def
+    } for
+    str 0 j d 0 eq { 1 sub } if
+    getinterval dup stringwidth pop dup /w exch def 
+    2 div neg x add y h add /y exch def /x exch def 
+    1 setgray x 2 sub dup y 2 sub moveto y h add 1 add lineto
+    x w add 2 add dup y h add 1 add lineto y 2 sub lineto closepath fill
+    0 setgray x y moveto show
+  } for
+} def
+/plotzNum { % <decimal places> <vertical offset from (x,y)> <font size>
+  dup /fs exch def Hfont
+  /h exch in def
+  /d exch def
+  0 1 n031 {
+    dup dup xplot exch get /x exch def
+    zplot exch get /y exch def
+    0 1 16 { str exch 0 put } for
+    zval exch get str cvs pop /j 0 def
+    0 1 16 { str exch get dup 0 eq
+      { str j 46 put /j j 1 add def
+        1 1 d { pop str j 48 put /j j 1 add def } for exit
+      } if
+      46 eq
+      { /j j 1 add def 1 1 d
+        { pop str j get 0 eq { str j 48 put } if /j j 1 add def } for exit
+      } if
+      /j j 1 add def
+    } for
+    str 0 j d 0 eq { 1 sub } if
+    getinterval dup stringwidth pop dup /w exch def
+    2 div neg x add y h add /y exch def /x exch def
+    1 setgray x 2 sub dup y 2 sub moveto y h add fs add lineto
+    x w add 2 add dup y h add fs add lineto y 2 sub lineto closepath fill
+    0 setgray x y moveto show
+  } for
+} def
+/plotNum { % <decimal places> <ypos of number string> <font size>
+  Hfont
+  yfix yinc mul ypos add /y exch def
+  /d exch def
+  0 1 n031 { 
+    dup xplot exch get /x exch def
+    0 1 16 { str exch 0 put } for
+    yval exch get str cvs pop /j 0 def 
+    0 1 16 { str exch get dup 0 eq 
+      { str j 46 put /j j 1 add def
+        1 1 d { pop str j 48 put /j j 1 add def } for exit 
+      } if
+      46 eq 
+      { /j j 1 add def 1 1 d 
+        { pop str j get 0 eq { str j 48 put } if /j j 1 add def } for exit
+      } if
+      /j j 1 add def
+    } for
+    str 0 j d 0 eq { 1 sub } if
+    getinterval dup stringwidth pop dup /w exch def 
+    2 div neg x add /x exch def 
+    x y moveto show
+  } for
+} def
+/plotNumPercentDir 0 def
+/plotNumPercent { % <decimal places> <ypos of number string> <font size>
+  plotNumPercentDir 1 eq { VHfont } { Hfont } ifelse
+  yfix yinc mul ypos add /y exch def
+  /d exch def
+  0 1 n031 { 
+    dup xplot exch get /x exch def
+    0 1 16 { str exch 0 put } for
+    yval exch get str cvs pop /j 0 def 
+    0 1 16 { str exch get dup 0 eq 
+      { str j 46 put /j j 1 add def
+        1 1 d { pop str j 48 put /j j 1 add def } for exit 
+      } if
+      46 eq 
+      { /j j 1 add def 1 1 d 
+        { pop str j get 0 eq { str j 48 put } if /j j 1 add def } for exit
+      } if
+      /j j 1 add def
+    } for
+    str 0 j d 0 eq { 1 sub } if
+	dup str exch 37 put 1 add
+    getinterval dup stringwidth pop dup /w exch def 
+    2 div neg x add 
+    plotNumPercentDir 1 eq { 5 add } if /x exch def 
+    x y moveto show
+  } for
+} def
+/plotxxx {
+  1 setlinewidth
+  5 Hfont
+  0 1 n031 {
+    /i exch def i
+    dup xplot exch get dup 0 lt {
+      neg exch yplot exch get moveto currentpoint g0
+      xval i get str cvs dup stringwidth pop 2 div neg
+      xplot i get abs add yplot i get 0.1 in add moveto show
+    } {
+      pop pop 
+    } ifelse
+  } for
+  0.4 setlinewidth
+} def
+% Colors
+/RedC { 0.8 0 0 setrgbcolor } bind def
+/GreenC { 0 0.8 0 setrgbcolor } bind def
+/BlueC { 0 0 0.8 setrgbcolor } bind def
+/AquaC { 0 0.5 0.5 setrgbcolor } bind def
+
+%
+%----------------------------  Data  -------------------------------  
+%
+% Example of output:
+% ------------------------------
+% |      MAIN TITLE      	|
+% |       subtitle1		|
+% |          :			|
+% |          + 1st function	|
+% |          * 2nd function	|
+% |				|
+% | Y  |  *---*			|
+% | t  | /     \		|
+% | i  |* +--+  *-*		|
+% | t  | /    \			|
+% | l  |+      +--+		|
+% | e  |____________		|
+% |				|
+% |        Xtitle		|
+% |				|
+% |				|
+% -------------------------------
+% The existing symbols are:
+%   0 small filled circle
+%   1 unfilled circle
+%   2 unfilled square
+%   3 unfilled diamond
+%   4 filled circle
+%   5 filled square
+%   6 filled diamond
+%   7 vertical bar
+%   8 vertical bar with line in bottom (inverted T)
+%   9 vertical bar with circle at bottom
+%   10 vertical bar with dot at bottom
+%   11 longer vertical bar with circle at bottom
+%   12 Same as 10 w/out the vertical bar
+%   13 Same as 11 w/out the vertical bar
+%   14 small line to upper right /
+%   15 small line to upper left \
+%   16 small line to lower right \
+%   17 small line to lower left /
+%   18 small line to the left -
+%   19 small line to the right -
+%   
+%--------------------------------------------------------------------------
+% 			 Commands to do 1 graph
+%
+% do x axes
+%
+%%EndProcSet
+%%EndProlog
+%
+%   Initializations
+%
+%0 -20 translate
+%.9 .9 scale
+/showit { x y moveto show y 8 sub /y exch def } def
+/showit1 { x y moveto show } def
+/showit2 { x 2.25 in add y moveto show } def
+/showit3 { x 4.5 in add y moveto show y 8 sub /y exch def } def
+/EndPage { showpage } def
+/BeginPage { dup in 72 div dup /yy exch def /aypos0 exch def
+  /y exch in def /x exch in def
+  /aypos aypos0 def /yy aypos0 def } def
+/checkEOP { yy exch sub .3 lt 
+  { EndPage 1.000 10.400 BeginPage } if } def
+/axpos 0.600000 def
+/axlen 7.600000 def
+/aylen 2.500000 def
+%
+%   Begin Page
+%
+%
+% color stuff
+%
+/gtc { 0.3 0.3 0 setrgbcolor } def
+/gtvars { 1.0 0 0 setrgbcolor } def     % plot verticall (loss) bars
+/bw { 0 setgray } def
+
+/gtop { 0.8 0.8 0.8 setrgbcolor } def
+/gtimeout { 1.0 0 0 setrgbcolor } def
+
+/g1twc {0 0.5 0   setrgbcolor } def      % threshold window
+/g1swc { 0.5 0 0 setrgbcolor } def      % send window
+/g1cwc { 0.3 0.8 1 setrgbcolor } def    % congestion window
+/g1wc  { 0 0 0 setrgbcolor } def        % current window
+
+/g2ec  { 0.5 0.5 1 setrgbcolor } def    % Expected throughput
+/g2ac  { 0 0 0 setrgbcolor } def        % Actual throughput
+/g2rc  { 0.4 0.8 0.8 setrgbcolor } def
+/gtc   {0.8 0 0 setrgbcolor } def
+/g3ac  {g2rc } def
+/g3ic  {0 0 0 setrgbcolor } def
+
+/gcirclenum { .96 .87 .70 setrgbcolor } def
+
+
+%yy 1.800000 sub dup /aypos exch def .25 sub /yy exch def 
+
+
+%yyyy
+
+
+%zzzz
+%showpage
+%end
