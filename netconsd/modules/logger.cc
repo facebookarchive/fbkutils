@@ -94,7 +94,7 @@ struct logtarget {
 /*
  * This relates the IP address of the remote host to its logtarget struct.
  */
-static std::unordered_map<struct in6_addr, struct logtarget> maps[NETCONSD_MAX_WORKER_NUM];
+static std::unordered_map<struct in6_addr, struct logtarget> *maps;
 
 /*
  * Return the existing logtarget struct if we've seen this host before; else,
@@ -125,6 +125,17 @@ static void write_log(struct logtarget& tgt, struct msgbuf *buf,
 			msg->oos ? "[OOS] ": "",
 			msg->seq_reset ? "[SEQ RESET] " : "",
 			msg->text);
+}
+
+extern "C" int netconsd_output_init(int nr)
+{
+	maps = new std::unordered_map<struct in6_addr, struct logtarget>[nr];
+	return 0;
+}
+
+extern "C" void netconsd_output_exit(void)
+{
+	delete[] maps;
 }
 
 /*

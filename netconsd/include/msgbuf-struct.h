@@ -15,8 +15,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
-#define NETCONSD_MAX_WORKER_NUM 64
-
 struct msgbuf {
 	struct msgbuf *next;
 
