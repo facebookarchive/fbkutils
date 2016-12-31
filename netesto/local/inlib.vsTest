@@ -1,0 +1,128 @@
+# Versus Tests 2 -> 1 & 3 -> 1
+
+# Copyright (C) 2016, Facebook, Inc.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the LICENSE
+# file in the root directory of this source tree.
+
+#   Examine the interaction of 2 TCP variants
+#   a) ca1, ca2: ca1 for client 1, ca2 for clients 2 & 3
+#   b) use netem to specify client 1's RTT
+#
+# Set default host suffix
+#HOST_SUFFIX mynetwork.com
+
+# Set hosts for each client
+# replace with your own hostnames
+#SET client1=kerneltest010
+#SET client2=kerneltest013
+
+#SET clients1=$client1
+#SET clients2=$client1,$client2
+
+#SET servers1=kerneltest014
+
+# Set congestion control variants to run
+#SET ca1=dctcp
+#SET ca2=dctcp
+
+#SET instances=1				# how many flow instances per host
+#SET dur=60						# duration of each run in seconds
+
+# specify descripiton of experiments
+#DESC ECN_400:1802+RTT+VS_RTT_dctcp:dctcp
+
+# set default reply size of RPCs
+#SET reply=1						# use RPC reply size of 1 byte
+
+#
+# Define Macro for VS experiments
+#
+BEGIN ExpVs
+
+# --- 2 -> 1
+SET clients2=$client2
+
+# 1 servers, 2 clients, 1M and 10K RPCs (2 flows per client, 1 for each server)
+SET reqs=1M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s2c2frvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+IF_DEF $ExpVsOne: END
+
+# 1 servers, 2 clients, 8M and 10K RPCs (2 flows per client, 1 for each server)
+SET reqs=8M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s2c2frvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 servers, 2 clients, Stream
+IF 1: RUN MServerStreamVs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s2c2fsvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances
+
+# 1 servers, 2 clients, 2x1M and 1x10K RPCs
+SET reqs=1M,1M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s2c3frvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 servers, 2 clients, 4x1M and 1x10K RPCs
+SET reqs=1M,1M,1M,1M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s2c5frvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 servers, 2 clients, 8x1M and 1x10K RPCs
+SET reqs=1M,1M,1M,1M,1M,1M,1M,1M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s2c9frvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 servers, 2 clients, 16x1M and 1x10K RPCs
+SET reqs=1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s2c17frvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 servers, 2 clients, 8x8M and 1x10K RPCs
+SET reqs=8M,8M,8M,8M,8M,8M,8M,8M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s2c9fRvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# --- 3 -> 1
+SET clients2=$client2,$client3
+# 1 servers, 3 clients, 1M and 10K RPCs (2 flows per client, 1 for each server)
+SET reqs=1M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s3c2frvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 servers, 2 clients, 8M and 10K RPCs (2 flows per client, 1 for each server)
+SET reqs=8M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s3c2frvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 servers, 2 clients, Stream
+IF 1: RUN MServerStreamVs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s3c2fsvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances
+
+# 1 servers, 2 clients, 2x1M and 1x10K RPCs
+SET reqs=1M,1M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s3c3frvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 servers, 2 clients, 4x1M and 1x10K RPCs
+SET reqs=1M,1M,1M,1M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s3c5frvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 servers, 2 clients, 8x1M and 1x10K RPCs
+SET reqs=1M,1M,1M,1M,1M,1M,1M,1M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s3c9frvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 servers, 2 clients, 16x1M and 1x10K RPCs
+SET reqs=1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,1M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s3c17frvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 servers, 2 clients, 8x8M and 1x10K RPCs
+SET reqs=8M,8M,8M,8M,8M,8M,8M,8M,10K
+IF 1: RUN MServerRRvs servers=$servers1 clients1=$client1 clients2=$clients2 expName=1s3c9fRvs ca1=$ca1 ca2=$ca2 dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+END ExpVs
+
+
+# Set congestion control variants to run
+#SET ca1=cubic
+#SET ca2=cubic
+#DESC ECN_9k:10k+RTT+VS_RTT_cubic:cubic
+#RUN ExpVs ca1=cubic ca2=cubic
+
+#NEXT_COUNTER
+
+#SET ca1=reno
+#SET ca2=reno
+#DESC ECN_9k:10k+RTT+VS_RTT_reno:reno
+#RUN ExpVs ca1=reno ca2=reno
+

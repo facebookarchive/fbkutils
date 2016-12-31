@@ -1,0 +1,122 @@
+#
+# Sample script for netesto
+#
+
+# Set default host suffix
+HOST_SUFFIX mynetwork.com
+
+# Set hosts for 1, 2, 3 or 4 client host experiments
+# replace with appropriate hostnames
+SET clients1=host01
+SET clients2=host01,host02
+SET clients3=host01,host02,host03
+SET clients4=host01,host02,host03,host04
+
+# Set hosts for 1 or 2 server host experiments
+# replace with appropriate hostnames
+SET servers1=host05
+SET servers2=host05,host06
+
+# Set congestion control variants to run
+SET ca=reno,cubic,nv,dctcp
+
+# Load library with macros
+SOURCE inlib
+
+SET instances=1				# how many flow instances per host
+SET dur=60						# duration of each run in seconds
+
+# specify descripiton of experiments
+DESC ECN_Experiment
+
+# set default reply size of RPCs
+SET reply=1						# use RPC reply size of 1 byte
+
+END # remove after fixing variables above
+
+#
+# Define commands to run before each test
+# 
+# On Server(s)
+#
+BEGIN preServer
+# set large receive buffers in server
+SET_SYSCTL host=$host net.ipv4.tcp_rmem=10000,262144,20971520
+END preServer
+#
+# On Client(s)
+#
+BEGIN preClient
+# set large send buffers in client
+SET_SYSCTL host=$host net.ipv4.tcp_wmem=10000,262144,20971520
+END preClient
+
+# Experiments -----------------------------
+#
+# By default all will execute. You can disable individually by replacing
+#   "IF 1:" by "IF 0:" or "IF $varnanme" where varname is defined as an integer
+
+
+# 1 server, 1 client, 1M
+SET reqs=1M
+IF 1: RUN MServerRR servers=$servers1 clients=$clients1 expName=1s1c1fr ca=$ca dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 server, 1 client Stream
+IF 1: RUN MServerStream servers=$servers1 clients=$clients1 expName=1s1c1fs ca=$ca dur=$dur delay=0 instances=$instances
+
+# 1 server, 1 client, 1M, 10K
+SET reqs=1M,10K
+IF 1: RUN MServerRR servers=$servers1 clients=$clients1 expName=1s1c2fvr ca=$ca dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 server, 1 client, 1M, 1M
+SET reqs=1M,1M
+IF 1: RUN MServerRR servers=$servers1 clients=$clients1 expName=1s1c2fr ca=$ca dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 1 server, 1 client, 2xStream
+IF 1: RUN MServerStream servers=$servers1 clients=$clients1 expName=1s1c2fs ca=$ca dur=$dur delay=0 instances=2
+
+# 2 servers, 2 clients, 1M and 10K RPCs (4 flows per client, 2 for each server)
+SET reqs=1M,10K
+IF 1: RUN MServerRR servers=$servers2 clients=$clients2 expName=2s2c2fvr ca=$ca dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 2 servers, 3 clients, 1M, 1M and 10K RPCs (6 flows per client, 3 for each server)
+SET reqs=1M,1M,10K
+IF 1: RUN MServerRR servers=$servers2 clients=$clients3 expName=2s3c3fvr ca=$ca dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 2 servers, 3 clients, 4x1M and 10K RPCs (10 flows per client, 5 for each server)
+SET reqs=1M,1M,1M,1M,10K
+RUN MServerRR servers=$servers2 clients=$clients3 expName=2s3c5fvr ca=$ca dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+
+# 2 servers, 3 clients, 4x1M and 10K RPCs (10 flows per client, 5 for each server)
+# 5 minutes duration
+SET dur=300
+SET reqs=1M,1M,1M,1M,10K
+IF 1: RUN MServerRR servers=$servers2 clients=$clients3 expName=2s3c5fr ca=$ca dur=$dur delay=0 instances=$instances reqs=$reqs reply=$reply
+SET dur=60
+
+# 1 server, 4 client 1M
+IF 1: RUN MServerRR servers=$servers1 clients=$clients4 expName=1s4c1fr ca=$ca dur=$dur delay=0 instances=$instances reqs=1M reply=1
+
+# 1 server, 4 client, 2x1M
+IF 1: RUN MServerRR servers=$servers1 clients=$clients4 expName=1s4c2fr ca=$ca dur=$dur delay=0 instances=2 reqs=1M reply=1
+
+# 1 server, 4 client, 4x1M
+IF 1: RUN MServerRR servers=$servers1 clients=$clients4 expName=1s4c4fr ca=$ca dur=$dur delay=0 instances=4 reqs=1M reply=1
+
+# 1 server, 4 client, 8x1M
+IF 1: RUN MServerRR servers=$servers1 clients=$clients4 expName=1s4c8fr ca=$ca dur=$dur delay=0 instances=8 reqs=1M reply=1
+
+# 1 server, 4 client, 16x1M
+IF 1: RUN MServerRR servers=$servers1 clients=$clients4 expName=1s4c16fr ca=$ca dur=$dur delay=0 instances=16 reqs=1M reply=1
+
+# 1 server, 4 client, 4xSTREAM
+IF 1: RUN MServerStream servers=$servers1 clients=$clients4 expName=1s4c4fs ca=$ca dur=$dur delay=0 instances=4
+
+# 1 server, 4 client, 8xSTREAM
+IF 1: RUN MServerStream servers=$servers1 clients=$clients4 expName=1s4c8fs ca=$ca dur=$dur delay=0 instances=8
+
+# 1 server, 4 client, 16xSTREAM
+IF 1: RUN MServerStream servers=$servers1 clients=$clients4 expName=1s4c16fs ca=$ca dur=$dur delay=0 instances=16
+
+END
+

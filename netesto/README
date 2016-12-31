@@ -1,0 +1,36 @@
+Netesto is a suite of tools for running multi-host network experiments that
+supports the collection and display of relevant data and statistics. It
+currently supports  TCP RPC and STREAM transfers through netperf, with other
+type of transfers planned for the future as need arises. In addition to running
+the netperf transfers, it also runs ping to collect RTT information and it also
+collects TCP cwnd and rtt for each of the flows as well as retransmits and cpu
+load for each of the hosts.
+
+When running netesto tests, one machine acts as the controller which
+communicates with the machines doing the actual sends (clients) and receives
+(servers). The controller starts the transfers between clients and servers and
+collects the experiment's data. This data is processed and put into a csv file
+in the controller, the raw data is also stored in the controller. In order to
+achieve this, the files in the netesto-remote directory must be copied first to
+the clients/servers and the netesto daemon must be started from the directory
+containing these files (./netesto.py -s &).
+
+Another set of files, under the netesto-local directory must also be copied to
+the controller, and then a set of tests can be started by specifying a
+particular netesto script (./netesto.py < script.experiment).
+
+For example, the following script starts one TCP RR netperf flow using 1MB
+requests and 1 byte replies lasting 60 seconds using TCP Cubic.
+
+# Run one Request/Reply experiment
+HOST_SUFFIX=dc1.mynetwork.com
+SOURCE inlib
+SET client=hostname1
+SET server=hostname2
+RUN MServerRR servers=$server clients=$client expName=1c1s1fr  ca=cubic dur=60
+instances=1 reqs=1M reply=1
+
+
+For more information read Netesto.pdf
+
+Author: Lawrence Brakmo
