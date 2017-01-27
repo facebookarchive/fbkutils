@@ -15,7 +15,6 @@
 #include <time.h>
 #include <string.h>
 #include <errno.h>
-#include <pthread.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -46,11 +45,10 @@ static inline void *zalloc(size_t n)
 	return calloc(1, n);
 }
 
-static void assert_pthread_mutex_locked(pthread_mutex_t *mutex)
-{
-	if (pthread_mutex_trylock(mutex) != EBUSY)
-		fatal("assert_pthread_mutex_locked found unlocked mutex!\n");
-}
+#define assert_pthread_mutex_locked(m)					\
+do {									\
+	fatal_on(pthread_mutex_trylock(m) != EBUSY, "UNLOCKED!\n");	\
+} while (0)
 
 static inline uint64_t now_ms(clockid_t clock)
 {

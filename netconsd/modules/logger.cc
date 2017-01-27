@@ -30,7 +30,7 @@
  * The below allows us to index an unordered_map by an IP address.
  */
 
-bool operator==(const struct in6_addr& lhs, const struct in6_addr& rhs)
+static bool operator==(const struct in6_addr& lhs, const struct in6_addr& rhs)
 {
 	return std::memcmp(&lhs, &rhs, 16) == 0;
 }
