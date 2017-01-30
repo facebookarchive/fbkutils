@@ -430,9 +430,9 @@ static void drain_bucket_ncrx(struct ncrx_worker *cur, struct bucket *bkt)
  * Execute callbacks for a specific timerlist, until either the list is empty or
  * we reach an entry that was queued for a time in the future.
  */
-static void do_ncrx_callbacks(struct ncrx_worker *cur, struct timerlist *list,
-		uint64_t now)
+static void do_ncrx_callbacks(struct ncrx_worker *cur, struct timerlist *list)
 {
+	uint64_t now = now_mono_ms();
 	struct timerlist *tnode, *tmp;
 	struct bucket *bkt;
 
@@ -455,19 +455,6 @@ static void do_ncrx_callbacks(struct ncrx_worker *cur, struct timerlist *list,
 /*
  * We have no idea how large the queue we just processed was: it could have
  * taken tens of seconds. So we must handle wraparound in the tlist array.
- *
- * There are three cases:
- *
- * 1) lastrun == now
- *	In this case, we don't need to do anything, just return.
- *
- * 2) (now - lastrun) < NETCONS_RTO
- *	In this case we know we haven't wrapped, so we only need to process any
- *	timerslots in the interval since our last run and return.
- *
- * 3) (now - lastrun) >= NETCONS_RTO
- *	We wrapped, so just iterate over the entire wheel and drain until we see
- *	a callback where ->when is later than NOW.
  */
 static uint64_t run_ncrx_callbacks(struct ncrx_worker *cur, uint64_t lastrun)
 {
@@ -478,18 +465,13 @@ static uint64_t run_ncrx_callbacks(struct ncrx_worker *cur, uint64_t lastrun)
 
 	fatal_on(now < lastrun, "Time went backwards\n");
 
-	if (now - lastrun < NETCONS_RTO) {
-		for (i = lastrun; i <= now; i++)
-			do_ncrx_callbacks(cur, &cur->tlist[i % NETCONS_RTO], i);
-
-		goto out;
-	}
-
 	/*
-	 * We wrapped, need to check them all.
+	 * It's possible we wrapped: in that case, we simply iterate over the
+	 * entire wheel and drain each list until we hit a callback after now.
+	 * Otherwise, we only iterate over the buckets that lie on [last,now].
 	 */
-	for (i = 0; i < NETCONS_RTO; i++)
-		do_ncrx_callbacks(cur, &cur->tlist[i], now);
+	for (i = max(lastrun, now - NETCONS_RTO + 1); i <= now; i++)
+		do_ncrx_callbacks(cur, &cur->tlist[i % NETCONS_RTO]);
 
 out:
 	return now;

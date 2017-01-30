@@ -14,7 +14,9 @@
 
 #include "msgbuf-struct.h"
 
-int register_output_module(char *path);
+#define MAXOUTS 32
+
+int register_output_module(char *path, int nr_workers);
 void destroy_output_modules(void);
 
 void execute_output_pipeline(int thread_nr, struct in6_addr *src,

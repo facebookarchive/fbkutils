@@ -49,7 +49,7 @@ static void parse_arguments(int argc, char **argv, struct netconsd_params *p)
 
 			break;
 		default:
-			fatal("Invalid command line parameters\n");
+			fatal("Invalid cmdline: '%d'\n", i);
 		}
 	}
 
@@ -59,9 +59,12 @@ static void parse_arguments(int argc, char **argv, struct netconsd_params *p)
 	if (optind == argc)
 		warn("You passed no output modules, which is sort of silly\n");
 
+	if (argc - optind > MAXOUTS)
+		fatal("Too many output mods: %d>%d\n", argc - optind, MAXOUTS);
+
 	for (i = optind; i < argc; i++)
-		if (register_output_module(argv[i]))
-			fatal("Can't register %s\n", dlerror());
+		if (register_output_module(argv[i], p->nr_workers))
+			fatal("Can't register '%s'\n", argv[i]);
 }
 
 /*

@@ -15,9 +15,9 @@
 #include <msgbuf-struct.h>
 #include <ncrx-struct.h>
 
-int netconsd_output_init(void)
+int netconsd_output_init(int nr_workers)
 {
-	puts("From init hook");
+	printf("From init hook: %d worker threads", nr_workers);
 	return 0;
 }
 
