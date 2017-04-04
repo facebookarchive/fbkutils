@@ -113,7 +113,6 @@ static void init_sigset(sigset_t *set)
 	sigemptyset(set);
 	sigaddset(set, SIGTERM);
 	sigaddset(set, SIGINT);
-	sigaddset(set, SIGQUIT);
 	sigaddset(set, SIGHUP);
 }
 
