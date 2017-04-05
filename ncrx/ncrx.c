@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 	char buf[NCRX_LINE_MAX + 1];
 	struct ncrx *ncrx;
 	struct sockaddr_in laddr = { };
-	uint64_t next_seq = 0, next_at = UINT64_MAX;
+	uint64_t next_seq = 0, next_at = UINT64_MAX, now;
 	int prev_cont = 0;
 	int fd;
 
@@ -64,7 +64,6 @@ int main(int argc, char **argv)
 		socklen_t raddr_len = sizeof(raddr);
 		char *payload = NULL;
 		const char *resp;
-		uint64_t now;
 		int timeout;
 		int len;
 

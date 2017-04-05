@@ -651,7 +651,7 @@ int ncrx_process(const char *payload, uint64_t now_mono, uint64_t now_real,
 
 	/* retire complete & timed-out msgs from tail */
 	while (ncrx->tail != ncrx->head) {
-		struct ncrx_slot *slot = &ncrx->slots[ncrx->tail];
+		slot = &ncrx->slots[ncrx->tail];
 
 		if ((!slot->msg || !list_empty(&slot->hole_node)) &&
 		    slot->timestamp + ncrx->p.msg_timeout > now_mono)

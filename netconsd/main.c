@@ -11,6 +11,7 @@
 #include <signal.h>
 #include <dlfcn.h>
 #include <arpa/inet.h>
+#include <getopt.h>
 
 #include "include/common.h"
 #include "include/output.h"
@@ -21,9 +22,22 @@ static void parse_arguments(int argc, char **argv, struct netconsd_params *p)
 {
 	int i;
 	char *tmp;
+	static const char *optstr = "hw:l:b:u:g:";
+	static const struct option optlong[] = {
+		{
+			.name = "help",
+			.has_arg = no_argument,
+			.val = 'h',
+		},
+		{
+			.name = NULL,
+		},
+	};
 
-	while ((i = getopt(argc, argv, "w:l:b:u:g:")) != -1) {
-		switch(i) {
+	while (1) {
+		i = getopt_long(argc, argv, optstr, optlong, NULL);
+
+		switch (i) {
 		case 'w':
 			p->nr_workers = atoi(optarg);
 			break;
@@ -48,10 +62,23 @@ static void parse_arguments(int argc, char **argv, struct netconsd_params *p)
 				fatal("GC age must be >= GC interval\n");
 
 			break;
+		case -1:
+			goto done;
+		case 'h':
+			printf("Usage: %s [-w workers] [-l listeners] "
+			     "[-b mmsg_batch] [-u udp_listen_port] "
+			     "[-g '${interval}/${age}'] [output module path] "
+			     "[another output module path...]\n", argv[0]);
+
+			/*
+			 * Fall through
+			 */
 		default:
-			fatal("Invalid cmdline: '%d'\n", i);
+			exit(1);
 		}
 	}
+
+done:
 
 	/*
 	 * Register output modules
@@ -86,7 +113,6 @@ static void init_sigset(sigset_t *set)
 	sigemptyset(set);
 	sigaddset(set, SIGTERM);
 	sigaddset(set, SIGINT);
-	sigaddset(set, SIGQUIT);
 	sigaddset(set, SIGHUP);
 }
 
