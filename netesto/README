@@ -1,3 +1,8 @@
+NOTE: There will be a new version of Netesto available on Saturday April 15.
+I recommend waiting until then before downloading since the current version
+has a bug that is fixed in the new version. In addition, the new version has
+better documentation, better examples and extra features.
+
 Netesto is a suite of tools for running multi-host network experiments that
 supports the collection and display of relevant data and statistics. It
 currently supports  TCP RPC and STREAM transfers through netperf, with other
@@ -33,4 +38,4 @@ instances=1 reqs=1M reply=1
 
 For more information read Netesto.pdf
 
-Author: Lawrence Brakmo
+Author: Lawrence Brakmo, netesto@brakmo.org
