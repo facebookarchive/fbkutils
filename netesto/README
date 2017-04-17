@@ -1,8 +1,3 @@
-NOTE: There will be a new version of Netesto available on ** Monday April 17 **.
-I recommend waiting until then before downloading since the current version
-has a bug that is fixed in the new version. In addition, the new version has
-better documentation, better examples and extra features.
-
 Netesto is a suite of tools for running multi-host network experiments that
 supports the collection and display of relevant data and statistics. It
 currently supports  TCP RPC and STREAM transfers through netperf, with other
@@ -12,13 +7,13 @@ collects TCP cwnd and rtt for each of the flows as well as retransmits and cpu
 load for each of the hosts.
 
 When running netesto tests, one machine acts as the controller which
-communicates with the machines doing the actual sends (clients) and receives
-(servers). The controller starts the transfers between clients and servers and
-collects the experiment's data. This data is processed and put into a csv file
-in the controller, the raw data is also stored in the controller. In order to
-achieve this, the files in the netesto-remote directory must be copied first to
-the clients/servers and the netesto daemon must be started from the directory
-containing these files (./netesto.py -s &).
+communicates with the machines doing the actual sends (test clients) and receives
+(test servers). The controller starts the transfers between test clients and
+test servers and collects the experiment's data. This data is processed and
+put into a csv file in the controller, the raw data is also stored in the
+controller. In order to achieve this, the files in the netesto-remote directory
+must be copied first to the clients/servers and the netesto daemon must be
+started from the directory containing these files (./netesto.py -s &).
 
 Another set of files, under the netesto-local directory must also be copied to
 the controller, and then a set of tests can be started by specifying a
@@ -36,6 +31,7 @@ RUN MServerRR servers=$server clients=$client expName=1c1s1fr  ca=cubic dur=60
 instances=1 reqs=1M reply=1
 
 
-For more information read Netesto.pdf
+For more information read Netesto.pdf and look at the sample libraries (inlib*)
+and sample test scripts (script.*) in netesto/local directory
 
 Author: Lawrence Brakmo, netesto@brakmo.org
