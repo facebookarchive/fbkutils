@@ -1,0 +1,17 @@
+# Sample file to create a table of all experiments.
+# Run tar -zxf bbr3.tgz first to create sample data
+#
+# Usage: ./exp.py --file=exp.script.all.example > example.all.html
+#
+# default number of decimal digits to show in tables
+format = 2
+
+# Use log command to specify a file where to write log/debug info
+#log = out.log
+
+# Where the csv file is located (bbr3/exp.csv in this case).
+# This command can only be followed by the "format" or "log" commands
+File = bbr3/exp
+
+doTable
+end

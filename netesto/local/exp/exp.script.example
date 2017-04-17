@@ -1,0 +1,61 @@
+# Sample file to create tables and plots of some experiments.
+# Run tar -zxf bbr3.tgz first to create the sample data
+# You also need to install gs (ghostscript) in order to create
+# graphs/plots.
+#
+# Usage: ./exp.py --file=exp.script.example > example.html
+#
+
+# default number of decimal digits to show in tables
+format = 2
+
+# Use log command to specify a file where to write log/debug info
+#log = out.log
+
+# Where the csv file is located (bbr3/exp.csv in this case).
+# This command can only be followed by the "format" or "log" commands
+File = bbr3/exp
+
+# Select rows to use. Each experiment/test creates multiple rows
+# The row with ".0" in its "exp" field is the aggregate row
+Select = exp[has].0,testType==3Stream1,netem==10,bw==100mbit
+
+# Create fairness column from existing columns and/or numbers
+NewCol = fairness = rateMax / rateMin
+
+# Select columns to use
+Cols = exp,expName,test,testType,instances,ca,cwnd,netem,bw,pingRtt,rate,rateMin,rateMax,retransPkts%,fairness
+
+# Average rows that have the same values for the specified columns
+#Average=ca,testNote,req,ecn
+
+# Write Table showing selected rows and columns
+doTable
+
+# Plot of #Flows vs. Retrans and Fairness
+plotSize=1300,650
+source=plotFlowsRetransFairness.exp,\
+  subTitle1=3->1 hosts,\
+  subTitle2=10ms RTT and 100mbps
+
+# Plot of #Flows vs. Retrans and Fairness
+plotSize=1300,650
+source=plotFlowsRttCwnd.exp,\
+  subTitle1=3->1 hosts,\
+  subTitle2=10ms RTT and 100mbps
+
+# Select new rows to use
+select=all
+Select=exp[has].0,testType==3Stream1,netem==80,bw==100mbit
+
+# Write table showing selected rows and columns
+doTable
+
+# Repeat plots using new data (80ms RTT, 100mbit bw)
+source=plotFlowsRetransFairness.exp,\
+  subTitle1=3->1 hosts,\
+  subTitle2=80ms RTT and 100mbps
+
+source=plotFlowsRttCwnd.exp,\
+  subTitle1=3->1 hosts,\
+  subTitle2=80ms RTT and 100mbps

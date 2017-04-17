@@ -1,0 +1,15 @@
+#Y1Units=1=us,1000=ms,1000000=secs
+Y1Units=
+Y2Units=
+xUniform=on
+plotX=instances
+plotY1='retransPkts%'
+plotY2='fairness'
+plotSeries='ca'
+plotXTitle='Flows per host'
+plotY1Title='% Retransmits'
+plotY2Title='Fairness = Fastest/Slowest BW'
+plotSeriesTitle='CA'
+plotTitle='Retransmissions and Fairness|$subTitle1|$subTitle2'
+#plotSize=1300,650
+doPlot

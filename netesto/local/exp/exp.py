@@ -1,14 +1,5 @@
 #!/usr/bin/python
 
-# exp.py - Netesto experiment results visualization tool
-#
-# Copyright (C) 2016, Facebook, Inc.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the LICENSE
-# file in the root directory of this source tree.
-
-
 import sys
 import random
 import os.path
@@ -22,17 +13,21 @@ import os
 import cgi
 import cgitb; cgitb.enable()
 import socket
+from string import Template
 
 # Globals
 #
+# The program can be used interactively as a web program,
+# in which case it needs to be installed in cgi-exec directory,
+# or in batch mode where it reads commands through a script
 #Mode = 'web'
 Mode = 'script'
-Path = ''
-relPath = ''
-IterFile = ''
+
+Path = '.'
+relPath = '.'
+IterFile = 'exp.html'
 menuState = ''
 hostName = socket.gethostname()
-#flog = open('log/log.out', 'w')
 ran = random.randrange(10000000)
 #foutPath = '/Library/WebServer/Documents/Exp/tmp'
 foutPath = 'tmp/'
@@ -47,8 +42,10 @@ iterIndex = 999999999
 iterDict = {}
 fieldList = []
 fieldDict = {}
-formatFlag = 0
+formatFlag = False
 formatList = []
+defaultFormatFlag = False
+defaultFormat = 2
 showColFormattingFlag = False
 CommandDict = {}
 CommandDict['rowColorChange'] = ''
@@ -64,6 +61,7 @@ Cols = []
 if Mode == 'web':
   flog = open('log/log'+foutName+'.out', 'w')
 else:
+#  flog = open('/dev/null', 'w')
   flog = open('exp.log', 'w')
 fieldDict = {}
 formatList = []
@@ -78,6 +76,11 @@ ReadRowList = []
 
 ReadCommandDict = {}
 ReadCommands = 0
+
+Y1minFlag = False
+Y2minFlag = False
+Y1min = 'x'
+Y2min = 'x'
 
 PlotPercentFlag = 0
 PlotRatioFlag = 0
@@ -105,7 +108,6 @@ defaultVals['BkgLevel'] = '0.8'
 defaultVals['PlotPercent'] = 'Off'
 #defaultVals['xUniform'] = 'On'
 defaultVals['Y2LogScale'] = 'Auto'
-
 
 #--- rmSpaces
 def rmSpaces(s):
@@ -329,8 +331,10 @@ def strIntCmp(s1, s2):
 
 #--- getFields
 def getFields(line):
+  global defaultFormatFlag, defaultFormat
+
   k=0
-  if line.find(':') > 0:
+  if line.find(':') > 0 or defaultFormatFlag:
     formatFlag = True
     fieldList = []
     ffList = line.split(',')
@@ -340,7 +344,7 @@ def getFields(line):
       if len(ff) > 1:
         formatList.append(int(ff[1]))
       else:
-        formatList.append(2)
+        formatList.append(defaultFormat)
       fieldDict[ff[0]] = k
       k = k + 1
   else:
@@ -1091,7 +1095,6 @@ def putHtmlTableRow(fout, row, fieldList):
   global lastExp
   global iterName
   global lastColorFieldVal
-  global IterFile, relPath
 
   print >>flog, 'in putHtmlTableRow: ', row
 
@@ -1196,6 +1199,14 @@ def putHtmlTableRow(fout, row, fieldList):
 def endHtml():
   sys.stdout.write('</BODY></HTML>\n')
 
+#--- doEnd
+def doEnd():
+    endHtml()
+    print >>flog, 'DONE'
+    flog.close()
+    sys.stdout.close()
+    os._exit(0)
+
 #--- percentTableWriteHeader
 def percentTableWriteHeader(fout, fieldList):
   global iterName
@@ -1261,11 +1272,13 @@ def removeEmptyFieldRows(field):
 def removeNonFloatFieldRows(field):
   global SelectedRowList
 
+  print >>flog, "removeNonFLoatFieldRows, field:", field
   newSelectedRowList = []
   for r in SelectedRowList:
     row = Rows[iterDict[r]]
     useFlag = True
     index = int(fieldDict[field])
+    print >>flog, "removeNonFloatFieldRows, index:", index, "len:", len(row)
     if isFloat(row[index]) or row[index] == '':
       newSelectedRowList.append(r)
 
@@ -1402,16 +1415,18 @@ def setPlotVals(p):
 
 #--- scaleList
 def scaleList(valList, div):
+  print >>flog, "scaleList, div:", div, " valList:", valList
   if div == 0:
     return;
   i = 0
   while i < len(valList):
     valList[i] = float(valList[i]) / div
     i += 1
+  print >>flog, "after scaling, valList:", valList
   return
 
 #--- doUnits
-def doUnits(units, divFlag, div, max, title):
+def doUnits(units, divFlag, div, vmax, title):
 
   unitsList = units.split(',')
   orderedUnitsList = []
@@ -1435,18 +1450,18 @@ def doUnits(units, divFlag, div, max, title):
           break
   print >>flog, '>>>> orderedUnitsList:', orderedUnitsList
   for kv in orderedUnitsList:
-    print >>flog, '>>>>   comparing kv[0]:%.1f with max:%.1f' % (kv[0],max)
-    if kv[0] < max:
+    print >>flog, '>>>>   comparing kv[0]:%.1f with max:%.1f' % (kv[0],vmax)
+    if kv[0] < vmax:
       if divFlag:
         div *= kv[0]
       else:
         div = kv[0]
         divFlag = True
       title = title + ' (' + kv[1] + ')'
-      max = max / div
-      print >>flog, '>>>>   YES! div:%.1f' % div
+      vmax = vmax / div
+      print >>flog, '>>>>   YES! div:%.1f, vmax:%.1f' % (div, vmax)
       break
-  return divFlag, div, max, title
+  return divFlag, div, vmax, title
 
 #--- doPlotSeries
 #
@@ -1519,6 +1534,7 @@ def doPlotSeries(xField, y1Field, y2Field, sField, sList, sListNames):
 # Set max and min values
   if 'Y1min' in CommandDict and isFloat(CommandDict['Y1min']):
     yMin = float(CommandDict['Y1min'])
+    print >>flog, "Y1min=%s  yMin=%.2f" % (CommandDict["Y1min"], yMin)
   else:
     yMin = min(y1Vals)
 
@@ -1542,12 +1558,17 @@ def doPlotSeries(xField, y1Field, y2Field, sField, sList, sListNames):
 
   if 'Y1Units' in CommandDict:
     units = CommandDict['Y1Units']
-    y1divFlag, y1div, yMax, y1Title = doUnits(units, y1divFlag, y1div, yMax,
+    if units != '':
+      y1divFlag, y1div, yMax, y1Title = doUnits(units, y1divFlag, y1div, yMax,
                                               y1Title)
+    print >>flog, 'Y1Units, units="%s", y1div=%.2f, yMax=%.1f' % \
+                  (str(units), y1div, yMax)
+
   if 'Y2Units' in CommandDict:
     units = CommandDict['Y2Units']
-    y2divFlag, y2div, y2Max, y2Title = doUnits(units, y2divFlag, y2div, y2Max,
-                                              y2Title)
+    if units != '':
+      y2divFlag, y2div, y2Max, y2Title = doUnits(units, y2divFlag, y2div, y2Max,
+                                               y2Title)
 
   print >>flog, 'zz sField: ', sField, ' sList: ', sList, ' len(sList): ', len(sList)
 
@@ -1568,6 +1589,11 @@ def doPlotSeries(xField, y1Field, y2Field, sField, sList, sListNames):
     xSet = set(xVals)
   else:
     numDataSets = len(sList)
+    if y1divFlag:
+      scaleList(y1Vals, y1div)
+    if y1divFlag:
+      scaleList(y2Vals, y2div)
+
     for val in sList:
       if xUniformFlag == True:
         valList = getSelectedSeriesStrings(xField, sField, sList[count])
@@ -1582,7 +1608,9 @@ def doPlotSeries(xField, y1Field, y2Field, sField, sList, sListNames):
 
       valList = getSelectedSeriesVals(y1Field, sField, sList[count])
       if y1divFlag:
+        print >>flog, 'y1divFlag is T, y1div:', y1div, ' valList:', valList
         scaleList(valList, y1div)
+        print >>flog, '  after valList:', valList
       y1ValsList.append(valList)
 
       valList = getSelectedSeriesVals(y2Field, sField, sList[count])
@@ -1619,6 +1647,8 @@ def doPlotSeries(xField, y1Field, y2Field, sField, sList, sListNames):
   print >>flog, 'xVals: ', xVals
   print >>flog, 'y1Vals: ', y1Vals
   print >>flog, 'y2Vals: ', y2Vals
+  if y3FieldFlag:
+    print >>flog, 'y3Vals: ', y3Vals
   print >>flog, 'xValsList: ', xValsList
   print >>flog, 'y1ValsList: ', y1ValsList
   print >>flog, 'y2ValsList: ', y2ValsList
@@ -1626,6 +1656,7 @@ def doPlotSeries(xField, y1Field, y2Field, sField, sList, sListNames):
   print >>flog, 'xSet: ', xSet
   print >>flog, 'xValUniqueList: ', xValUniqueList
 
+  foutName = str(random.randrange(10000000))
   p = psPlot.PsPlot(foutPath+foutName, '', '', 1)
   p.flog = flog
 
@@ -1643,15 +1674,51 @@ def doPlotSeries(xField, y1Field, y2Field, sField, sList, sListNames):
     xMin = xValUniqueList
   else:
     xMin = min(xVals)
+  if 'Y1min' in CommandDict  and isFloat(CommandDict['Y1min']):
+    yMin = float(CommandDict['Y1min'])
+  else:
+    yMin = min(y1Vals)
+
+  y23Vals = []
+  for v in y2Vals:
+    y23Vals.append(v)
+  if y3FieldFlag:
+    for v in y3Vals:
+      y23Vals.append(v)
+  print >>flog, 'y23Vals: ', y23Vals
 
   if len(y2Vals) == 0:
     p.SetPlot(xMin, max(xVals), 0, yMin, max(y1Vals), 0, xTitle, y1Title,
               mainTitle)
   else:
+    if 'Y2min' in CommandDict  and isFloat(CommandDict['Y2min']):
+      y2Min = float(CommandDict['Y2min'])
+    else:
+      y2Min = min(y2Vals)
+    if 'Y1eqY2' in CommandDict and CommandDict['Y1eqY2'] == 'on':
+      yMin = yMin
+      if yMin > y2Min: yMin = y2Min
+      yMax = max(y1Vals)
+      if yMax < max(y23Vals): yMax = max(y23Vals)
+      p.SetPlot2(xMin, max(xVals), 0, yMin, yMax, 0, yMin,
+               yMax, 0, xTitle, y1Title, y2Title, mainTitle)
+    else:
+      p.SetPlot2(xMin, max(xVals), 0, yMin, max(y1Vals), 0, y2Min,
+                 max(y23Vals), 0, xTitle, y1Title, y2Title, mainTitle)
 
-
-    p.SetPlot2(xMin, max(xVals), 0, yMin, yMax, 0, y2Min,
-               y2Max, 0, xTitle, y1Title, y2Title, mainTitle)
+#  if xUniformFlag == True:
+#    xMin = xValUniqueList
+#  else:
+#    xMin = min(xVals)
+#
+#  if len(y2Vals) == 0:
+#    p.SetPlot(xMin, max(xVals), 0, yMin, max(y1Vals), 0, xTitle, y1Title,
+#              mainTitle)
+#  else:
+#
+#
+#    p.SetPlot2(xMin, max(xVals), 0, yMin, yMax, 0, y2Min,
+#               y2Max, 0, xTitle, y1Title, y2Title, mainTitle)
 
   print >>flog, 'setPlot returns\nCalling PlotData'
   print >>flog, 'xLen: ', p.xLen, ' xCount: ', p.xCount, ' xInc: ', p.xInc
@@ -1692,7 +1759,7 @@ def doPlotSeries(xField, y1Field, y2Field, sField, sList, sListNames):
                    str(barWidth)+p.SetColor(p.colorWhite)+
                     ' plotBarsCline')
       p.PlotData(2, xValsList[indx], y2ValsList[indx], y2Field, '',
-                 '6 '+p.SetColor(p.colorRed)+
+                 '6 '+p.SetColor(p.colorGreen)+
                  ' plotSymbolsC')
     if indx > 0 and PlotPercentFlag > 0:
       y0List = y1ValsList[0]
@@ -1822,7 +1889,7 @@ def doPlot():
     print >>flog, 'doPlot image:', image
     if image == '':
       return image
-    if 'plotFilename' in CommandDict:
+    if 'plotFilename' in CommandDict and CommandDict['plotFilename'] != None:
       plotFn = CommandDict['plotFilename']
       if not os.path.exists('Plots'):
         os.mkdir('Plots', 0777)
@@ -1832,7 +1899,8 @@ def doPlot():
       output = commands.getoutput(cmdStr)
       print >>flog, 'output from cp plot file: ', output
       image = 'Plots/' + plotFn + '.jpg'
-    return image
+      CommandDict['plotFilename'] = None
+  return image
 
 #--- putImage
 def putImage(image):
@@ -1879,8 +1947,8 @@ def getSelectedRows(selectionStr, availableRows):
   SelectHasnotList = []
   SelectRangeList = []
   for selection in localSelectList:
-    selection.strip()
-    selection.replace(' ','')
+    selection = selection.strip()
+#    selection.replace(' ','')
     if selection.find('==') >= 0:
       SelectEQList.append(selection.split('=='))
     elif selection.find('!=') >= 0:
@@ -1973,10 +2041,15 @@ def doSelect(selectString):
   global SelectedRowList
 
   print >>flog, 'doSelect, SelectedRowList:', SelectedRowList
+  if selectString.lower() == 'all':
+    SelectedRowList = ReadRowList*1
+    return
+
   orSelectStrings = selectString.split(";")
   chosenRows = set([])
   selectedRowSet = set(SelectedRowList)
   for selectionStr in orSelectStrings:
+    selectionStr = selectionStr.strip()
     availableRows = selectedRowSet - chosenRows
     chosenRows = chosenRows.union(set(getSelectedRows(selectionStr,
                                                       availableRows)))
@@ -2117,6 +2190,302 @@ def doAverage(averageString):
     rowNum += 1
   return
 
+opString = '+-*/&()'
+digitString = '0123456789.'
+varString = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_'
+whitespace = ' \t'
+
+opDict = {'+':'NewColAdd',
+          '-':'NewColSub',
+          '/':'NewColDiv',
+          '*':'NewColMult',
+          '&':'NewColConcat'
+         }
+
+#--- getVarsFromExpr
+# Returns a list of variables (names) from the expression (argument)
+def getVarsFromExpr(s):
+  print >>flog, "getVarsFromExpr:", s
+  varNameList = []
+  i = 0
+  while i < len(s):
+    c = s[i]
+    if c in opString or c in whitespace or c in digitString:
+      i += 1
+      continue
+    elif c in varString:
+      # start of variable name
+      varStart =  i
+      i += 1
+      while i < len(s) and s[i] in varString:
+        i += 1
+      varNameList.append(s[varStart:i])
+  print >>flog, "  varNameList:", varNameList
+  return varNameList
+
+#--- getFloat
+# reads the floating point number in the string expr that starts at pos
+#
+def getFloat(expr, pos):
+  startPos = pos
+  print >>flog, "getFloat, reading floating number in:", expr[pos:]
+  while pos < len(expr) and expr[pos] in digitString:
+    pos += 1
+  num = expr[startPos:pos]
+  print >>flog, "  num =", num
+  if not isFloat(num):
+    doError('newCol, %s is not a floating point number' % num)
+  return float(num), pos
+
+#--- getVar
+# Gets variable (alpha plus _ characters) in string expr starting at
+# pos. It should be a field name, and gets the value of row for that
+# field
+def getVar(row, expr, pos):
+  global fieldDict
+
+  print >>flog, "getVar, reading variable in:", expr[pos:]
+  startPos = pos
+  while pos < len(expr) and expr[pos] in varString:
+    pos += 1
+  var = expr[startPos:pos]
+  print >>flog, "  varName:", var
+  if var not in fieldDict:
+    doError('newCol, var "%s" not a known field' % var)
+  indx = fieldDict[var]
+  if indx >= len(row):
+    doError('getVar, indx (%d) of var "%s" too large (%d)' %\
+            (indx, var, len(row)))
+  val = row[indx]
+  print >>flog, "value of var:", var, "=", val
+  if isFloat(val):
+    return float(val),pos
+  else:
+    return val,pos
+
+#--- mathRowExpression0
+# Evaluate expression where variables refer to field values in given row
+#
+def mathRowExpression0(row, expr, pos):
+
+  print >>flog, "mathRowExpression0 expr:", expr, " pos:", pos
+  n = len(expr)
+  stack = []
+  num = 0.0
+  prevOp = '+'
+  while pos < n:
+    print >>flog, "  looking at:", expr[pos:]
+    c = expr[pos]
+    if c in whitespace:
+      pos += 1
+      continue
+    elif c in digitString:
+      num,pos = getFloat(expr, pos)
+      pos -= 1
+      c = 'x'
+    elif c in varString:
+      num,pos = getVar(row, expr, pos)
+      pos -= 1
+      c = 'x'
+    elif c == '(':
+      num,pos = mathRowExpression0(row, expr, pos+1)
+      if pos == -1:
+        return num, pos
+      pos += 1
+      continue
+
+    if c == '+' or c == '-'  or c =='*' or c =='/' or c ==')' or c == '&' or \
+       pos >= n-1:
+      print >>flog, "curOp:", c, " prevOp:", prevOp
+      if prevOp == '&':
+        stack.append(str(stack.pop()) + str(num))
+      else:
+        if not isFloat(num):
+          return '*', -1
+        elif prevOp == '+':
+          stack.append(num)
+        elif prevOp == '-':
+          stack.append(-num)
+        elif prevOp == '*':
+          prevNum = statck.pop()
+          if not isFloat(prevNum) or not isFloat(num):
+            return '*', -1
+          stack.append(prevNum * num)
+        elif prevOp == '/':
+          prevNum = stack.pop()
+          if not isFloat(prevNum) or not isFloat(num):
+            return '*', -1
+          if num == 0:
+            return '00', -1
+          stack.append(prevNum / num)
+      prevOp = c
+      num = None
+    elif c != 'x':
+      doError("newCol, error in expression: " + expr)
+    pos += 1
+    if c == ')':
+      break
+  rv = 0.0
+  while len(stack) > 0:
+    v = stack.pop()
+    if not isFloat(v) and len(stack) > 0:
+      return '*', -1
+    rv += v
+  return rv,pos-1
+
+#--- mathRowExpression
+# Interface for mathRowExpression0
+#
+def mathRowExpression(row, expr):
+  rv,pos = mathRowExpression0(row, expr, 0)
+  print >>flog, "mathRowExpression returns:", rv
+  return str(rv)
+
+#--- doNewCol1
+def doNewCol1(s):
+  global AveragedRows
+  global AveragedRowsCount
+  global fieldDict
+  global fieldList
+  global SelectedColList
+  global SelectedColDict
+  global SelectedRowList
+  global formatFlag
+  global formatList
+  global Rows
+  global iterDict
+  global iterName
+
+  vals = s.split('=', 1)
+  newColName = vals[0].strip()
+  if len(vals) < 2:
+    doError(" newCol missing expression: %s" % s)
+  expr = vals[1]
+  if newColName in fieldDict:
+    doError('Error in "New Column", column name "'+newColName+
+            '" already exists.')
+
+  varNameList = getVarsFromExpr(expr)
+  for var in varNameList:
+    if var not in fieldDict:
+      doError('unknown field "%s" in expression "%s" for newCol "%s"' %\
+              (var, expr, newColName))
+
+  newColIndx = len(fieldDict)
+  fieldDict[newColName] = newColIndx
+  fieldList.append(newColName)
+  SelectedColList.append(newColName)
+  SelectedColDict[newColName] = 1
+  if formatFlag:
+    if expr.find('/') > 0:
+      formatList.append(max(defaultFormat, 2))
+    else:
+      formatList.append(defaultFormat)
+
+  for r in ReadRowList:
+    indx = iterDict[r]
+    row = Rows[indx]
+    rv = mathRowExpression(row, expr)
+    row.append(str(rv))
+
+#--- doNewCol
+def doNewCol(newColName):
+
+  global AveragedRows
+  global AveragedRowsCount
+  global fieldDict
+  global fieldList
+  global SelectedColList
+  global SelectedColDict
+  global SelectedRowList
+  global formatFlag
+  global formatList
+  global Rows
+  global iterDict
+  global iterName
+
+  if newColName in fieldDict:
+    doError('Error in "New Column", column name "'+newColName+
+            '" already exists.')
+  if 'NewColField1' not in CommandDict or CommandDict['NewColField1'] == '':
+    doError('Error in "New Column", first field is empty.')
+  if 'NewColField2' not in CommandDict or CommandDict['NewColField2'] == '':
+    doError('Error in "New Column", second field is empty.')
+  field1 = CommandDict['NewColField1']
+  field2 = CommandDict['NewColField2']
+  if field1 in fieldDict:
+    field1Indx = fieldDict[field1]
+  elif not isFloat(field1):
+    doError('Error in "New Column", field value "'+field1+'" is not a column'
+            'name nor a number')
+  else:
+    field1Float = float(field1)
+    field1Indx = -1
+  if field2 in fieldDict:
+    field2Indx = fieldDict[field2]
+  elif not isFloat(field2):
+    doError('Error in "New Column", field value "'+field2+'" is not a column'
+            'name nor a number')
+  else:
+    field2Float = float(field2)
+    field2Indx = -1
+  newColIndx = len(fieldDict)
+  fieldDict[newColName] = newColIndx
+  fieldList.append(newColName)
+  SelectedColList.append(newColName)
+  SelectedColDict[newColName] = 1
+  op = CommandDict['NewColOp']
+  if op in opDict:
+    op = opDict[op]
+  if formatFlag:
+    if op == 'NewColDiv':
+      formatList.append(int(2))
+    else:
+      formatList.append(max(formatList[field1Indx],formatList[field2Indx]))
+  for r in ReadRowList:
+    indx = iterDict[r]
+    row = Rows[indx]
+    if field1Indx == -1:
+      v1 = field1Float
+    elif op == 'NewColConcat':
+      v1 = row[field1Indx]
+    elif isFloat(row[field1Indx]):
+      v1 = float(row[field1Indx])
+    else:
+      row.append('*')
+      continue
+    if field2Indx == -1:
+      v2 = field2Float
+    elif op == 'NewColConcat':
+      v2 = row[field2Indx]
+    elif isFloat(row[field2Indx]):
+      v2 = float(row[field2Indx])
+    else:
+      row.append('*')
+      continue
+    if op == 'NewColDiv':
+      if v2 != 0:
+        v = v1 / v2;
+      else:
+        row.append('**')
+        continue
+    elif op == 'NewColMult':
+      v = v1 * v2
+    elif op == 'NewColAdd':
+      v = v1 + v2
+    elif op == 'NewColSub':
+      v = v1 - v2
+    elif op == 'NewColConcat':
+      v = '%s_%s' % (v1, v2)
+    if (not formatFlag) and (op != 'NewColConcat'):
+      v = formatFloat(v)
+    if op == 'NewColConcat':
+      row.append(v)
+    else:
+      row.append(str(v))
+
+
+
 #--- doSort
 def doSort(sortString):
 
@@ -2210,88 +2579,226 @@ def writeHtmlTable():
       putImage(image)
   return
 
+#--- doLog
+def doLog(fname):
+  global flog
+
+  flog.close()
+  if fname.lower() == 'null' or fname == '':
+    flog = open('/dev/null', 'w')
+  else:
+    flog = open(fname, 'w')
+  return
+
+#--- doPlot0
+def doPlot0(fname):
+  global CommandDict
+
+  print >>flog, "doPlot0 fname=%s", fname
+  CommandDict['plotFilename'] = fname
+  image = doPlot()
+  print >>flog, "doPlot0 image=%s" % image
+  putImage(image)
+  return
+
+#--- selectCols
+def selectCols(val):
+  global SelectedColList, fieldList
+
+  vals = val.split(',')
+  if len(vals) == 1 and vals[0] == 'ALL':
+    SelectedColList = fieldList*1
+    resetSelectedColDict()
+  else:
+    SelectedColList = []
+    for val in vals:
+      val = val.strip()
+      SelectedColList.append(val)
+
+  resetSelectedColDict()
+  return
+
+#--- removeCols
+def removeCols(val):
+  global fieldDict, SelectedColList
+
+  if len(fieldDict) <= 0:
+    return
+  vals = val.split(',')
+  colList = []
+  for val in vals:
+    colList.append(val)
+  if len(SelectedColList) == 0:
+    all_fields = set(fieldDict.keys())
+  else:
+    all_fields = set(SelectedColList)
+  selected_fields = set(colList)
+  SelectedColList = list(all_fields - selected_fields)
+  resetSelectedColDict()
+  return
+
+#--- selectRows
+def selectRows(val):
+  global iterDict, SelectedRowList
+
+  vals = val.split(',')
+  SelectedRowList = []
+  for val in vals:
+    val = val.strip()
+    if val.lower() == 'all':
+      SelectedRowList = ReadRowList*1
+    elif val in iterDict:
+      SelectedRowList.append(val)
+    elif val.find('..') > 0:
+      n1 = val[0:val.find('..')]
+      n2 = val[val.find('..')+2:]
+      i = n1
+      while i <= n2:
+        d = 0
+        while True:
+          v = str(i) + '.' + str(d)
+          if v in iterDict:
+            SelectedRowList.append(v)
+          else:
+            break
+          d += 1
+        i += 1
+  return
+
+#--- doTable
+def doTable(val):
+  writeHtmlTable()
+  return
+
+#--- doSource
+# Reads and processes a file of commands
+# Variable subsitution is allowed when the filename is followed by a
+# list of variable assignments. Input format:
+#   <filename>[,var1=val1,var2=val2...]
+# Initial blank space of each input line is removed. A line consisting
+# of multiple input lines can be formed by using a '\' as the last
+# character in an input line that should be appended to a following
+# input line.
+# Blank space at the end of a whole line is also removed.
+#
+def doSource(val):
+  global flog
+
+  print >>flog, "doSource =", val
+  vals = val.split(',')
+  if len(vals) <= 0:
+    return
+  fname = vals[0]
+  varDict = {}
+  if len(vals) > 1:
+    for val in vals[1:]:
+       kv = val.split('=', 1)
+       if len(kv) != 2:
+         doError('in doSource, variable without value:%s' % iline)
+       k = kv[0].strip()
+       v = kv[1].strip()
+       varDict[k] = v
+  print >>flog, "doSource varDict:", varDict
+
+  fread = myOpen(fname, 'r')
+  useLine = ''
+  for iline in fread:
+    iline = iline.strip()
+    iline = useLine + iline
+    if len(iline) == 0 or iline[0] == '#':
+      useLine = ''
+      continue
+    if iline[-1] == '\\':
+      useLine = iline[:-1]
+      continue
+    iline = Template(iline).safe_substitute(varDict)
+    iline = iline.strip()
+    if len(iline) == 0 or iline[0] == '#':
+      continue
+    print >>flog, "doSource iline = ", iline
+    kv = iline.split('=', 1)
+    processCommand(kv)
+    useLine = ''
+  fread.close()
+
+#--- processCmdDict{}
+processCmdDict = {
+  'end':doEnd, 'log':doLog, 'read':readCsvFile,
+  'append':appendCsvFile, 'select':doSelect, 'average':doAverage,
+  'newcol':doNewCol1, 'doplot':doPlot0, 'dotable':doTable,
+  'selectcols':selectCols, 'cols':selectCols, 'removecols':removeCols,
+  'deletecols':removeCols, 'selectrows':selectRows, 'selectexp':selectRows,
+  'rows':selectRows, 'source':doSource
+}
+
 #--- processCommand
 def processCommand(kv):
-  global csvFilename, Rows
+  global csvFilename, Rows, flog
   global SelectedRowList, SelectedColList, CommandDict
   global SelectedColDict, fieldDict, fieldList
-  global relPath, IterFile
+  global relPath, IterName, Path
+  global defaultFormatFlag, defaultFormat
 
   print >>flog, ">> processCommand: ", kv
   key = kv[0].strip()
+  keyLC = key.lower()
   if len(kv) != 2:
-    if key != 'doPlot' and key != 'doTable':
-      return
+    if keyLC == 'doplot' or keyLC == 'dotable' or keyLC == 'end':
+      val = None
+    else:
+     doError("Command:%s is missing its value" % kv[0])
   else:
       val = kv[1].strip()
-      if (val[0] == "'" and val[-1] == "'") or \
-         (val[0] == '"' and val[-1] == '"'):
+      if len(val) > 0 and ((val[0] == "'" and val[-1] == "'") or \
+         (val[0] == '"' and val[-1] == '"')):
         val = val[1:-1]
 
-  # Process Col selection commands
-  if key == 'Cols':
-    vals = val.split(',')
-    SelectedColList = []
-    for val in vals:
-      SelectedColList.append(val)
-    resetSelectedColDict()
-  elif key == 'DeleteCols' and len(fieldDict) > 0:
-    vals = val.split(',')
-    colList = []
-    for val in vals:
-      colList.append(val)
-    if len(SelectedColList) == 0:
-      all_fields = set(fieldDict.keys())
-    else:
-      all_fields = set(SelectedColList)
-    selected_fields = set(colList)
-    SelectedColList = list(all_fields - selected_fields)
-    resetSelectedColDict()
+  if keyLC == 'end':
+    doEnd()
 
-# Process Row selection commands
-  elif key == 'Rows':
-    vals = val.split(',')
-    for val in vals:
-      SelectedRowList.append(val)
+# Commands that can occur before File comamnd:
+  if keyLC == 'format':
+    if not isFloat(val):
+      doError("format argument is not an integer: %s" % val)
+    defaultFormatFlag = True
+    defaultFormat = int(val)
+    return
+  elif keyLC == 'log':
+    doLog(val)
 
-  elif key == 'File' or key == 'Read':
-    if key == 'File':
-      filename = val + '.csv'
-    else:
-      filename = val
+  if keyLC == 'file' and 'File' not in CommandDict:
+    filename = val + '.csv'
+    CommandDict['File'] = filename
+    relPath = val.rsplit('/',1)[0]
     readCsvFile(filename)
-  elif key == 'Append':
-    appendCsvFile(val)
-  elif key == 'Select':
-    doSelect(val)
-  elif key == 'Average':
-    doAverage(val)
-  elif key == 'doPlot':
-    if len(kv) == 2:
-      CommandDict['plotFilename'] = val
-    image = doPlot()
-    putImage(image)
-  elif key == 'doTable':
-    writeHtmlTable()
-  elif key == 'Path':
-    Path = val
-  elif key == 'relPath':
-    relPath = val
-  elif key == 'IterFile':
-    IterFile = val
-  elif key == 'Menu':
-    menuState = val
-  elif key == 'Y1div' and isFloat(val):
-    CommandDict[key] = val
-  elif key == 'Y2div' and isFloat(val):
-    CommandDict[key] = val
-  elif key == 'plotSize':
-    xyval = val.split(',')
-    if len(xyval) >= 2:
-      CommandDict['plotYSize'] = xyval[1]
-    if len(xyval) >= 1:
-      CommandDict['plotXSize'] = xyval[0]
+    return
 
+  # File has to be the 1st command, else use default name
+  if 'File' not in CommandDict and keyLC != 'log':
+    CommandDict['File'] = 'exp'
+    readCsvFile('exp')
+
+  if keyLC in processCmdDict:
+    print >>flog, 'key %s in processCmdDict' % key
+    processCmdDict[keyLC](val)
+  elif keyLC == 'path':
+    Path = val
+  elif keyLC == 'relpath':
+    relPath = val
+  elif keyLC == 'iterfile':
+    IterFile = val
+  elif keyLC == 'y1div' and isFloat(val):
+    CommandDict[key] = val
+  elif keyLC == 'y2div' and isFloat(val):
+    CommandDict[key] = val
+  elif keyLC == 'plotsize':
+    xyval = val.split(',')
+    if len(xyval) == 1:
+      xyval = val.split('x')
+    if len(xyval) >= 2 and isFloat(xyval[1]):
+      CommandDict['plotYSize'] = xyval[1]
+    if len(xyval) >= 1 and isFloat(xyval[0]):
+      CommandDict['plotXSize'] = xyval[0]
   else:
     CommandDict[key] = val
   return
@@ -2302,30 +2809,18 @@ def processArgs():
   global SelectedRowList, SelectedColList, CommandDict
   CommandDict['SaveStatic'] = True
 
-  for arg in sys.argv:
+  for arg in sys.argv[1:]:
     print >>flog, "arg: ", arg
     kv = arg.split('=', 1)
-    if len(kv) != 2 and kv[0] != 'doPlot' and kv[0] != 'doTable':
-      continue
 
     if kv[0] == '--file':
-      fread = myOpen(kv[1], 'r')
-      for iline in fread:
-        iline = iline.strip()
-        if len(iline) == 0 or iline[0] == '#':
-          continue
-        kv = iline.split('=', 1)
-        processCommand(kv)
-        print >>flog, "Returned from processCommand"
+      if len(kv) < 2:
+        print >> sys.err, "--file argument is missing value"
+        doError("--file argument is missing value")
+      doSource(kv[1])
     else:
       processCommand(kv)
-
-  endHtml()
-  print >>flog, 'DONE'
-  flog.close()
-  sys.stdout.close()
-  os._exit(0)
-
+  doEnd()
 
 #--- processCGIInput
 def processCGIInput(fin):

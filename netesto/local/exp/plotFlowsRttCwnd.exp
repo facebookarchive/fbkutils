@@ -1,0 +1,17 @@
+Y1Units=1=us,1000=ms,1000000=secs
+Y2Units=
+Y1min=0
+#Y2min=0
+xUniform=on
+#plotSize=1300,650
+plotXTitle='Flows per host'
+plotX=instances
+plotY1='pingRtt'
+plotY2='cwnd'
+plotSeries='ca'
+plotXTitle='Flows per host'
+plotY1Title='Ping Latency'
+plotY2Title='Average cwnd'
+plotSeriesTitle='CA'
+plotTitle='RTT and Cwnd|$subTitle1|$subTitle2'
+doPlot
