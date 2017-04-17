@@ -13,23 +13,73 @@ test servers and collects the experiment's data. This data is processed and
 put into a csv file in the controller, the raw data is also stored in the
 controller. In order to achieve this, the files in the netesto-remote directory
 must be copied first to the clients/servers and the netesto daemon must be
-started from the directory containing these files (./netesto.py -s &).
+started from the directory containing these files by executing the command
+
+    ./netesto.py -s [--debug=<file>] &
 
 Another set of files, under the netesto-local directory must also be copied to
 the controller, and then a set of tests can be started by specifying a
-particular netesto script (./netesto.py < script.experiment).
+particular netesto script
+
+    ./netesto.py < script.experiment
 
 For example, the following script starts one TCP RR netperf flow using 1MB
 requests and 1 byte replies lasting 60 seconds using TCP Cubic.
 
-# Run one Request/Reply experiment
-HOST_SUFFIX=dc1.mynetwork.com
-SOURCE inlib
-SET client=hostname1
-SET server=hostname2
-RUN MServerRR servers=$server clients=$client expName=1c1s1fr  ca=cubic dur=60
-instances=1 reqs=1M reply=1
+  # Run one Request/Reply experiment
+  HOST_SUFFIX=dc1.mynetwork.com
+  SOURCE inlib
+  SET client=hostname1
+  SET server=hostname2
+  RUN MServerRR servers=$server clients=$client expName=1c1s1fr  ca=cubic dur=60
+  instances=1 reqs=1M reply=1
 
+Netesto reads its commands from standard input. So if the file script.test contains
+the above commands, you could run it with:
+
+    ./netesto.py [-d | --debug=<file>] < script.test
+
+The best way to understand the netesto's grammar is to look a the script files (script.*)
+and the libraries (inlib*) provided.
+
+Each test/experiment will create a new numeric directory on the controller containing
+information about the experiment as well as some graphs created by the netesto command
+PROCESS_EXP (automatically called by all library macros) and a new lines are appended
+to exp.csv containing experimental results.
+
+The directory "exp" under the local directory can be used to create HTML files containing
+tables and graphs. For example, the file exp.script.all.example contains:
+
+  # Sample file to create a table of all experiments.
+  # Run tar -zxf bbr3.tgz first to create sample data
+  #
+  # Usage: ./exp.py --file=exp.script.all.example > example.all.html
+  #
+  # default number of decimal digits to show in tables
+  format = 2
+
+  # Use log command to specify a file where to write log/debug info
+  #log = out.log
+
+  # Where the csv file is located (bbr3/exp.csv in this case).
+  # This command can only be followed by the "format" or "log" commands
+  File = bbr3/exp
+
+  doTable
+  end
+
+One can then use this script for creating a table of all the experiments as follows:
+
+    ./exp.py --file=exp.script.all.example > example.all.html
+
+The file exp.script.example contanins a more interesing script that outputs tables of
+a subset of experiments and also does some bar graphs.
+
+Note that netesto has grown organically from basic functionality to its present level.
+That is, it does not follow an overall design. Instead, it started with basic functionality
+and it has grown over time. The code is not well documented, but I am working on 
+restructuring and adding documentation. Please let me know of any issues you encounter.
+There is a big list of things I plan to work on under the file TODO.
 
 For more information read Netesto.pdf and look at the sample libraries (inlib*)
 and sample test scripts (script.*) in netesto/local directory
