@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# doClient.sh - program to be used with netesto.py to run network tests
-#
-# Copyright (C) 2016, Facebook, Inc.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the LICENSE
-# file in the root directory of this source tree.
-
 
 #-- Main variables
 #set -x
@@ -65,10 +57,6 @@ processArgs() {
       ca="${i#*=}"
       if [ "$ca" == "dctcp" ] ; then
         remCa=$ca
-			elif [ "$ca" == "pcecn_reno" ] ; then
-				remCa="dctcp"
-      elif [ "$ca" == "cubic_ecn" ] ; then
-        remCa="dctcp"
       else
         remCa="cubic"
       fi
@@ -390,15 +378,22 @@ getNetperfVal() {
 
 #-- processNetperfInfo <dir>
 processNetperfInfo() {
-	getNetperfVal $1 LOCAL_SEND_THROUGHPUT ; rate=$rv
-	rate_int=`echo "$rate" | egrep -o "^[0-9]*"`
-  rate_sum=$[rate_sum + rate_int]
-  if [ $rate_int -gt $rate_max ] ; then
-    rate_max=$rate_int
+  getNetperfVal $1 LOCAL_SEND_THROUGHPUT ; rate=$rv
+  echo "rate: $rate" >> $hsn.client.out 
+  rate_int=`echo "$rate" | egrep -o "^[0-9]*"`
+  rate100=`echo "$rate * 100" | bc -q -i | tail -1 | grep -o "[0-9]*" | head -1`
+  echo "rate100: $rate100" >> $hsn.client.out
+  rate_sum=$[rate_sum + rate100]
+  echo "rate_sum: $rate_sum" >> $hsn.client.out
+#  rate_sum=`echo "$rate_sum + $rate" | bc -q -i`
+  if [ $rate100 -gt $rate_max ] ; then
+    rate_max=$rate100
   fi
-  if [ $rate_int -lt $rate_min ] ; then
-    rate_min=$rate_int
+  echo "rate_max: $rate_max" >> $hsn.client.out
+  if [ $rate100 -lt $rate_min ] ; then
+    rate_min=$rate100
   fi
+  echo "rate_min: $rate_min" >> $hsn.client.out
 
 	getNetperfVal $1 LOCAL_CPU_UTIL ; localCpu=$rv
 	getNetperfVal $1 REMOTE_CPU_UTIL ; remoteCpu=$rv
@@ -538,7 +533,7 @@ done
 if [ "$dur" -gt "0" ] ; then
   sleep $dur
 
-  sleep 9
+  sleep 12
 
   if [ "$getStats" -gt "0" ] ; then
     if ! [ -a $exp/1 ] ; then
@@ -561,7 +556,12 @@ while [ $instance -le $instances ] ; do
   instance=$[instance + 1]
 done
 
-rate=$rate_sum
+rate=`echo "scale=1 ; ($rate_sum + 5) / 100.0" | bc -q -i | tail -1`
+echo "rate final: $rate" >> $hsn.client.out
+rate_min=`echo "scale=1 ; ($rate_min + 5) / 100.0" | bc -q -i | tail -1`
+echo "rate_min final: $rate_min" >> $hsn.client.out
+rate_max=`echo "scale=1 ; ($rate_max + 5) / 100.0" | bc -q -i | tail -1`
+echo "rate_max final: $rate_max" >> $hsn.client.out
 #avgCwnd=$[cwnd_sum / instances]
 avgCwnd=`echo $cwnd_sum $instances | awk '{ r = $1 / $2 } END { printf "%.1f\n",r }'`
 #avgRtt=$[rtt_sum / instances]
