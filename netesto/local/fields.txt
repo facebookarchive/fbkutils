@@ -5,6 +5,7 @@ test:one
 testType:one
 testNote:one
 desc:one
+kernel:one
 host:one
 server:one
 instances:one
@@ -16,10 +17,13 @@ req:one
 reply:one
 cwnd:avg
 netem:one
+qdisc:one
+bw:one
+buffers:one
 ecn:one
 rtt:avg
 pingRtt:avg
-rate:sum
+rate:sumRateDur
 rateMin:min
 rateMax:max
 retransPkts%:avg
@@ -52,13 +56,3 @@ client-rx-bytes:sum
 client-tx-bytes:sum
 client-tx-packet-len:avg
 client-rx-packet-len:avg
-nv_pad:avg
-nv_pad_buffer:avg
-nv_ssthresh_factor:one
-nv_dec_eval_min_calls:one
-nv_rtt_min_cnt:avg
-nv_rtt_factor:one
-nv_loss_dec_factor:avg
-nv_cong_decrease_mult:avg
-nv_temp_cwnd_dec_rtts:avg
-nv_temp_cwnd_dec_resets:avg

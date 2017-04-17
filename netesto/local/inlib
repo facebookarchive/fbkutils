@@ -1,11 +1,5 @@
 # Library of functions for netesto.py
 #
-# Copyright (C) 2016, Facebook, Inc.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the LICENSE
-# file in the root directory of this source tree.
-
 # Default values
 SET randDelay=0.1
 
@@ -94,6 +88,214 @@ WAIT 10
 PROCESS_EXP
 WAIT 15
 END MServerRR
+
+# MServerRR2
+# Args: exp, servers1, servers2, clients1, clients2, expName, ca1, ca2, dur,
+#       instances, reqs, reply
+# Note: servers, clients, reqs, ca can have multiple values separated by commas
+#       with no spaces. Example: ca=cubic,nv,cdg
+BEGIN MServerRR2
+SET exp=COUNTER
+FOR s IN $servers1 DO
+  IF_DEF preServer: RUN preServer host=$s
+  DO_SERVER exp=$exp host=$s order=0 expName=$expName start=1
+    SET exp=PREV
+DONE
+FOR s IN $servers2 DO
+  IF_DEF preServer: RUN preServer host=$s
+  DO_SERVER exp=$exp host=$s order=0 expName=$expName start=1
+    SET exp=PREV
+DONE
+
+FOR c IN $clients1 DO  
+  IF_DEF preClient: RUN preClient host=$c
+  FOR s IN $servers1 DO
+    IF $tcpDump: DO_TCPDUMP host=$c server=$s packets=$tcpDump
+    FOR r IN $reqs DO
+      DO_CLIENT host=$c server=$s ca=$ca1 dur=$dur delay=0 instances=$instances test=TCP_RR req=$r reply=$reply stats=1
+      RAND_WAIT $randDelay
+        DONE
+  DONE
+DONE
+
+FOR c IN $clients2 DO 
+  IF_DEF preClient: RUN preClient host=$c
+  FOR s IN $servers2 DO
+    IF $tcpDump: DO_TCPDUMP host=$c server=$s packets=$tcpDump
+    FOR r IN $reqs DO
+      DO_CLIENT host=$c server=$s ca=$ca2 dur=$dur delay=0 instances=$instances test=TCP_RR req=$r reply=$reply stats=1
+      RAND_WAIT $randDelay
+        DONE
+  DONE
+DONE
+
+WAIT $dur
+WAIT 10
+FOR s IN $servers1 DO
+  DO_SERVER host=$s order=1
+DONE
+FOR s IN $servers2 DO
+  DO_SERVER host=$s order=1
+DONE
+
+WAIT 5
+FOR s IN $servers1 DO
+  GET_DATA host=$s
+DONE
+FOR s IN $servers2 DO
+  GET_DATA host=$s
+DONE
+FOR c IN $clients1 DO
+  GET_DATA host=$c
+DONE
+FOR c IN $clients2 DO
+  GET_DATA host=$c
+DONE
+
+WAIT 10
+PROCESS_EXP
+WAIT 15
+END MServerRR2
+
+# MServerRR2r
+# Args: exp, servers1, servers2, clients1, clients2, expName, ca1, ca2, dur,
+#       instances, req1, req2, reply
+# Note: servers, clients, reqs, ca can have multiple values separated by commas
+#       with no spaces. Example: ca=cubic,nv,cdg
+BEGIN MServerRR2r
+SET exp=COUNTER
+FOR s IN $servers1 DO
+  IF_DEF preServer: RUN preServer host=$s
+  DO_SERVER exp=$exp host=$s order=0 expName=$expName start=1
+    SET exp=PREV
+DONE
+FOR s IN $servers2 DO
+  IF_DEF preServer: RUN preServer host=$s
+  DO_SERVER exp=$exp host=$s order=0 expName=$expName start=1
+    SET exp=PREV
+DONE
+
+FOR c IN $clients1 DO  
+  IF_DEF preClient: RUN preClient host=$c
+  FOR s IN $servers1 DO
+    IF $tcpDump: DO_TCPDUMP host=$c server=$s packets=$tcpDump
+    DO_CLIENT host=$c server=$s ca=$ca1 dur=$dur delay=0 instances=$instances test=TCP_RR req=$req1 reply=$reply stats=1
+    RAND_WAIT $randDelay
+  DONE
+DONE
+
+FOR c IN $clients2 DO
+  IF_DEF preClient: RUN preClient host=$c
+  FOR s IN $servers2 DO
+    IF $tcpDump: DO_TCPDUMP host=$c server=$s packets=$tcpDump
+    DO_CLIENT host=$c server=$s ca=$ca2 dur=$dur delay=0 instances=$instances test=TCP_RR req=$req2 reply=$reply stats=1
+    RAND_WAIT $randDelay
+  DONE
+DONE
+
+WAIT $dur
+WAIT 10
+FOR s IN $servers1 DO
+  DO_SERVER host=$s order=1
+DONE
+FOR s IN $servers2 DO
+  DO_SERVER host=$s order=1
+DONE
+
+WAIT 5
+FOR s IN $servers1 DO
+  GET_DATA host=$s
+DONE
+FOR s IN $servers2 DO
+  GET_DATA host=$s
+DONE
+FOR c IN $clients1 DO
+  GET_DATA host=$c
+DONE
+FOR c IN $clients2 DO
+  GET_DATA host=$c
+DONE
+
+
+WAIT 10
+PROCESS_EXP
+WAIT 15
+END MServerRR2r
+
+
+# MServerRR3
+# Args: exp, servers1, servers2, servers3, clients1, clients2, clients3, 
+# expName, ca1, ca2, ca3, dur, instances, reqs, reply
+# Note: servers, clients, reqs, ca can have multiple values separated by commas
+#       with no spaces. Example: ca=cubic,nv,cdg
+BEGIN MServerRR3
+SET exp=COUNTER
+
+SET allServers=$servers1,$servers2,$servers3
+FOR s IN $allServers DO
+  IF_DEF preServer: RUN preServer host=$s
+  DO_SERVER exp=$exp host=$s order=0 expName=$expName start=1
+    SET exp=PREV
+DONE
+    
+FOR c IN $clients1 DO  
+  IF_DEF preClient: RUN preClient host=$c
+  FOR s IN $servers1 DO
+    IF $tcpDump: DO_TCPDUMP host=$c server=$s packets=$tcpDump
+    FOR r IN $reqs DO
+      DO_CLIENT host=$c server=$s ca=$ca1 dur=$dur delay=0 instances=$instances test=TCP_RR req=$r reply=$reply stats=1
+      RAND_WAIT $randDelay
+        DONE
+  DONE
+DONE
+
+FOR c IN $clients2 DO
+  IF_DEF preClient: RUN preClient host=$c
+  FOR s IN $servers2 DO
+    IF $tcpDump: DO_TCPDUMP host=$c server=$s packets=$tcpDump
+    FOR r IN $reqs DO
+      DO_CLIENT host=$c server=$s ca=$ca2 dur=$dur delay=0 instances=$instances test=TCP_RR req=$r reply=$reply stats=1
+      RAND_WAIT $randDelay
+        DONE
+  DONE
+DONE
+
+FOR c IN $clients3 DO
+  IF_DEF preClient: RUN preClient host=$c
+  FOR s IN $servers3 DO
+    IF $tcpDump: DO_TCPDUMP host=$c server=$s packets=$tcpDump
+    FOR r IN $reqs DO
+      DO_CLIENT host=$c server=$s ca=$ca3 dur=$dur delay=0 instances=$instances test=TCP_RR req=$r reply=$reply stats=1  
+      RAND_WAIT $randDelay
+        DONE
+  DONE  
+DONE
+
+WAIT $dur
+WAIT 10
+FOR s IN $allServers DO
+  DO_SERVER host=$s order=1
+DONE
+
+WAIT 5
+FOR s IN $allServers DO
+  GET_DATA host=$s
+DONE
+FOR c IN $clients1 DO
+  GET_DATA host=$c
+DONE
+FOR c IN $clients2 DO
+  GET_DATA host=$c
+DONE
+FOR c IN $clients3 DO
+  GET_DATA host=$c
+DONE
+
+WAIT 10
+PROCESS_EXP
+WAIT 15
+END MServerRR3
+
 
 # MServerRRvs
 # Args: exp, servers, clients1, clients2, expName, ca1, ca2, dur, instances, reqs, reply

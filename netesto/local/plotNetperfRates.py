@@ -1,13 +1,5 @@
 #!/usr/local/bin/python
 
-# plotNetperfRates.py - Tool to plot rates from netperf
-#
-# Copyright (C) 2016, Facebook, Inc.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the LICENSE
-# file in the root directory of this source tree.
-
 import sys
 import os
 import psPlot
@@ -127,7 +119,7 @@ def addGraphs(XList, YList, xmin=None, xmax=None):
                 sumIndex = 0
                 index = 0
                 ysum = Ysum[sumIndex]
-                y = y[index]
+                y = Y[index]
             while True:
                 if x > xsum:
                     newXsum.append(xsum)
@@ -221,6 +213,9 @@ def addGraphs(XList, YList, xmin=None, xmax=None):
 #            isum += 1
     return Xsum, Ysum
 
+#
+# MAIN
+#
 if len(sys.argv) < 2:
     print "Usage: %s <input netperf files separated by spaces> " % sys.argv[0]
     sys.exit(1)
@@ -230,6 +225,9 @@ YList = []
 caList = []
 flowList = []
 flowNames = []
+
+xmax = None
+xmin = None
 
 firstTime = True
 
@@ -249,10 +247,11 @@ for name in sys.argv[1:]:
     caList.append(ca)
     flowList.append(flow)
     flowNames.append(ca + ' ' + flow)
-    xmin = min(xmin, min(X))
-    xmax = max(xmax, max(X))
-    ymin = min(ymin, min(Y))
-    ymax = max(ymax, max(Y))
+    if xmax != None:
+        xmin = min(xmin, min(X))
+        xmax = max(xmax, max(X))
+        ymin = min(ymin, min(Y))
+        ymax = max(ymax, max(Y))
 
 # print 'xmin:%.2f, xmax:%.2f, ymin:%.2f, ymax:%.2f' % (xmin, xmax, ymin, ymax)
 
@@ -261,8 +260,11 @@ for X in XList:
     for x in X:
         X[i] = x - xmin
         i += 1
-xmax -= xmin
-xmin -= xmin
+if xmax != None:
+    xmax -= xmin
+    xmin -= xmin
+else:
+    sys.exit(2)
 
 #print "Callong addGraphs"
 Xsum, Ysum = addGraphs(XList, YList, xmin, xmax)

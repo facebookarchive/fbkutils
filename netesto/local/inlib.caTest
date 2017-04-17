@@ -1,0 +1,143 @@
+#
+# Basic TCP ca test
+#
+# Consists of the following tests:
+#   A) tcpCA23
+#      Consists of the following types lasting $dur (default 60 secs) each:
+#        2->1 stream test, 2nd stream starts within 1st stream		1s2cmid.vs
+#        3->1 stream test, 2nd & 3rd tests start within 1st			1s3cmid.vs
+#      Tests are:
+#      1) 2->1 all using baselineCA                                        - SET tcpCA23_baseline=1
+#      2) 3->1 all using baselineCA                                        /
+#      For each ca in testCA
+#       3) 2->1 all using ca                                               - SET tcpCA23_test=1
+#       4) 3->1 all using ca                                               /
+#       5) 2->1 using baselineCA for 1st flow and ca for 2nd flow          - SET tcpCA23_vs1=1
+#       6) 3->1 using baselineCa for 1st flow and ca for 2nd and 3rd flows /
+#       7) 2->1 using ca for 1st flow and baselineCA for 2nd flow          - SET tcpCA23_vs2=1
+#       8) 3->1 using ca for 1st flow and baselineCA for 2nd and 3rd flows /
+#           
+#>>>> Begin comment block
+
+BEGIN_COMMENT
+# USAGE: Set your own script file as follows:
+
+# Set default host suffix
+HOST_SUFFIX mynetwork.com
+
+# Set client hosts
+# replace with your own hostnames
+SET client1=kerneltest002
+SET client2=kerneltest003
+SET client3=kerneltest004
+SET server1=kerneltest001
+
+SET baselineCA=cubic
+SET testCA=reno,bbr				# CAs to test
+
+DESC ECN_9k:10K
+
+# Load library with macros
+SOURCE inlib.caTest
+
+SET instances=1				# how many flow instances per host
+SET dur=60					# duration of each run in seconds
+
+# set default reply size of RPCs
+SET reply=1						# use RPC reply size of 1 byte
+
+#
+# Define commands to run before each test
+# 
+# On Server(s)
+#
+BEGIN preServer
+# set large receive buffers in server
+SET_SYSCTL host=$host net.ipv4.tcp_rmem=10000,262144,20971520
+END preServer
+#
+# On Client(s)
+#
+BEGIN preClient
+# set large send buffers in client
+SET_SYSCTL host=$host net.ipv4.tcp_wmem=10000,262144,20971520
+END preClient
+
+SET tcpCA23_baseline=1
+SET tcpCA23_test=1
+SET tcpCA23_vs1=1
+SET tcpCA23_vs2=1
+
+RUN tcpCA23
+
+END_COMMENT
+
+#>>> End Comment block
+
+SOURCE inlib
+
+SET clients1=$client1
+SET clients2=$client1,$client2
+SET clients3=$client1,$client2,$client3
+SET servers1=$server1
+
+SET instances=1             # how many flow instances per host
+SET dur=60                  # duration of each run in seconds
+SET delay=0                 
+SET exp=COUNTER
+
+#
+# tcpCA23
+#
+BEGIN tcpCA23
+
+# set delays and durations of flows
+SET_EXP dur2_2=$dur/3
+SET_EXP delay2_2=$dur2_2+3
+SET_EXP dur2_3=$dur*2/3
+SET_EXP delay2_3=$dur/6+3
+SET_EXP dur3_3=$dur/3
+SET_EXP delay3_3=$dur/3+5
+
+SET netemHost=$server1
+SET_NETEM host=$netemHost netem_delay=$delay
+
+# Baseline
+SET ca1=$baselineCA
+SET ca2=$baselineCA
+SET ca3=$baselineCA
+DESC $ca1:$ca2
+IF $tcpCA23_baseline: RUN TwoFlowBaseStream expName=1s2cmid.vs dur1=$dur dur2=$dur2_2 delay2=$delay2_2
+IF $tcpCA23_baseline: RUN ThreeFlowBaseStream expName=1s3cmid.vs dur1=$dur dur2=$dur2_3 dur3=$dur3_3 delay2=$delay2_3 delay3=$delay3_3
+
+FOR ca IN $testCA DO
+# testCA vs itself
+  SET ca1=$ca
+  SET ca2=$ca
+  SET ca3=$ca
+  DESC $ca1:$ca2
+  IF $tcpCA23_test: RUN TwoFlowBaseStream expName=1s2cmid.vs dur1=$dur dur2=$dur2_2 delay2=$delay2_2
+  IF $tcpCA23_test: RUN ThreeFlowBaseStream expName=1s3cmid.vs dur1=$dur dur2=$dur2_3 dur3=$dur3_3 delay2=$delay2_3 delay3=$delay3_3
+
+# testCA vs baseline 
+  SET ca1=$baselineCA
+  SET ca2=$ca
+  SET ca2=$ca
+  DESC $ca1:$ca2
+  IF $tcpCA23_vs1: RUN TwoFlowBaseStream expName=1s2cmid.vs dur1=$dur dur2=$dur2_2 delay2=$delay2_2
+  IF $tcpCA23_vs1: RUN ThreeFlowBaseStream expName=1s3cmid.vs dur1=$dur dur2=$dur2_3 dur3=$dur3_3 delay2=$delay2_3 delay3=$delay3_3
+
+  SET ca1=$ca
+  SET ca2=$baselineCA
+  SET ca2=$baselineCA
+  DESC $ca1:$ca2
+  IF $tcpCA23_vs2: RUN TwoFlowBaseStream expName=1s2cmid.vs dur1=$dur dur2=$dur2_2 delay2=$delay2_2
+  IF $tcpCA23_vs2: RUN ThreeFlowBaseStream expName=1s3cmid.vs dur1=$dur dur2=$dur2_3 dur3=$dur3_3 delay2=$delay2_3 delay3=$delay3_3
+DONE  
+
+SET_NETEM host=$netemHost netem_delay=0
+
+END tcpCA23
+
+
+

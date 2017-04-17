@@ -3,15 +3,6 @@
 %%%BoundingBox: 0 0 535 502
 %%EndComments
 %%BeginProcSet: trace.ps 1 0
-
-% plot-header.ps - Postscript library for graphing
-%
-% Copyright (C) 2016, Lawrence Brakmo
-% All rights reserved.
-%
-% This source code is licensed under the BSD-style license found in the LICENSE
-% file in the root directory of this source tree.
-
 %
 % Define fonts
 %
@@ -107,7 +98,7 @@
 %  0 setgray
 %  0.0 0.5 0.5 setrgbcolor
 %   AquaC
-    RedC
+    GreenC
   xt ypos moveto 0 ylen rlineto closepath stroke
   /yinc2 ylen vals length div def
   /yinc yinc2 def
@@ -122,7 +113,10 @@
   } for
   /Helvetica-Bold findfont [0 12 -12 0 0 0] makefont setfont
   title stringwidth exch pop 2 div neg
-  xmin exch ypos ylen 2 div add add moveto title show
+  xmin exch ypos ylen 2 div add add /yyy exch def /xxx exch def
+  /symsize 0.055 in def xxx symsize sub yyy symsize 2 mul sub moveto currentpoint g6
+  /symsize 0.025 in def
+  xxx yyy moveto title show
 } def
 %
 % Set origin and size of axes
@@ -408,7 +402,7 @@
 /fdescriptionsC { % desc [text color]+
   2 setlinewidth
   count 1 sub 2 idiv /n031 exch def
-  /x xpos xlen add 0.25 in add def
+  /x xpos xlen add 0.35 in add def
   Flag2Yaxes 1 eq { x 0.4 in add /x exch def } if
   /y ypos ylen add 0.5 in sub def
   12 HBfont

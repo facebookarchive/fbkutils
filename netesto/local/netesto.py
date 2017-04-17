@@ -1,14 +1,6 @@
 #!/usr/local/bin/python
 
-# netesto.py - program to run distributed network experiments
-#
-# Copyright (C) 2016, Facebook, Inc.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the LICENSE
-# file in the root directory of this source tree.
-
-import sys, random, os, os.path, commands, getopt
+import sys, random, os, os.path, getopt
 import socket
 import subprocess
 import struct
@@ -50,7 +42,7 @@ MSG_FORMAT = [
     "!400s",                                    # MSG_SET_SYSCTL
     "!i i s",                                   # MSG_SET_NETEM
     "!i i 100s",                                # MSG_TCPDUMP
-    "!20s 20s 20s 20s 20s"                      # MSG_SET_QDISC
+    "!20s 20s 20s 20s 20s 20s"                  # MSG_SET_QDISC
 ]
 
 MSG_LEN = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -62,38 +54,31 @@ MSG_NAME = ["MSG_DO_SERVER", "MSG_DO_CLIENT", "MSG_GET_DATA",
 
 setModParamDict = { \
     "tcp_nv" :
-    ["nv_max_rtt_us", "nv_set_dscp", "nv_geo_mask",
-    "nv_cluster_max_rtt", "nv_dc_max_rtt", "nv_mero_max_rtt",
-     "nv_enable", "nv_pad", "nv_pad_buffer", "nv_test",
-    "nv_min_cwnd", "nv_max_min_rtt", "nv_min_min_rtt_percent",
-    "nv_reset_period", "nv_cong_decrease_mul", "nv_cwnd_growth_factor",
-    "nv_dec_eval_min_calls", "nv_dec_factor", "nv_loss_dec_factor",
-    "nv_rtt_cnt_dec_delta", "nv_rtt_factor", "nv_rtt_min_cnt",
-    "nv_ssthresh_eval_min_calls", "nv_ssthresh_factor"
+    ["nv_pad", "nv_reset_period", "nv_min_cwnd"
+    ],
+    "tcp_cubic" :
+    ["fast_convergence", "initial_ssthresh", "tcp_friendliness", "hystart",
+     "hystart_detect", "hystart_low_window", "hystart_ack_delta"
     ],
     "tcp_dctcp" :
-    ["dctcp_max_rtt_us", "dctcp_geo_mask"
+    ["dctcp_shift_g", "dctcp_alpha_on_init", "dctcp_clamp_alpha_on_loss"
     ]
 }
 
 setSysctlDict = { \
     "net.core.rmem_max" : [[2621440, 67108864]],
     "net.core.wmem_max" : [[2621440, 67108864]],
+	"net.core.default_qdisc" : None,
     "net.ipv4.tcp_wmem" : [[4096, 10000], [16000, 270000], [128000, 61000000]],
     "net.ipv4.tcp_rmem" : [[4096, 10000], [16000, 270000], [128000, 61000000]],
     "net.ipv4.tcp_allowed_congestion_control" : None,
-    "net.ipv4.tcp_cong_dscp_mask" : [[0, 255]],
-    "net.ipv4.tcp_cong_dscp_val"  : [[0, 255]],
     "net.ipv4.tcp_ecn" : [[0, 2]],
     "net.ipv4.tcp_congestion_control" : None,
-    "net.ipv4.tcp_min_rto_ms": [[20, 200]]
 }
 
 TEST_FILE="This is the test file, only one line"
 
-#flog = open('netesto.log', 'w')
-
-SERVER_PORT = 31840
+SERVER_PORT = 12868
 MAX_PORTS = 5
 serverPort = SERVER_PORT
 
@@ -126,7 +111,13 @@ forStack = []
 forLoopList = []
 forCount = 0
 forDefFlag = False
-forLoopPrint = False
+forLoopPrintFlag = False
+forloop_counter = 0
+forloop_max = 100000
+sourceFileDict = {}     # Files already sourced
+allowFunRedef = True    # Whether we can redefine existing functions
+allowCmdRedef = False   # Whether we can redefine existing commands
+commentFlag = False     # Whether we are in BEGIN_COMMENT, END_COMMENT block
 
 # Function definition and processing
 funDict = {}		# function name to line list mapping
@@ -135,6 +126,7 @@ funName = None		# Name of function being defined
 
 #--- init
 def init():
+    global MSG_HEADER_LEN
     k = 0
     for f in MSG_FORMAT:
         MSG_LEN[k] = struct.calcsize(f)
@@ -146,11 +138,21 @@ def doDebug(s):
     if debugFlag:
         debugOutput.write("%s\n" % s)
 
+#--- forLoopPrint
+def forLoopPrint(s):
+    if forLoopPrintFlag:
+        doDebug(s)
+
 #--- flushDebug
 def flushDebug():
     if debugFlag == True and debugOutput != sys.stdout:
         debugOutput.flush()
         os.fsync(debugOutput.fileno())
+
+#--- isFloat
+def isFloat(s):
+    try: return (float(s),True)[1]
+    except (ValueError, TypeError), e: return False
 
 #--- exit
 def exit(v):
@@ -192,6 +194,49 @@ def getValue(val, funArgDict, statement, errFlag=True):
                 return val
         return varDict[val[1:]]
     return val
+
+#--- mathIntegerExpression0
+def mathIntegerExpression0(s, pos):
+    n = len(s)
+    stack = []
+    num = 0
+    prevOp = '+'
+    while (pos < n):
+        c = s[pos]
+        if c == ' ':
+            continue
+        elif c >= '0' and c <= '9':
+            num = num*10 + (int(c) - int('0'))
+        elif c == '(':
+            num,pos = mathIntegerExpression0(s, pos+1)
+        if c == '+' or c == '-'  or c =='*' or c =='/' or c ==')' or pos == n-1:
+            if prevOp == '+':
+                stack.append(num)
+            elif prevOp == '-':
+                stack.append(-num)
+            elif prevOp == '*':
+                stack.append(stack.pop() * num)
+            elif prevOp == '/':
+                if num == 0:
+                    error("Division by zero in SET command")
+                    return -1,n
+                stack.append(stack.pop() / num)
+            prevOp = c
+            num = 0
+        elif c != '(' and (c < '0' or c > '9'):
+            error("Unknown character in mathExperssion: " + c)
+        pos += 1
+        if c == ')':
+            break
+    rv = 0
+    while len(stack) > 0:
+        rv += stack.pop()
+    return rv,pos-1
+
+#--- mathIntegerExpression
+def mathIntegerExpression(s):
+    rv,pos = mathIntegerExpression0(s, 0)
+    return str(rv)
 
 #--- sockName
 def sockName(sock):
@@ -593,6 +638,7 @@ def sendMsgSetQdisc(sock, argDict):
     s = createMsgHdr(sock, MSG_SET_QDISC, MSG_LEN[MSG_SET_QDISC])
     s += struct.pack(MSG_FORMAT[MSG_SET_QDISC],
             getOptArg(argDict, "qdisc", None, "SET_QDISC"),
+			getOptArg(argDict, "action", "", "SET_QDISC"),
             getOptArg(argDict, "rate", "", "SET_QDISC"),
             getOptArg(argDict, "burst", "", "SET_QDISC"),
             getOptArg(argDict, "limit", "", "SET_QDISC"),
@@ -825,20 +871,23 @@ def processMsg(sock, msgType, msgData):
             os.mkdir(str(exp))
             subprocess.Popen(cmd)
     elif msgType == MSG_SET_QDISC:
-        qdisc, rate, burst, limit, other = msgData
+        qdisc, action, rate, burst, limit, other = msgData
         qdisc = cleanStr(qdisc)
+        action = cleanStr(action)
         rate = cleanStr(rate)
         burst = cleanStr(burst)
         limit = cleanStr(limit)
         other = cleanStr(other)
-        doDebug("MSG_SEQ_QDISC qdisc:%s rate:%s burst:%s limit:%s other:%s" %\
-                (qdisc, rate, burst, limit, other))
+        doDebug("MSG_SEQ_QDISC qdisc:%s action:%s rate:%s burst:%s limit:%s other:%s" %\
+                (qdisc, action, rate, burst, limit, other))
         if noRunFlag:
             return sendMsgRV(sock, 1)
         else:
-            cmd = ["tc", "qdisc", "del", "root", "dev", "eth0"]
-            subprocess.call(cmd)
-            cmd = ["tc", "qdisc", "add", "dev", "eth0", "root", qdisc]
+            if action == '':
+                cmd = ["tc", "qdisc", "del", "root", "dev", "eth0"]
+                subprocess.call(cmd)
+                action = 'add'
+            cmd = ["tc", "qdisc", action, "dev", "eth0", "root", qdisc]
             if rate != '':
                 cmd.append("rate")
                 cmd.append(rate)
@@ -900,7 +949,9 @@ def nextCounter():
 #
 LOCAL_CMD_DICT = {"END":0, "BEGIN":1, "WAIT":2, "PROCESS_EXP":3, "SOURCE":4,
         "HOST_SUFFIX":5, "SET":6, "IF":7, "IF_DEF":8, "RAND_WAIT":9, "DEBUG":10,
-        "DEBUG_DISABLE":11, "DEBUG_RESTORE":12,"NEXT_COUNTER":13 }
+		"DEBUG_DISABLE":11, "DEBUG_RESTORE":12,"NEXT_COUNTER":13, "ECHO":14,
+		"RUN":15, "FOR":16, "DONE":17, "FORLOOP":18, "DESC":19, "OTHER":20, "SET_EXP":21,
+		"BEGIN_COMMENT":22, "END_COMMENT":23 }
 CMD_ARG_DEFAULTS = {"order":0, "start":0, "ca":"reno", "dur":20, "delay":0,
         "instances":1, "req":"1M", "reply":"1", "stats":0,
         "localBuffer":0, "remoteBuffer":0, "test":"TCP_RR", "group":0,
@@ -928,7 +979,10 @@ def processCmd(line, funArgDict=None):
     global forDefFlag
     global debugFlag
     global debugFlagSaved
-    global forLoopPrint
+    global forLoopPrintFlag
+    global sourceFileDict
+    global commentFlag
+    global forloop_counter
 
     line = line.strip()
     if len(line) == 0:
@@ -936,6 +990,11 @@ def processCmd(line, funArgDict=None):
 
     # Ignore comments (start with '#')
     if line[0] == '#':
+        return ''
+
+    if commentFlag:
+        if line.find('END_COMMENT') == 0:
+            commentFlag = False
         return ''
 
     # Ignore comments at end of line
@@ -953,9 +1012,10 @@ def processCmd(line, funArgDict=None):
         doDebug("")
         doDebug(line)
 
+# replace variables with their value (unless within a for block)
     findPos = 0
     newline = line
-    while True:
+    while forDefFlag == False and funName == None:
         pos = newline.find('$', findPos)
         if pos >= 0:
             end = pos + 1
@@ -980,7 +1040,7 @@ def processCmd(line, funArgDict=None):
         return ''
 
     com = args[0]
-    if funName != None:
+    if funName != None and not forDefFlag:
         if com == "END" and len(args) > 1:
             if funName != args[1]:
                 error('"END %s does not match "BEGIN %s"' % (args[1], funName))
@@ -988,10 +1048,13 @@ def processCmd(line, funArgDict=None):
             doDebug("New function:" + funName +"\n" + str(funLineList))
             funName = None
             funLineList = None
-        else:
+            return ''
+        elif com != "FOR" and com != "DONE":
             funLineList.append(line)
-        return ''
+            return ''
 
+    if com not in LOCAL_CMD_DICT and com not in CMD_DICT:
+        error("Unknown command: %s" % com)
 
     if com != 'ECHO':
         doDebug("Command:" + com)
@@ -1001,9 +1064,7 @@ def processCmd(line, funArgDict=None):
             error("DONE encountered without a previous FOR")
         if forCount == 0:
             error("DONE but no previous FOR")
-        if forLoopPrint:
-            print "Done with FOR loop"
-            doWait(2)
+        forLoopPrint("Done with FOR loop %s, appending to forLoopList" % forDict['name'])
         forLoopList.append(forDict)
         indx = len(forLoopList) - 1
         line = "FORLOOP %d" % indx
@@ -1012,19 +1073,18 @@ def processCmd(line, funArgDict=None):
         forCount -= 1
         if forCount > 0:
             forDict = forStack.pop()
+            forLoopPrint("Popped forDict: %s" % forDict['name'])
         else:
             forDefFlag = False
-            if forLoopPrint:
-                print "forDefFlag = FALSE"
-                doWait(3)
-                forLoopPrint = False
+            forLoopPrint("forDefFlag = FALSE")
+            if funName != None:
+                funLineList.append(line)
+                return ''
 
-    if forDefFlag > 0 and com != 'FOR':
+    if forDefFlag and com != 'FOR':
 #    if forDefFlag > 0:
         forDict['lineList'].append(line)
-        if forLoopPrint:
-            print "Appending to forDict:" + line
-            doWait(2)
+        forLoopPrint("Appending to forDict[%s]:%s" % (forDict['name'],line))
         return ''
 
     # Local commands
@@ -1032,6 +1092,9 @@ def processCmd(line, funArgDict=None):
         doDebug("END command")
         nextCounter()
         exit(0)
+    elif com == "BEGIN_COMMENT":
+        commentFlag = True
+        return ''
     elif com == "IF":
         if len(args) < 2:
             error("IF should be followed by a variable")
@@ -1045,7 +1108,11 @@ def processCmd(line, funArgDict=None):
             if not var[1:] in varDict:
                 num = 0
             else:
-                num = float(varDict[var[1:]])
+                num = varDict[var[1:]]
+                if isFloat(num):
+                    num = float(num)
+                else:
+                    num = 1
         if num != 0:
             indx = line.find(':')
             if indx < 0:
@@ -1109,7 +1176,8 @@ def processCmd(line, funArgDict=None):
         varName = args[1]
         if args[2] != 'IN':
             error("'IN' missing in FOR statement")
-        args[3] = getValue(args[3], funArgDict, "FOR")
+        if not forDefFlag and funName == None:
+            args[3] = getValue(args[3], funArgDict, "FOR", False)
         if args[3].find('..') > 0:
             x = args[3].split('..')
             if len(x) < 2:
@@ -1134,13 +1202,14 @@ def processCmd(line, funArgDict=None):
                 s = ''
             args[3] = s
         varList = args[3].split(',')
-        if forLoopPrint:
-            print "FOR varName:", varName, " varList:", varList
+        forLoopPrint("FOR varName:%s, varList:%s" % (varName, str(varList)))
         if args[4] != 'DO':
             error("'DO' missing in FOR statement")
         if forDict is not None:
             forStack.append(forDict)
+            forLoopPrint(" FOR saving current forDict")
         forDict = {}
+        forDict['name'] = "FOR varName:%s, varList:%s" % (varName, str(varList))
         forDict['lineList'] = []
         forDict['varList'] = varList
         forDict['varName'] = varName
@@ -1151,17 +1220,28 @@ def processCmd(line, funArgDict=None):
             error("FORLOOP missing FORLOOP ID")
         if forCount > 0:
             forStack.append(forDict)
+        forloop_counter += 1
+        if forloop_counter > forloop_max:
+            error("More than %d FORLOOP calls" % forloop_max)
         forCount += 1
         indx = int(args[1])
+        forLoopPrint("FORLOOP %d" % indx)
         if indx >= len(forLoopList):
             error("FORLOOP ID out of bounds")
         forDict = forLoopList[indx]
+        forLoopPrint("FORLOOP %s" % forDict['name'])
         forDict['varIndx'] = 0
+        if len(forDict['varList']) == 1 and forDict['varList'][0][0] == '$':
+            v = forDict['varList'][0]
+            vl = getValue(v, funArgDict, "FOR")
+            forDict['varList'] = vl.split(',')
+            forLoopPrint("FORLOOP varList is '%s' from %s" % (vl, v))
 #        print "FORLOOP varList:", forDict['varList']
         while forDict['varIndx'] < len(forDict['varList']):
             varDict[forDict['varName']] = forDict['varList'][forDict['varIndx']]
             forDict['varIndx'] += 1
-#            print "  inside varIndx loop, varIndx:", forDict['varIndx']
+            forLoopPrint("\nLOOP INC   inside varIndx loop, varIndx:%d, varName:%s" \
+                    % (forDict['varIndx'], varDict[forDict['varName']]))
             forDict['lineIndx'] = 0
             while forDict['lineIndx'] < len(forDict['lineList']):
                 line = forDict['lineList'][forDict['lineIndx']]
@@ -1202,31 +1282,34 @@ def processCmd(line, funArgDict=None):
         kv = args[1].split('=')
         if len(kv) < 2:
             error("SET should be followed by 'var=value'")
-        kvals = kv[1].split(',')
-        kval = ''
-        i = 0
-        for v in kvals:
-            if v[0] == '$':
-                if v[1:] not in varDict:
-                    error("Undefined variable in SET: " + v)
-                v = varDict[v[1:]]
-            if v.find('/') > 0:
-                f = v.split('/')
-                v = str(int(f[0]) / int(f[1]))
-            kval += v
-            i += 1
-            if i < len(kvals):
-                kval += ','
+        v = kv[1]
         if kv[0] == "forLoopPrint":
-            if kv[1] == "0":
-                forLoopPrint = False
+            if v == "0":
+                forLoopPrintFlag = False
             else:
-                forLoopPrint = True
-            print "forLoopPrint: ", forLoopPrint
+                forLoopPrintFlag = True
+            print "forLoopPrintFlag: ", forLoopPrint
+        else:
+            varDict[kv[0]] = v
+        forLoopPrint("SET %s to %s" % (kv[0], v))
+        return ''
+    elif com == "SET_EXP":
+        if len(args) < 2:
+            error("SET should be followed by 'var=value'")
+        kv = args[1].split('=')
+        if len(kv) < 2:
+            error("SET should be followed by 'var=value'")
+        v = mathIntegerExpression(kv[1])
+        if kv[0] == "forLoopPrint":
+            if v == "0":
+                forLoopPrintFlag = False
+            else:
+                forLoopPrintFlag = True
+            print "forLoopPrintFlag: ", forLoopPrint
             doWait(3)
         else:
-            varDict[kv[0]] = kval
-        doDebug("SET %s to %s" % (kv[0], getValue(kval, funArgDict, "SET")))
+            varDict[kv[0]] = v
+        doDebug("SET %s to %s" % (kv[0], v))
         return ''
     elif com == "HOST_SUFFIX":
         if len(args) < 2:
@@ -1238,12 +1321,23 @@ def processCmd(line, funArgDict=None):
             error("BEGIN should be followed by a name")
         if funName != None:
             error("Cannot define a function within a function")
+        if forDefFlag:
+            error("Cannot define a function within a for block")
         if args[1] in funDict:
-            print "Warning: redefining the function:", args[1]
+            if allowFunRedef:
+                print "Warning: redefining the function:", args[1]
+            else:
+                error("Cannot redefine a function:%s" % args[1])
         if args[1] in LOCAL_CMD_DICT:
-            print "Warning: redefining a local command:", args[1]
+            if allowCmdRedef:
+                print "Warning: redefining a local command:", args[1]
+            else:
+                error("Cannot redefine local command:%s" % args[1])
         if args[1] in CMD_DICT:
-            print "Warning: redefining a remote command:", args[1]
+            if allowCmdRedef:
+                print "Warning: redefining a remote command:", args[1]
+            else:
+                error("Cannot redefine remote command:%s" % args[1])
         funName = args[1]
         funLineList = []
         doDebug(">>> Starting definition of function " + funName)
@@ -1251,6 +1345,9 @@ def processCmd(line, funArgDict=None):
     elif com == "SOURCE":
         if len(args) < 2:
             error("Filename missing in SOURCE command")
+        if args[1] in sourceFileDict:
+            return ''
+        sourceFileDict[args[1]] = True
         fin = open(args[1], 'r')
         useLine = ''
         for line in fin:
@@ -1466,16 +1563,13 @@ init()
 HostName = socket.gethostname()
 HostName = HostName[0: HostName.find('.')]
 
-opt_list = ["debug="]
+opt_list = ["debug=", "port="]
 
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'dhns', opt_list)
+    opts, args = getopt.getopt(sys.argv[1:], 'dhnps', opt_list)
 except getopt.GetoptError, err:
     doDebug(str(err))
     error(str(err))
-
-#print >>flog, 'opts = ', opts
-#print >>flog, 'args = ', args
 
 for opt in opts:
     key = opt[0]
@@ -1493,9 +1587,9 @@ for opt in opts:
         noRunFlag = True
     elif key == "--debug":
         debugFlag = True
-        debugOutput = open(val, "a")
+        debugOutput = open(val, "w")
         debugOutput.write("-----\n")
-    elif key == "--port":
+    elif key == "--port" or key == '-p':
         serverPort = int(val)
 
 if serverFlag:

@@ -1,15 +1,8 @@
 #!/usr/bin/python
 
-# Copyright (C) 2016, Facebook, Inc.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the LICENSE
-# file in the root directory of this source tree.
-
 import sys, random, os.path, commands, getopt
 
-flog = open('table.log', 'a')
-flog.write('\nNEW FILE\n--------\n')
+flog = None
 desc = None
 otherList = []
 
@@ -87,9 +80,15 @@ def processRow(fieldList, fieldVal, fieldOpDict):
                     row.append(f+'=')
                 else:
                     if f != 'retransPkts%':
-                        v = "%.1f" % float(fieldVal[f][0]/fieldVal[f][1])
+                        v = "%.3f" % float(fieldVal[f][0]/fieldVal[f][1])
                     else:
-                        v = "%.2f" % float(fieldVal[f][0]/fieldVal[f][1])
+                        v = "%.3f" % float(fieldVal[f][0]/fieldVal[f][1])
+                    row.append(f+'='+str(v))
+            elif fieldOpDict[f] == 'sumRateDur':
+                if fieldVal[f][0] == None or fieldVal[f][1] == 0:
+                    row.append(f+'=')
+                else:
+                    v = "%.3f" % float(fieldVal[f][0]/fieldVal[f][1])
                     row.append(f+'='+str(v))
             else:
                 if f == 'desc' and fieldVal[f][0] == None and desc != None:
@@ -142,9 +141,6 @@ except getopt.GetoptError, err:
     print str(err)
     sys.exit(-1)
 
-print >>flog, 'opts = ', opts
-print >>flog, 'args = ', args
-
 row = []
 rowList = []
 
@@ -163,8 +159,11 @@ for opt in opts:
         outPath = val
     elif key == '--fname':
         fname = val
-    elif key =='--link':
+    elif key == '--link':
         link = val
+    elif key == '--debug':
+         flog = open(val, 'a')
+         flog.write('\nNEW FILE\n--------\n')
     elif key == '--fields':
         field_fn = val
     elif key == '--row':
@@ -186,17 +185,23 @@ for opt in opts:
                 otherList.append(epair)
 #        print "otherList:", otherList
 
-fname_use = open('processExp.use', 'r')
-for iline in fname_use:
-    line = iline.strip()
-    if len(line) == 0 or line[0] == '#':
-        continue
-    kv = line.split('=')
-    if len(kv) < 2:
-        continue
-    if kv[0] == 'fname':
-        fname = kv[1]
-fname_use.close()
+if flog == None:
+    flog = open('/dev/null', 'w')
+
+print >>flog, 'opts = ', opts
+print >>flog, 'args = ', args
+
+#fname_use = open('processExp.use', 'r')
+#for iline in fname_use:
+#    line = iline.strip()
+#    if len(line) == 0 or line[0] == '#':
+#        continue
+#    kv = line.split('=')
+#    if len(kv) < 2:
+#        continue
+#    if kv[0] == 'fname':
+#        fname = kv[1]
+#fname_use.close()
 
 fieldOpDict = {}
 fin = open(field_fn, 'r')
@@ -218,6 +223,9 @@ if rfile != '':
     for f in fieldList:
         fieldVal[f] = [None, 0]
     fin = open(rfile, 'r')
+    dur = None
+    maxDur = 0
+    rate = None
     for iline in fin:
         line = iline.strip()
         if len(line) == 0 or line[0] == '#':
@@ -227,6 +235,9 @@ if rfile != '':
             rowList.append(processRow(fieldList, fieldVal, fieldOpDict))
             for f in fieldList:
                 fieldVal[f] = [None, 0]
+            dur = None
+            maxDur = 0
+            rate = None
             lineNum += 1
             print >>flog, 'Line #:', lineNum
             continue
@@ -235,6 +246,23 @@ if rfile != '':
             continue
         key = keyval[0]
         val = keyval[1]
+
+        if key == 'dur':
+            dur = getFloat(val)
+            if dur > maxDur:
+                maxDur = dur
+            if rate != None and 'rate' in fieldOpDict and fieldOpDict['rate'] == 'sumRateDur':
+                rate *= dur
+                if fieldVal[key][0] == None:
+                    fieldVal[key][0] = rate
+                else:
+                    fieldVal[key][0] += rate
+                rate = None
+                dur = None
+                fieldVal[key][1] = maxDur
+        elif key == 'rate':
+          rate = getFloat(val)
+
         print >>flog, 'rfile - key:'+key+' val:'+val
         if not key in fieldList:
             print >>flog, 'rfile - key not in fieldList'
@@ -250,6 +278,16 @@ if rfile != '':
                     fieldVal[key][0] = getFloat(val)
                 else:
                     fieldVal[key][0] += getFloat(val)
+            elif fieldOpDict[key] == 'sumRateDur':
+                if dur != None:
+                    newVal = getFloat(val)*dur
+                    if fieldVal[key][0] == None:
+                        fieldVal[key][0] = newVal
+                    else:
+                        fieldVal[key][0] += newVal
+                    fieldVal[key][1] = maxDur
+                    rate = None
+                    dur = None
             elif fieldOpDict[key] == 'all':
                 if fieldVal[key][0] == None:
                     fieldVal[key][0] = val + '/'

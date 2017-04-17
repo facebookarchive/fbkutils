@@ -18,31 +18,24 @@ SET clients3=$client1,$client2,$client3
 # Set hosts for 1 or 2 server host experiments
 # replace with own host names
 SET servers1=kerneltest014
-#SET servers2=dev1743,dev1157
 
 # Set congestion control variants to run
 SET ca1=dctcp
 SET ca2=cubic
-#SET ca=cubic,dctcp
-#SET ca=cubic,dctcp,nv
 
 # Load library with macros
 SOURCE inlib
 SOURCE inlib.vsTest
 
-SET instances=1				# how many flow instances per host
-SET dur=60						# duration of each run in seconds
+SET instances=1                 # how many flow instances per host
+SET dur=60                      # duration of each run in seconds
 
 # specify descripiton of experiments
-#DESC ECN_400:1802+2msRTT+VS_RTT_dctcp:cubic_ecn
-#DESC ECN_400:1802+VS_dctcp:cubic
-DESC ECN_10K:10K+VS_dctcp:cubic
-#DESC ECN_9K:10K+RTT+VS_RTT:cubic
+DESC VS_dctcp:cubic
 
 # set default reply size of RPCs
-SET reply=1						# use RPC reply size of 1 byte
+SET reply=1                     # use RPC reply size of 1 byte
 
-# END # remove after fixing variables above
 
 #
 # Define commands to run before each test
@@ -64,31 +57,3 @@ END preClient
 RUN ExpVs
 
 END
-NEXT_COUNTER
-
-# Set congestion control variants to run
-SET ca1=dctcp
-SET ca2=reno
-DESC ECN_9.99K:10K+VS_dctcp:reno
-RUN ExpVs
-
-END
-
-NEXT_COUNTER
-
-SET ca1=reno
-SET ca2=reno
-DESC ECN_9k:10k+RTT+VS_RTT_reno:reno
-RUN ExpVs ca1=reno ca2=reno
-
-END
-
-NEXT_COUNTER
-
-SET ca1=dctcp
-SET ca2=cubic_ecn
-DESC ECN_400:4000+RTT+VS_RTT_dctcp:cubic_ecn
-RUN ExpVs ca1=dctcp ca2=cubic_ecn
-
-END
-

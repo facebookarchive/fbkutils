@@ -1,13 +1,5 @@
 #!/usr/bin/python
 
-# psPlot.py - Python frontend to the poscript plotting library
-#
-# Copyright (C) 2016, Facebook, Inc.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the LICENSE
-# file in the root directory of this source tree.
-
 import sys
 import random
 import os.path
@@ -15,6 +7,9 @@ import shutil
 import commands
 import types
 import math
+
+# gsPath = '/usr/local/bin/gs'
+gsPath = 'gs'
 
 #--- class PsPlot(fname, pageHeader, pageSubHeader, plotsPerPage)
 #
@@ -47,8 +42,9 @@ class PsPlot(object):
         self.y2Count = 0
         self.y2LogScale = 0
         self.xOffset = 0
-        self.colors = [ (0.7,0.7,0.7), (0,0,0.8), (0.8,0,0), (0,0.8,0),
+        self.colors = [ (0.7,0.7,0.7), (0,0,0.8), (0.8,0,0),
                         (0.42,0.55,0.14), (0.6,0.5,0.3), (0.6,0.2,0.8),
+                        (0,0.8,0),
                         (0.4,0.3,0.5), (0.5,0.5,0.5), (0.8,0.0,0.0), (0,0,0) ]
         self.colorsN = 11
         self.colorRed = (0.8,0,0)
@@ -57,6 +53,9 @@ class PsPlot(object):
         self.colorAqua = (0,0.5,0.5)
         self.colorWhite = (1,1,1)
         self.ColorBlack = (0,0,0)
+
+        self.xSize = 1800
+        self.ySize = 900
 
         shutil.copy('plot-header.ps', self.fname)
         self.fout = open(self.fname, 'a')
@@ -243,6 +242,23 @@ class PsPlot(object):
         print >>self.flog, 'logFlag: ', logFlag, ' fix: ', fix
         return v0,v1,vi,vList,fix,logFlag
 
+#--- SetXLen(xlen)
+    def SetXLen(self, xlen):
+        self.xLen = xlen
+        print >>self.fout, '/xAxisLen %.2f def' % self.xLen
+        print >>self.fout, 'doGraph'
+        return
+
+#--- SetXSize(xsize)
+    def SetXSize(self, xsize):
+        self.xSize = xsize
+        return
+
+#--- SetYSize(ysize)
+    def SetYSize(self, ysize):
+        self.ySize = ysize
+        return
+
 #--- SetPlotBgLevel(level)
 #
     def SetPlotBgLevel(self,level):
@@ -310,8 +326,9 @@ class PsPlot(object):
         print >>self.flog, 'Main Title: '+title
         titleLines = title.split('|')
         for t in titleLines:
-            print >>self.flog, '    '+t
-            print >>self.fout, '('+t+')\n'
+            if len(t) > 0:
+                print >>self.flog, '    '+t
+                print >>self.fout, '('+t+')\n'
         print >>self.fout, 'Mtitles\n'
 #    print >>self.fout, '('+title+')\nMtitles\n'
 
@@ -448,7 +465,7 @@ class PsPlot(object):
         print >>flog, 'graph xList: ', self.xList, ' xList: ', xList, \
                       ' yList: ', yList
         print >>self.fout, '%\n% Plot '+id+'\n%\n'
-#    print >>self.fout, '/xfix { ', self.x0 - self.xInc - self.xOffset,' sub ', self.xInc, ' div ', 0,' add } def\n'
+        print >>self.fout, '/xfix { ', self.x0 - self.xInc - self.xOffset,' sub ', self.xInc, ' div ', 0,' add } def\n'
         if axis == 2:
             print >>self.fout, self.yfix2
         elif axis == 1:
@@ -497,11 +514,15 @@ class PsPlot(object):
         self.fout.flush()
         os.fsync(self.fout)
         if self.plotsPerPage == 1:
-            size = ' -g1200x550 '
-            cmdStr = '/usr/bin/gs -sDEVICE=jpeg'+size+'-sOutputFile='+self.foutPath+self.foutName+'.jpg -dNOPAUSE -r100x100 '+self.fname+' -c quit'
+#            size = ' -g1200x550 '
+            size = ' -g%dx%d ' % (self.xSize, self.ySize)
+            xres = int(100 * self.xSize * 6.5 / (1200 * self.xLen))
+            yres = int(110 * self.ySize / 550)
+            res = ' -r%dx%d ' % (xres, yres)
+            cmdStr = gsPath +' -sDEVICE=jpeg'+size+'-sOutputFile='+self.foutPath+self.foutName+'.jpg -dNOPAUSE '+ res +self.fname+' -c quit'
         else:
             size = ' -g1200x1100 '
-            cmdStr = '/usr/bin/gs -sDEVICE=jpeg'+size+'-sOutputFile='+self.foutPath+self.foutName+'%d.jpg -dNOPAUSE -r100x100 '+self.fname+' -c quit'
+            cmdStr = gsPath + ' -sDEVICE=jpeg'+size+'-sOutputFile='+self.foutPath+self.foutName+'%d.jpg -dNOPAUSE -r100x100 '+self.fname+' -c quit'
         print >>flog, 'cmdStr: ', cmdStr
         output = commands.getoutput(cmdStr)
         print >>flog, 'output from gs command: ', output
