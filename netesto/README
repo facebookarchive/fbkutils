@@ -31,11 +31,11 @@ For example, the following script starts one TCP RR netperf flow using 1MB
 requests and 1 byte replies lasting 60 seconds using TCP Cubic.
 
   # Run one Request/Reply experiment
-  HOST_SUFFIX=dc1.mynetwork.com
+  HOST_SUFFIX dc1.mynetwork.com
   SOURCE inlib
   SET client=hostname1
   SET server=hostname2
-  RUN MServerRR servers=$server clients=$client expName=1c1s1fr  ca=cubic dur=60
+  RUN MServerRR servers=$server clients=$client expName=1c1s1fr  ca=cubic dur=60 \
   instances=1 reqs=1M reply=1
 
 Netesto reads its commands from standard input. So if the file script.test contains
