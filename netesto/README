@@ -22,8 +22,8 @@ daemon can then be started by executing the command:
     ./netesto.py -s [--debug=<file>] &
 
 Another set of files, under the netesto-local directory must also be copied to
-the controller, and then a set of tests can be started by specifying a
-particular netesto script:
+the controller, and then a set of tests can be started by the controller by
+specifying a particular netesto script:
 
     ./netesto.py < script.experiment
 
