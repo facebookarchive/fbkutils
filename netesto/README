@@ -13,11 +13,16 @@ test servers and collects the experiment's data. This data is processed and
 put into a csv file in the controller, the raw data is also stored in the
 controller. In order to achieve this, the files in the netesto-remote directory
 must be copied first to the clients/servers and the netesto daemon must be
-started from the directory containing these files. However, before starting
-netesto as a daemon, you need to modify the file "clients.txt" and add the
-IPv6 address of the controller. The file "clients.txt" contains a whitelist of
-machines that are allowed to connect to the netesto daemons. The netesto
-daemon can then be started by executing the command:
+started from the directory containing these files.
+
+However, before starting netesto as a daemon you need to:
+  1) Make sure netperf and netsever are installed in your system
+  2) Check that ss is also installed
+  3) Modify the file "clients.txt" and add the IPv6 address of the controller.
+     The file "clients.txt" contains a whitelist of machines that are allowed
+     to connect to the netesto daemons.
+     
+The netesto daemon can then be started by executing the command:
 
     ./netesto.py -s [--debug=<file>] &
 
