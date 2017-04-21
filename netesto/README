@@ -1,3 +1,8 @@
+NOTE: In my haste to finish everything before a trip, I realized the README
+      file is incomplete and that I forgot to update the file "script.basic"
+      resulting in some bugs. I am in the process of updating both and will
+      remove this NOTE what that is done.
+
 Netesto is a suite of tools for running multi-host network experiments that
 supports the collection and display of relevant data and statistics. It
 currently supports  TCP RPC and STREAM transfers through netperf, with other
