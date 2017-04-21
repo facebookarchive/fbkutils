@@ -1,0 +1,13 @@
+# 
+# Test script sript.test
+# Runs one Request/Reply test with 1 client and 1 server
+#
+# Replace values appropritely before running (i.e. things within "<>")
+# Run by: ./netesto.py [-d | --debug=netesto.log] < script.test
+
+HOST_SUFFIX <net suffix>
+SOURCE inlib
+SET client=<client host>
+SET server=<server host>
+RUN MServerRR servers=$server clients=$client expName=1c1s1fr  ca=cubic dur=10 \
+ instances=1 reqs=1M reply=1
