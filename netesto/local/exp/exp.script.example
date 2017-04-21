@@ -13,7 +13,7 @@ format = 2
 #log = out.log
 
 # Where the csv file is located (bbr3/exp.csv in this case).
-# This command can only be followed by the "format" or "log" commands
+# The only commands allowed before this one are the "format" or "log" commands
 File = bbr3/exp
 
 # Select rows to use. Each experiment/test creates multiple rows
