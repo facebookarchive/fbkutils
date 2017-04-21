@@ -16,7 +16,7 @@ File = ../exp
 
 # Relative (to the .html file) path where experiment directories are located
 # Used to find the experiment html files when the exp field is clicked
-relPath = <set>
+relPath = .
 
 doTable
 end
