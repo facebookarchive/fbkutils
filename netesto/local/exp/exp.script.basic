@@ -1,0 +1,22 @@
+# Sample file to create table of all experiments ran with
+# the script.basic experiment
+#
+# Usage: ./exp.py --file=exp.script.basic > basic.html
+#
+
+# default number of decimal digits to show in tables
+format = 2
+
+# Use log command to specify a file where to write log/debug info
+#log = out.log
+
+# Where the csv file is located (../exp.csv in this case).
+# The only commands allowed before this one are "format" or "log" commands
+File = ../exp
+
+# Relative (to the .html file) path where experiment directories are located
+# Used to find the experiment html files when the exp field is clicked
+relPath = <set>
+
+doTable
+end
