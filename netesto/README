@@ -1,12 +1,10 @@
-NOTE: In my haste to finish everything before a trip, I realized the README
-      file is incomplete and that I forgot to update the file "script.basic"
-      resulting in some bugs. I am in the process of updating both and will
-      remove this NOTE what that is done.
+NOTE: Things should be working fine now. Please let me know (netesto@brakmo.org)
+      if you encounter any issues.
 
 Netesto is a suite of tools for running multi-host network experiments that
 supports the collection and display of relevant data and statistics. It
-currently supports  TCP RPC and STREAM transfers through netperf, with other
-type of transfers planned for the future as need arises. In addition to running
+currently supports TCP RPC and STREAM transfers through netperf, with other
+type of transfers planned for the future (i.e. neper, etc.) In addition to running
 the netperf transfers, it also runs ping to collect RTT information and it also
 collects TCP cwnd and rtt for each of the flows as well as retransmits and cpu
 load for each of the hosts.
@@ -22,8 +20,12 @@ started from the directory containing these files.
 
 However, before starting netesto as a daemon you need to:
   1) Make sure netperf and netsever are installed in your system
-  2) Check that ss is also installed
+  2) Check that ss is also installed (install if necessary)
+  3) If necessary install gs (ghostscript). It is used to create the graphs,
+     such as rates, cwnd, RTTs, etc.
   3) Modify the file "clients.txt" and add the IPv6 address of the controller.
+     Note that I have only used netesto in IPv6 networks and it probably will
+     not work as is on IPv4 networks.
      The file "clients.txt" contains a whitelist of machines that are allowed
      to connect to the netesto daemons.
      
@@ -31,9 +33,14 @@ The netesto daemon can then be started by executing the command:
 
     ./netesto.py -s [--debug=<file>] &
 
-Another set of files, under the netesto-local directory must also be copied to
-the controller, and then a set of tests can be started by the controller by
-specifying a particular netesto script:
+Another set of files, under the netesto-local directory must be copied to
+the controller. I like to create a new directory for each new set of experiments.
+In my case, I use ~/Exp as my main netesto directory, and under it I will create
+subdirectories for new sets of experiments. For example, I may create ~/Exp/bbr
+to run BBR tests. To get started, ~/Exp/tests may be more appropriately.
+
+A set of tests can be started by the controller by specifying a particular
+netesto script:
 
     ./netesto.py < script.experiment
 
@@ -48,21 +55,53 @@ requests and 1 byte replies lasting 60 seconds using TCP Cubic.
   RUN MServerRR servers=$server clients=$client expName=1c1s1fr  ca=cubic dur=60 \
   instances=1 reqs=1M reply=1
 
+The script script.test already contains these commands, you just need to replace
+the approriate values (dc1.mynetwork.com and hostname1, hostname2 in this case).
+
 Netesto reads its commands from standard input. So if the file script.test contains
 the above commands, you could run it with:
 
     ./netesto.py [-d | --debug=<file>] < script.test
 
+This will create a new subdirectory for the test results. These subdirectories use
+numbers as names, and not always increase monotonically. If you look under this
+subdirectory there will be the file "exp.html" containing some results and graphs.
+
 The best way to understand the netesto's grammar is to look a the script files (script.*)
 and the libraries (inlib*) provided.
 
-Each test/experiment will create a new numeric directory on the controller containing
-information about the experiment as well as some graphs created by the netesto command
-PROCESS_EXP (automatically called by all library macros) and a new lines are appended
-to exp.csv containing experimental results.
+A more interesting script is "script.basic" which runs more than 1 test. Edit the file
+appropriately and then you can run it by:
+
+    ./netesto.py [-d | --debug=<file>] < script.basic
+
+As mentioned earlier, each test/experiment will create a new numeric directory on the
+controller containing information about the experiment as well as some graphs created
+by the netesto command PROCESS_EXP (automatically called by all library macros) and a
+new lines are appended to exp.csv containing experimental results.
 
 The directory "exp" under the local directory can be used to create HTML files containing
-tables and graphs. For example, the file exp.script.all.example contains:
+tables and graphs. For example, to create an HTML file containing a table of all the
+experiments we have run so far (assuming the current directory is names tests) you
+can do the following:
+
+  cd exp
+  ./exp.py --file=exp.script.basic > ../basic.html
+  cd ..
+  
+Then opening the file "basic.html" in your browser will show a table of all the
+tests ran so far. Clicking an experiment under the "exp" column will open the
+file (exp.html) for that test/experiment.
+
+In some cases you may want to share the data with others, or you may want to
+look at the html files on another host. The script "collectExp.sh" will package
+the csv file and the main files under each experiment and create exp.tgz. Note
+that it will put all the files under a directory with the current directory
+name. You can then copy this file to another machine.
+
+For other more interesting example of exp.py scripts, I've included some
+experimental results under exp/bbr3.tgz and two sample scripts. The first
+script creates a table of all experiments:
 
   # Sample file to create a table of all experiments.
   # Run tar -zxf bbr3.tgz first to create sample data
@@ -84,6 +123,8 @@ tables and graphs. For example, the file exp.script.all.example contains:
 
 One can then use this script for creating a table of all the experiments as follows:
 
+    cd exp
+    tar -zxf bbr3.tgz
     ./exp.py --file=exp.script.all.example > example.all.html
 
 The file exp.script.example contanins a more interesing script that outputs tables of
@@ -93,7 +134,7 @@ Note that netesto has grown organically from basic functionality to its present 
 That is, it does not follow an overall design. Instead, it started with basic functionality
 and it has grown over time. The code is not well documented, but I am working on 
 restructuring and adding documentation. Please let me know of any issues you encounter.
-There is a big list of things I plan to work on under the file TODO.
+There are many things I plan to improve (little by little).
 
 For more information read Netesto.pdf and look at the sample libraries (inlib*)
 and sample test scripts (script.*) in netesto/local directory
