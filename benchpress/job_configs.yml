@@ -1,0 +1,32 @@
+- benchmark: schbench
+  name: schbench default 
+  description: defaults for schbench
+  args:
+    message-threads: 2
+    threads: 16
+    runtime: 30
+    sleeptime: 10000
+    cputime: 10000
+    pipe: 0
+    rps: 0
+- benchmark: fio
+  name: fio null
+  description: read /dev/null
+  args:
+    - /home/vmagro/local/fio/examples/null.fio
+  metrics:
+    - read:
+      - bw
+- benchmark: fio
+  name: fio aio
+  description: read 4 files with aio at different depths
+  args:
+    - /home/vmagro/local/fio/examples/aio-read.fio
+  hook:
+    hook: file
+    options:
+      - type: dir
+        path: ./data1
+  metrics:
+    - read:
+      - bw
