@@ -91,11 +91,14 @@ class BenchmarkJob(object):
             logger.info('Starting "{}"'.format(self.name))
             output = subprocess.check_output([self.benchmark.path] + self.args,
                                              stderr=subprocess.STDOUT)
-        except Exception as e:
+        except OSError as e:
             logger.error('"{}" failed ({})'.format(self.name, e))
             if e.errno == errno.ENOENT:
                 logger.error('Binary not found, did you forget to install it?')
-            raise  # make sure it doesn't fail silently
+            raise  # make sure it passes the exception up the chain
+        except subprocess.CalledProcessError as e:
+            logger.error(e.output)
+            raise  # make sure it passes the exception up the chain
         finally:
             # cleanup via hook - do this immediately in case the parser crashes
             logger.info('Running cleanup hooks for "{}"'.format(self.name))
