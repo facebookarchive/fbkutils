@@ -25,7 +25,7 @@ parser.add_argument('-b', '--benchmarks',
                     default='benchmarks.yml')
 parser.add_argument('-j', '--jobs', dest='jobs_file',
                     metavar='job configs file', help='path to job configs file',
-                    default='job_configs.yml')
+                    default='jobs/jobs.yml')
 
 subparsers = parser.add_subparsers(dest='command', help='subcommand to run')
 for command in commands:

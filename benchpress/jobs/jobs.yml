@@ -13,7 +13,7 @@
   name: fio null
   description: read /dev/null
   args:
-    - /home/vmagro/local/fio/examples/null.fio
+    - jobs/null.fio
   metrics:
     - read:
       - bw
@@ -21,7 +21,7 @@
   name: fio aio
   description: read 4 files with aio at different depths
   args:
-    - /home/vmagro/local/fio/examples/aio-read.fio
+    - jobs/aio-read.fio
   hook:
     hook: file
     options:
