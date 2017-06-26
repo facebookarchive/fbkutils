@@ -1,6 +1,6 @@
 schbench:
   parser: schbench
-  path: /home/vmagro/local/schbench/schbench
+  path: ./benchmarks/schbench
   metrics:
     - latency:
         - p50
@@ -13,5 +13,5 @@ schbench:
 
 fio:
   parser: fio
-  path: /bin/fio
+  path: ./benchmarks/fio
   metrics: []

@@ -4,6 +4,9 @@ fb/
 # benchmark output
 results/
 
+# benchmarks binaries
+benchmarks/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
