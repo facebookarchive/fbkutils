@@ -6,16 +6,20 @@ import yaml
 import sys
 from os import path
 
+import logging
+
 # add this to the path so that imports work in a sane way
 sys.path.insert(0, path.dirname(path.dirname(path.abspath(__file__))))
 
-from lib.benchmark import Benchmark
-from lib.job import BenchmarkJob
-from lib.reporter import StdoutReporter
-from lib.reporter_factory import ReporterFactory
+# the linter complains about this, but these have to be imported after the code
+# above otherwise the package will not have been setup properly
+from lib.benchmark import Benchmark  # noqa
+from lib.job import BenchmarkJob  # noqa
+from lib.reporter import StdoutReporter  # noqa
+from lib.reporter_factory import ReporterFactory  # noqa
 
-from commands.list import ListCommand
-from commands.run import RunCommand
+from commands.list import ListCommand  # noqa
+from commands.run import RunCommand  # noqa
 
 commands = [ListCommand(), RunCommand()]
 
@@ -39,21 +43,34 @@ parser.add_argument('-r', '--results', metavar='results dir',
 parser.add_argument('--clowntown', help='lets you do potentially stupid things',
                     action='store_true')
 
+parser.add_argument('--log', metavar='logging level', default='WARN')
+
 
 def main():
     args = parser.parse_args()
 
+    numeric_level = getattr(logging, args.log.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError('Invalid log level: {}'.format(args.log))
+    logging.basicConfig(format='%(levelname)s:%(name)s: %(message)s',
+                        level=numeric_level)
+    logger = logging.getLogger(__name__)
+
+    logger.info('Loading benchmarks from "{}"'.format(args.benchmarks))
     with open(args.benchmarks) as tests_file:
         benchmarks = yaml.load(tests_file)
 
+    logger.info('Loading jobs from "{}"'.format(args.jobs_file))
     with open(args.jobs_file) as jobs_file:
         jobs = yaml.load(jobs_file)
 
-    benchmarks = {name: Benchmark(name, val) for name, val in benchmarks.items()}
+    benchmarks = {key: Benchmark(key, val) for key, val in benchmarks.items()}
 
     jobs = [BenchmarkJob(j, benchmarks[j['benchmark']]) for j in jobs]
     jobs = {j.name: j for j in jobs}
 
+    logger.info('Loaded {} benchmarks and {} jobs'
+                .format(len(benchmarks), len(jobs)))
 
     args.command.run(args, jobs)
 

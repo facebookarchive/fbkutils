@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 
+import errno
+import logging
 import os
 import shutil
 
 from lib.hook import Hook
+
+logger = logging.getLogger(__name__)
 
 
 class FileHook(Hook):
@@ -16,14 +20,23 @@ class FileHook(Hook):
 
     def before_job(self, opts):
         for opt in opts:
+            path = opt['path']
+            logger.info('Creating "{}"'.format(path))
             if opt['type'] == 'dir':
-                os.makedirs(opt['path'], exist_ok=True)
+                try:
+                    os.makedirs(path)
+                except OSError as e:
+                    if e.errno == errno.EEXIST:
+                        logger.warn('"{}" already exists, proceeding anyway'
+                                    .format(path))
             if opt['type'] == 'file':
-                os.mknod(opt['path'])
+                os.mknod(path)
 
     def after_job(self, opts):
         for opt in opts:
+            path = opt['path']
+            logger.info('Deleting "{}"'.format(path))
             if opt['type'] == 'dir':
-                shutil.rmtree(opt['path'])
+                shutil.rmtree(path)
             if opt['type'] == 'file':
-                os.unlink(opt['path'])
+                os.unlink(path)

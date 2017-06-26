@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 from datetime import datetime
+import logging
 
 from .command import BenchpressCommand
 from lib.history import History
-from lib.util import eprint
 from lib.reporter_factory import ReporterFactory
+
+logger = logging.getLogger(__name__)
 
 
 class RunCommand(BenchpressCommand):
@@ -21,7 +23,7 @@ class RunCommand(BenchpressCommand):
         if len(args.jobs) > 0:
             for name in args.jobs:
                 if name not in jobs:
-                    eprint('No job "{}" found'.format(name))
+                    logger.error('No job "{}" found'.format(name))
                     exit(1)
             jobs = {name: jobs[name] for name in args.jobs}
 
@@ -35,10 +37,10 @@ class RunCommand(BenchpressCommand):
             print('Running "{}": {}'.format(job.name, job.description))
 
             if not args.clowntown and not history.is_job_config_consistent(job):
-                eprint('There was a previous run of "{}" that had a different'
-                       ' configuration, this is likely to make'
-                       ' your results confusing.'.format(job.name))
-                eprint('You can proceed anyway using --clowntown')
+                logger.error('There was a previous run of "{}" that had a'
+                             ' different configuration, this is likely to make'
+                             ' your results confusing.'.format(job.name))
+                logger.error('You can proceed anyway using --clowntown')
                 exit(3)
 
             metrics = job.run()
