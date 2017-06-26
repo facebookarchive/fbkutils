@@ -6,6 +6,22 @@ suites.
 Benchpress takes a configuration-based approach to running tests, specifying
 configuration in yaml files.
 
+Installation
+------------
+
+`benchpress` requires `python3`  
+
+`pip`:  
+`pip` is the default Python package management system used to install tools or
+dependencies needed by other scripts.
+`benchpress`'s dependencies can be installed by running `pip3 install -r requirements.txt`.
+
+Benchmark binaries also need to be installed. Running `./install_benchmarks.sh`
+will download and compile `fio` and `schbench` and put the resulting binaries
+in `benchmarks/`. In order to be able to run `fio` tests, you must have have
+your distribution's development package for `libaio` installed before
+compiling. The benchmarks can be installed individually by running
+`./install_fio.sh` and `./install_schbench.sh`
 
 Running benchpress
 ------------------
@@ -21,8 +37,8 @@ Benchmarks can be defined using yaml (see benchmarks.yml). A benchmark has a
 simple definition: the path to a binary, a parser class, and the metrics that
 the parser exports.
 
-Benchmark definitions don't do anything by themselves, `benchpress` also needs a
-configuration for that benchmark. These are also defined using yaml (see
+Benchmark definitions don't do anything by themselves, `benchpress` also needs
+a configuration for that benchmark. These are also defined using yaml (see
 job\_configs.yml). A job is defined to point to a benchmark defined in the
 benchmarks file. Jobs also have a short name and longer description used to
 identify the test to the `benchpress` user. Lastly, a job has an array of
