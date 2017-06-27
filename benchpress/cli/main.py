@@ -43,17 +43,17 @@ parser.add_argument('-r', '--results', metavar='results dir',
 parser.add_argument('--clowntown', help='lets you do potentially stupid things',
                     action='store_true')
 
-parser.add_argument('--log', metavar='logging level', default='WARN')
+parser.add_argument('--verbose', '-v', action='count', default=0)
 
 
 def main():
     args = parser.parse_args()
 
-    numeric_level = getattr(logging, args.log.upper(), None)
-    if not isinstance(numeric_level, int):
-        raise ValueError('Invalid log level: {}'.format(args.log))
+    # warn is 30, should default to 30 when verbose=0
+    # each level below warning is 10 less than the previous
+    log_level = args.verbose*(-10) + 30
     logging.basicConfig(format='%(levelname)s:%(name)s: %(message)s',
-                        level=numeric_level)
+                        level=log_level)
     logger = logging.getLogger(__name__)
 
     logger.info('Loading benchmarks from "{}"'.format(args.benchmarks))
