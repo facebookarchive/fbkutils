@@ -29,6 +29,9 @@ class FileHook(Hook):
                     if e.errno == errno.EEXIST:
                         logger.warn('"{}" already exists, proceeding anyway'
                                     .format(path))
+                    else:
+                        # other errors should be fatal
+                        raise
             if opt['type'] == 'file':
                 os.mknod(path)
 
