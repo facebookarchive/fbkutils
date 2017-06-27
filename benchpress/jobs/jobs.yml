@@ -13,14 +13,17 @@
   name: fio null
   description: read /dev/null
   args:
+    - --output-format=json
     - jobs/null.fio
   metrics:
-    - read:
-      - bw
+    - 'null':
+        - read:
+          - bw
 - benchmark: fio
   name: fio aio
   description: read 4 files with aio at different depths
   args:
+    - --output-format=json
     - jobs/aio-read.fio
   hook:
     hook: file
@@ -28,5 +31,15 @@
       - type: dir
         path: ./data1
   metrics:
-    - read:
-      - bw
+    - file1: &aiofilemetrics
+      - read: &aiorwmetrics
+        - bw
+        - iops_mean
+        - iops_stddev
+        - lat_ns:
+          - mean
+          - stddev
+      - write: *aiorwmetrics
+    - file2: *aiofilemetrics
+    - file3: *aiofilemetrics
+    - file4: *aiofilemetrics

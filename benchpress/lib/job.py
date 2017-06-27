@@ -109,9 +109,26 @@ class BenchmarkJob(object):
 
         logger.info('Parsing results for "{}"'.format(self.name))
         metrics = Metrics(parser.parse(output))
+        metrics = self.strip_metrics(metrics)
         self.validate_metrics(metrics)
 
         return metrics
+
+    def strip_metrics(self, metrics):
+        """Remove metrics that were not required by the test.
+        If the parser exports more data than was requested, just drop the extra
+        data.
+
+        Args:
+            metrics (Metrics): results of benchmark run
+
+        Returns:
+            (Metrics): only the requested metrics that were exported
+        """
+        expected = self.metrics_config.names
+        new_metrics = {name: v for name, v in metrics.metrics().items()
+                       if name in expected}
+        return Metrics(new_metrics)
 
     def validate_metrics(self, metrics):
         """Exported metrics sanity check.
@@ -123,8 +140,6 @@ class BenchmarkJob(object):
         """
         expected = self.metrics_config.names
         metrics = metrics.names
-        assert len(expected) == len(metrics), \
-            'Expected {} metrics, got {}'.format(len(expected), len(metrics))
         for key in expected:
             assert key in metrics, 'Metric "{}" not exported'.format(key)
         return True
