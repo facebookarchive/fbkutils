@@ -1,0 +1,23 @@
+{
+  "config": {
+    "args": [
+      "somearg"
+    ],
+    "benchmark": "bench",
+    "description": "cool description",
+    "hook": {
+      "hook": "noop",
+      "options": [
+      ]
+    },
+    "metrics": [
+      "mysupercoolmetric"
+    ],
+    "name": "job name"
+  },
+  "job": "job name",
+  "metrics": {
+    "mysupercoolmetric": 1
+  },
+  "timestamp": "2017-06-26T21:41:04"
+}

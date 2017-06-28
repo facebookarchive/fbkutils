@@ -61,6 +61,19 @@ class TestMetrics(unittest.TestCase):
         expected = {'latency.p50': 1, 'latency.p95': 2}
         self.assertDictEqual(expected, metrics.metrics())
 
+    def test_getitem(self):
+        metrics = Metrics({'rps': 1})
+        self.assertEqual(metrics['rps'], 1)
+
+    def test_items(self):
+        metrics = Metrics({'rps': 1, 'second': 2})
+        self.assertListEqual([('rps', 1), ('second', 2)], list(metrics.items()))
+
+    def test_metrics_list(self):
+        metrics = Metrics({'rps': 1, 'second': 2})
+        self.assertListEqual([('rps', 1), ('second', 2)],
+                             metrics.metrics_list())
+
 
 if __name__ == '__main__':
     unittest.main()

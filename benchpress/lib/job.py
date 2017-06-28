@@ -54,6 +54,7 @@ class BenchmarkJob(object):
     Attributes:
         name (str): short name to identify job
         description (str): longer description to state intent of job
+        config (dict): raw configuration dictionary
     """
 
     def __init__(self, config, benchmark):
@@ -73,7 +74,8 @@ class BenchmarkJob(object):
 
         self.args = self.arg_list(config['args'])
 
-    def arg_list(self, args):
+    @staticmethod
+    def arg_list(args):
         """Convert argument definitions to a list suitable for subprocess.
         """
         if isinstance(args, list):

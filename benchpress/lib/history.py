@@ -75,6 +75,7 @@ class History(object):
                                      .format(e))
                         raise e
 
+        logger.info('Loaded {} results from {}'.format(len(results), self.path))
         # sort by most recent first
         return sorted(results, key=lambda r: r.timestamp, reverse=True)
 
