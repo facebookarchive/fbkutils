@@ -99,7 +99,7 @@ class History(object):
             time (datetime.datetime): start time of the benchmark
         """
         job_name = job.name.replace(' ', '_')
-        time = time.strftime('%Y-%m-%dT%H:%M:%S')
+        time = time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
         data = {
             'job': job.name,

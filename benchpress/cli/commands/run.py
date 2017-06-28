@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from datetime import datetime
 import logging
+from datetime import datetime, timezone
 
 from .command import BenchpressCommand
 from lib.history import History
@@ -31,7 +31,7 @@ class RunCommand(BenchpressCommand):
         print('Will run {} job(s)'.format(len(jobs)))
 
         history = History(args.results)
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
         for job in jobs:
             print('Running "{}": {}'.format(job.name, job.description))
