@@ -9,7 +9,7 @@
 from abc import ABCMeta, abstractmethod
 import unittest
 
-from lib.factory import BaseFactory
+from benchpress.lib.factory import BaseFactory
 
 
 # Class hierarchy that is used for testing the factory

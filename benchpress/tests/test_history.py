@@ -10,9 +10,9 @@ from datetime import datetime, timezone
 import os
 import unittest
 
-from lib.history import History
-from lib.job import BenchmarkJob
-from lib.metrics import Metrics
+from benchpress.lib.history import History
+from benchpress.lib.job import BenchmarkJob
+from benchpress.lib.metrics import Metrics
 
 
 class TestHistory(unittest.TestCase):

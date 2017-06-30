@@ -8,7 +8,7 @@
 
 import json
 
-from lib.parser import Parser
+from benchpress.lib.parser import Parser
 
 
 class FioParser(Parser):

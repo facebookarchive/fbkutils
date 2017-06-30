@@ -6,12 +6,16 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
-from .factory import BaseFactory
-from .parser import Parser
+from benchpress.lib.hook import Hook
 
-from plugins.parsers import register_parsers
 
-ParserFactory = BaseFactory(Parser)
+class NoopHook(Hook):
+    """NoopHook is the default hook used if no other hooks are specified. As the
+    name suggests, it doesn't do anything.
+    """
 
-# register third-party parsers with the factory
-register_parsers(ParserFactory)
+    def before_job(self, opts):
+        pass
+
+    def after_job(self, opts):
+        pass

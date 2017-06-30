@@ -11,7 +11,7 @@ import logging
 import os
 import shutil
 
-from lib.hook import Hook
+from benchpress.lib.hook import Hook
 
 logger = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@
 from .factory import BaseFactory
 from .hook import Hook
 
-from plugins.hooks import register_hooks
+from benchpress.plugins.hooks import register_hooks
 
 HookFactory = BaseFactory(Hook)
 

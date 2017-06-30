@@ -7,25 +7,14 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 import argparse
+import logging
 import yaml
 
-import sys
-from os import path
+from benchpress.lib.benchmark import Benchmark
+from benchpress.lib.job import BenchmarkJob
 
-import logging
-
-# add this to the path so that imports work in a sane way
-sys.path.insert(0, path.dirname(path.dirname(path.abspath(__file__))))
-
-# the linter complains about this, but these have to be imported after the code
-# above otherwise the package will not have been setup properly
-from lib.benchmark import Benchmark  # noqa
-from lib.job import BenchmarkJob  # noqa
-from lib.reporter import StdoutReporter  # noqa
-from lib.reporter_factory import ReporterFactory  # noqa
-
-from commands.list import ListCommand  # noqa
-from commands.run import RunCommand  # noqa
+from .commands.list import ListCommand
+from .commands.run import RunCommand
 
 commands = [ListCommand(), RunCommand()]
 
@@ -79,9 +68,3 @@ def main():
                 .format(len(benchmarks), len(jobs)))
 
     args.command.run(args, jobs)
-
-
-if __name__ == '__main__':
-    # register a default class for reporting metrics
-    ReporterFactory.register('default', StdoutReporter)
-    main()

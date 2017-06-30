@@ -10,8 +10,8 @@ from collections import defaultdict
 import unittest
 from unittest.mock import MagicMock
 
-from lib.job import BenchmarkJob
-from lib.metrics import Metrics
+from benchpress.lib.job import BenchmarkJob
+from benchpress.lib.metrics import Metrics
 
 
 class TestJob(unittest.TestCase):

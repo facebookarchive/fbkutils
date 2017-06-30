@@ -9,8 +9,8 @@
 import unittest
 from yaml import load as load_yaml
 
-from lib.job import MetricsConfig
-from lib.metrics import Metrics
+from benchpress.lib.job import MetricsConfig
+from benchpress.lib.metrics import Metrics
 
 
 class TestMetrics(unittest.TestCase):
