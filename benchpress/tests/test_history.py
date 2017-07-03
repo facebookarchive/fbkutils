@@ -8,6 +8,7 @@
 
 from datetime import datetime, timezone
 import os
+from pyfakefs import fake_filesystem_unittest
 import unittest
 
 from benchpress.lib.history import History
@@ -15,11 +16,14 @@ from benchpress.lib.job import BenchmarkJob
 from benchpress.lib.metrics import Metrics
 
 
-class TestHistory(unittest.TestCase):
+class TestHistory(fake_filesystem_unittest.TestCase):
+
+    def setUp(self):
+        self.setUpPyfakefs()
 
     def test_consistency(self):
         """History is able to detect when a job configuration has changed."""
-        history = History(os.path.join(os.path.dirname(__file__), 'history'))
+        history = History('/history')
         consistent_job = BenchmarkJob({
             'args': ['somearg'],
             'benchmark': 'bench',
@@ -32,6 +36,28 @@ class TestHistory(unittest.TestCase):
             'name': 'job name',
         }, None)
 
+        self.fs.CreateFile('/history/job_name/1.json',
+                           contents='''
+                           {
+                             "config": {
+                               "args": ["somearg"],
+                               "benchmark": "bench",
+                               "description": "cool description",
+                               "hook": {
+                                 "hook": "noop",
+                                 "options": []
+                               },
+                               "metrics": ["mysupercoolmetric"],
+                               "name": "job name"
+                             },
+                             "job": "job name",
+                             "metrics": {
+                               "mysupercoolmetric": 1
+                             },
+                             "timestamp": "2017-06-26T21:41:04"
+                           }
+                           ''')
+
         self.assertTrue(history.is_job_config_consistent(consistent_job))
 
         inconsistent_job = consistent_job
@@ -42,7 +68,7 @@ class TestHistory(unittest.TestCase):
     def test_save(self):
         """A json file is created in the right directory with the right name
            when saving a job result."""
-        history = History(os.path.join(os.path.dirname(__file__), 'history'))
+        history = History('/history')
         job = BenchmarkJob({
             'args': ['somearg'],
             'benchmark': 'bench',
@@ -57,25 +83,22 @@ class TestHistory(unittest.TestCase):
 
         now = datetime.now(timezone.utc)
 
-        expected_path = os.path.join(os.path.dirname(__file__), 'history',
-                                     'job_name',
-                                     now.strftime('%Y-%m-%dT%H:%M:%SZ')+'.json')
+        expected_path = os.path.join(
+            '/history', 'job_name',
+            now.strftime('%Y-%m-%dT%H:%M:%SZ')+'.json')
 
         # make sure file doesn't already exist
-        self.assertFalse(os.path.exists(expected_path))
+        self.assertFalse(self.fs.Exists(expected_path))
 
         history.save_job_result(job, Metrics({'mysupercoolmetric': 1}), now)
 
         # make sure it exists now
-        self.assertTrue(os.path.exists(expected_path))
-
-        # delete it to clean up
-        os.unlink(expected_path)
+        self.assertTrue(self.fs.Exists(expected_path))
 
     def test_invalid_format(self):
         """History complains when a historical record is in an invalid format
            (missing key(s))."""
-        history = History(os.path.join(os.path.dirname(__file__), 'history'))
+        history = History('/history')
         job = BenchmarkJob({
             'args': ['somearg'],
             'benchmark': 'bench',
@@ -83,6 +106,26 @@ class TestHistory(unittest.TestCase):
             'metrics': ['mysupercoolmetric'],
             'name': 'broken job',
         }, None)
+
+        self.fs.CreateFile('/history/broken_job/1.json',
+                           contents='''
+                           {
+                             "config": {
+                               "args": ["somearg"],
+                               "benchmark": "bench",
+                               "description": "cool description",
+                               "hook": {
+                                 "hook": "noop",
+                                 "options": []
+                               },
+                               "metrics": ["mysupercoolmetric"],
+                               "name": "job name"
+                             },
+                             "job": "broken_job",
+                             "metrics": {
+                                 "mysupercoolmetric": 1
+                             }
+                           }''')
 
         with self.assertRaises(KeyError):
             history.load_historical_results(job)

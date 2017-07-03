@@ -44,7 +44,7 @@ setup(
     packages=find_packages(exclude=['tests']),
     install_requires=['pyyaml'],
     tests_require=[
-        'nose', 'coverage', 'mock'
+        'nose', 'coverage', 'mock', 'pyfakefs'
     ],
     setup_requires=[
         'flake8'
