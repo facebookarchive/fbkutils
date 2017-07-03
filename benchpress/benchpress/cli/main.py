@@ -8,6 +8,7 @@
 
 import argparse
 import logging
+import sys
 import yaml
 
 from benchpress.lib.benchmark import Benchmark
@@ -41,8 +42,9 @@ parser.add_argument('--clowntown', help='lets you do potentially stupid things',
 parser.add_argument('--verbose', '-v', action='count', default=0)
 
 
-def main():
-    args = parser.parse_args()
+# ignore sys.argv[0] because that is the name of the program
+def main(args=sys.argv[1:]):
+    args = parser.parse_args(args)
 
     # warn is 30, should default to 30 when verbose=0
     # each level below warning is 10 less than the previous
