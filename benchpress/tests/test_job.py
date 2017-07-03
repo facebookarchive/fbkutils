@@ -17,6 +17,7 @@ from benchpress.lib.metrics import Metrics
 class TestJob(unittest.TestCase):
 
     def test_validate_metrics(self):
+        """Metrics with keys that don't match definition raise an error"""
         config = defaultdict(str)
         config['args'] = {}
 
@@ -35,6 +36,7 @@ class TestJob(unittest.TestCase):
             Metrics({'latency': {'p50': 1, 'p95': 2}})))
 
     def test_strip_metrics(self):
+        """Metrics with keys that aren't in definition are removed"""
         config = defaultdict(str)
         config['args'] = {}
 
@@ -54,6 +56,7 @@ class TestJob(unittest.TestCase):
         self.assertEqual(len(stripped.metrics_list()), 1)
 
     def test_arg_list(self):
+        """Argument list is formatted correctly with lists or dicts"""
         self.assertListEqual(
             ['--output-format=json', 'a'],
             BenchmarkJob.arg_list(['--output-format=json', 'a']))

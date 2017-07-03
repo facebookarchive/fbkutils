@@ -35,31 +35,31 @@ Superclass.register(RegisteredClass)
 
 class TestBaseFactory(unittest.TestCase):
 
-    def test_register(self):
-        factory = BaseFactory(Superclass)
+    def setUp(self):
+        self.factory = BaseFactory(Superclass)
 
+    def test_register_nonsubclass(self):
+        """Can't register a non-subclass"""
         # Dummy is not a subclass, so registering it should fail
         with self.assertRaises(AssertionError):
             class Dummy:
                 pass
-            factory.register('dummy', Dummy)
+            self.factory.register('dummy', Dummy)
 
-        # make sure that registering the actual subclass does not fail
-        factory.register('subclass', Subclass1)
+    def test_register(self):
+        """Can register subclasses"""
+        self.factory.register('subclass', Subclass1)
+        self.factory.register('registered', RegisteredClass)
 
-        # registering a registered abc subclass should also work
-        factory.register('registered', RegisteredClass)
-
-    def test_create(self):
-        factory = BaseFactory(Superclass)
-
-        # requesting create for a type that hasn't been registered should fail
+    def test_create_unregistered(self):
+        """Can't create unregistered type"""
         with self.assertRaises(KeyError):
-            factory.create('dummy')
+            self.factory.create('dummy')
 
-        # should create an actual instance
-        factory.register('subclass', Subclass1)
-        self.assertTrue(isinstance(factory.create('subclass'), Subclass1))
+    def test_create_registered(self):
+        """Can create registered type"""
+        self.factory.register('subclass', Subclass1)
+        self.assertTrue(isinstance(self.factory.create('subclass'), Subclass1))
 
 
 if __name__ == '__main__':

@@ -16,6 +16,7 @@ from benchpress.lib.metrics import Metrics
 class TestMetrics(unittest.TestCase):
 
     def test_flatten_metrics_definition(self):
+        """Metrics definitions are flattened to a dot-separated list"""
         yaml = '''
 - rps
 - latency:
@@ -47,6 +48,7 @@ class TestMetrics(unittest.TestCase):
         self.assertListEqual(expected, metrics.names)
 
     def test_flatten_metrics_exported(self):
+        """Exported metrics are flattened to a dict with dot-separated keys"""
         # test with metrics exported from a parser
         metrics = Metrics({'rps': 1})
         expected = ['rps']
@@ -62,14 +64,17 @@ class TestMetrics(unittest.TestCase):
         self.assertDictEqual(expected, metrics.metrics())
 
     def test_getitem(self):
+        """Metrics getitem works the same as a dict"""
         metrics = Metrics({'rps': 1})
         self.assertEqual(metrics['rps'], 1)
 
     def test_items(self):
+        """items() returns a dict of key -> value"""
         metrics = Metrics({'rps': 1, 'second': 2})
         self.assertListEqual([('rps', 1), ('second', 2)], list(metrics.items()))
 
     def test_metrics_list(self):
+        """metrics_list() returns a list of key-value pairs"""
         metrics = Metrics({'rps': 1, 'second': 2})
         self.assertListEqual([('rps', 1), ('second', 2)],
                              metrics.metrics_list())

@@ -18,8 +18,7 @@ from benchpress.lib.metrics import Metrics
 class TestHistory(unittest.TestCase):
 
     def test_consistency(self):
-        """Tests that History is able to detect when a job configuration
-           has changed."""
+        """History is able to detect when a job configuration has changed."""
         history = History(os.path.join(os.path.dirname(__file__), 'history'))
         consistent_job = BenchmarkJob({
             'args': ['somearg'],
@@ -41,8 +40,8 @@ class TestHistory(unittest.TestCase):
         self.assertFalse(history.is_job_config_consistent(inconsistent_job))
 
     def test_save(self):
-        """Tests that a json file is created in the right directory with the
-           right timestamp when saving a job result."""
+        """A json file is created in the right directory with the right name
+           when saving a job result."""
         history = History(os.path.join(os.path.dirname(__file__), 'history'))
         job = BenchmarkJob({
             'args': ['somearg'],
@@ -74,8 +73,8 @@ class TestHistory(unittest.TestCase):
         os.unlink(expected_path)
 
     def test_invalid_format(self):
-        """Tests to ensure that History complains when a historical record is in
-           an invalid format (missing key(s))."""
+        """History complains when a historical record is in an invalid format
+           (missing key(s))."""
         history = History(os.path.join(os.path.dirname(__file__), 'history'))
         job = BenchmarkJob({
             'args': ['somearg'],
@@ -87,7 +86,6 @@ class TestHistory(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             history.load_historical_results(job)
-
 
 
 if __name__ == '__main__':
