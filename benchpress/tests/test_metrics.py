@@ -69,7 +69,7 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(metrics['rps'], 1)
 
     def test_items(self):
-        """items() returns a dict of key -> value"""
+        """items() returns a list of key-value pairs"""
         metrics = Metrics({'rps': 1, 'second': 2})
         self.assertListEqual([('rps', 1), ('second', 2)], list(metrics.items()))
 

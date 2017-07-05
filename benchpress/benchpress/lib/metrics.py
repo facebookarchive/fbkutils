@@ -44,4 +44,4 @@ class Metrics(object):
         return self.metrics_dict[name]
 
     def items(self):
-        return self.metrics_dict.items()
+        return self.metrics_list()
