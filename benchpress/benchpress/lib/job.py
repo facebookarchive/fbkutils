@@ -114,16 +114,24 @@ class BenchmarkJob(object):
             logger.info('Running cleanup hooks for "{}"'.format(self.name))
             self.hook.after_job(self.hook_opts)
 
-        parser = self.benchmark.get_parser()
         stdout = stdout.decode('utf-8', 'ignore').split('\n')
         stderr = stderr.decode('utf-8', 'ignore').split('\n')
 
+        parser = self.benchmark.get_parser()
         logger.info('Parsing results for "{}"'.format(self.name))
-        metrics = Metrics(parser.parse(stdout, stderr))
-        metrics = self.strip_metrics(metrics)
-        self.validate_metrics(metrics)
+        try:
+            metrics = Metrics(parser.parse(stdout, stderr))
+            metrics = self.strip_metrics(metrics)
+            self.validate_metrics(metrics)
 
-        return metrics
+            return metrics
+        except:
+            logger.error('stdout:')
+            logger.error('\n\t'.join(stdout))
+            logger.error('stderr:')
+            logger.error('\n\t'.join(stderr))
+            logger.error('Failed to parse results, this might mean the'
+                         ' benchmark failed')
 
     def strip_metrics(self, metrics):
         """Remove metrics that were not required by the test.
