@@ -97,10 +97,11 @@ class BenchmarkJob(object):
 
         try:
             logger.info('Starting "{}"'.format(self.name))
-            process = subprocess.Popen([self.benchmark.path] + self.args,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
-            stdout, stderr = process.communicate()
+            process = subprocess.run([self.benchmark.path] + self.args,
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE,
+                                     check=True)
+            stdout, stderr = process.stdout, process.stderr
         except OSError as e:
             logger.error('"{}" failed ({})'.format(self.name, e))
             if e.errno == errno.ENOENT:
@@ -132,6 +133,7 @@ class BenchmarkJob(object):
             logger.error('\n\t'.join(stderr))
             logger.error('Failed to parse results, this might mean the'
                          ' benchmark failed')
+            raise
 
     def strip_metrics(self, metrics):
         """Remove metrics that were not required by the test.

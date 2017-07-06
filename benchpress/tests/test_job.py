@@ -7,6 +7,8 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 from collections import defaultdict
+from json import JSONDecodeError
+import subprocess
 import unittest
 from unittest.mock import MagicMock
 
@@ -65,6 +67,69 @@ class TestJob(unittest.TestCase):
             ['--output-format', 'json', '--file'],
             BenchmarkJob.arg_list({'output-format': 'json', 'file': None}))
 
+    def test_run_succeed(self):
+        """Echo is able to run and be parsed correctly
+
+        Run a job to echo some json and make sure it can be parse and is
+        exported correctly."""
+        config = defaultdict(str)
+        mock_data = '{"key": "hello"}'
+        config['args'] = [mock_data]
+        config['metrics'] = ['key']
+
+        mock_benchmark = MagicMock()
+        mock_benchmark.path = 'echo'
+        mock_parser = MagicMock()
+        mock_benchmark.get_parser.return_value = mock_parser
+        mock_parser.parse.return_value = {'key': 'hello'}
+
+        job = BenchmarkJob(config, mock_benchmark)
+
+        metrics = job.run()
+        mock_parser.parse.assert_called_with([mock_data, ''], [''])
+        self.assertDictEqual({'key': 'hello'}, metrics.metrics())
+
+    def test_run_fail(self):
+        """Exit 1 raises an exception"""
+        config = defaultdict(str)
+        config['args'] = ['-c', 'exit 1']
+
+        mock_benchmark = MagicMock()
+        mock_benchmark.path = 'sh'
+
+        job = BenchmarkJob(config, mock_benchmark)
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            job.run()
+
+    def test_run_run_no_binary(self):
+        """Nonexistent binary raises an error"""
+        config = defaultdict(str)
+        config['args'] = []
+
+        mock_benchmark = MagicMock()
+        mock_benchmark.path = 'somethingthatdoesntexist'
+
+        job = BenchmarkJob(config, mock_benchmark)
+
+        with self.assertRaises(OSError):
+            job.run()
+
+    def test_run_parser_error(self):
+        """A crashed parser raises an error"""
+        config = defaultdict(str)
+        config['args'] = []
+
+        mock_benchmark = MagicMock()
+        mock_benchmark.path = 'echo'
+        mock_parser = MagicMock()
+        mock_benchmark.get_parser.return_value = mock_parser
+        mock_parser.parse.side_effect = JSONDecodeError('', '', 0)
+
+        job = BenchmarkJob(config, mock_benchmark)
+
+        with self.assertRaises(JSONDecodeError):
+            job.run()
 
 if __name__ == '__main__':
     unittest.main()
