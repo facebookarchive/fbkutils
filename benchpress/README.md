@@ -11,7 +11,7 @@ Installation
 
 `benchpress` requires `python3`  
 
-`pip`:  
+pip:  
 `pip` is the default Python package management system used to install tools or
 dependencies needed by other scripts.
 `benchpress`'s dependencies can be installed by running `pip3 install -r requirements.txt`.
@@ -30,16 +30,24 @@ The `benchpress` cli is simple to use, simply give it the paths to the
 benchmarks and jobs definition files, along with an optional list of
 benchmark jobs to run (if this is omitted all defined jobs are run).
 
+Examples:  
+List available tests:  
+`./benchpress.py -b benchmarks.yml -j jobs/jobs.yml list`  
+Run all tests defined in `jobs/jobs.yml`:  
+`./benchpress.py -b benchmarks.yml -j jobs/jobs.yml run`  
+Run just the "fio aio" test:  
+`./benchpress.py -b benchmarks.yml -j jobs/jobs.yml run "fio aio"`  
+
 How benchpress works
 --------------------
 
-Benchmarks can be defined using yaml (see benchmarks.yml). A benchmark has a
+Benchmarks can be defined using yaml (see `benchmarks.yml`). A benchmark has a
 simple definition: the path to a binary, a parser class, and the metrics that
 the parser exports.
 
 Benchmark definitions don't do anything by themselves, `benchpress` also needs
 a configuration for that benchmark. These are also defined using yaml (see
-job\_configs.yml). A job is defined to point to a benchmark defined in the
+`jobs/job_configs.yml`). A job is defined to point to a benchmark defined in the
 benchmarks file. Jobs also have a short name and longer description used to
 identify the test to the `benchpress` user. Lastly, a job has an array of
 arguments, these are passed to the program defined in the benchmark definition
