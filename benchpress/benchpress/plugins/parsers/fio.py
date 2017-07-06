@@ -16,7 +16,7 @@ class FioParser(Parser):
     def parse(self, output):
         metrics = {}
 
-        output = b''.join(output)
+        output = ''.join(output)
 
         results = json.loads(output)
         results = results['jobs']

@@ -113,7 +113,8 @@ class BenchmarkJob(object):
             self.hook.after_job(self.hook_opts)
 
         parser = self.benchmark.get_parser()
-        output = output.split(b'\n')
+        output = output.decode('utf-8', 'ignore')
+        output = output.split('\n')
 
         logger.info('Parsing results for "{}"'.format(self.name))
         metrics = Metrics(parser.parse(output))
