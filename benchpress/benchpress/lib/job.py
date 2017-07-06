@@ -97,8 +97,10 @@ class BenchmarkJob(object):
 
         try:
             logger.info('Starting "{}"'.format(self.name))
-            output = subprocess.check_output([self.benchmark.path] + self.args,
-                                             stderr=subprocess.STDOUT)
+            process = subprocess.Popen([self.benchmark.path] + self.args,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
         except OSError as e:
             logger.error('"{}" failed ({})'.format(self.name, e))
             if e.errno == errno.ENOENT:
@@ -113,11 +115,11 @@ class BenchmarkJob(object):
             self.hook.after_job(self.hook_opts)
 
         parser = self.benchmark.get_parser()
-        output = output.decode('utf-8', 'ignore')
-        output = output.split('\n')
+        stdout = stdout.decode('utf-8', 'ignore').split('\n')
+        stderr = stderr.decode('utf-8', 'ignore').split('\n')
 
         logger.info('Parsing results for "{}"'.format(self.name))
-        metrics = Metrics(parser.parse(output))
+        metrics = Metrics(parser.parse(stdout, stderr))
         metrics = self.strip_metrics(metrics)
         self.validate_metrics(metrics)
 
