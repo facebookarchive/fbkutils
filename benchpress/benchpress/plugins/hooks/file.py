@@ -33,8 +33,8 @@ class FileHook(Hook):
                     os.makedirs(path)
                 except OSError as e:
                     if e.errno == errno.EEXIST:
-                        logger.warn('"{}" already exists, proceeding anyway'
-                                    .format(path))
+                        logger.warning('"{}" already exists, proceeding anyway'
+                                       .format(path))
                     else:
                         # other errors should be fatal
                         raise

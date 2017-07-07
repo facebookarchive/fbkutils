@@ -19,7 +19,6 @@ class Hook(object, metaclass=ABCMeta):
         Args:
             opts (dict): user-defined options for this hook
         """
-        pass
 
     @abstractmethod
     def after_job(self, opts):
@@ -28,4 +27,3 @@ class Hook(object, metaclass=ABCMeta):
         Args:
             opts (dict): user-defined options for this hook
         """
-        pass
