@@ -13,8 +13,11 @@ import yaml
 
 from benchpress.lib.benchmark import Benchmark
 from benchpress.lib.job import BenchmarkJob
+from benchpress.lib.reporter import StdoutReporter
+from benchpress.lib.reporter_factory import ReporterFactory
 
 from .commands.list import ListCommand
+from .commands.report import ReportCommand
 from .commands.run import RunCommand
 
 
@@ -24,7 +27,7 @@ def setup_parser():
     Returns:
         setup parser (argparse.ArgumentParser)
     """
-    commands = [ListCommand(), RunCommand()]
+    commands = [ListCommand(), ReportCommand(), RunCommand()]
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--benchmarks', default='benchmarks.yml',
@@ -54,6 +57,9 @@ def setup_parser():
 
 # ignore sys.argv[0] because that is the name of the program
 def main(args=sys.argv[1:]):
+    # register reporter plugins before setting up the parser
+    ReporterFactory.register('stdout', StdoutReporter)
+
     parser = setup_parser()
     args = parser.parse_args(args)
 
