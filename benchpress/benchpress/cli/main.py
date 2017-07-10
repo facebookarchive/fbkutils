@@ -17,33 +17,44 @@ from benchpress.lib.job import BenchmarkJob
 from .commands.list import ListCommand
 from .commands.run import RunCommand
 
-commands = [ListCommand(), RunCommand()]
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-b', '--benchmarks',
-                    metavar='benchmarks file', help='path to benchmarks file',
-                    default='benchmarks.yml')
-parser.add_argument('-j', '--jobs', dest='jobs_file',
-                    metavar='job configs file', help='path to job configs file',
-                    default='jobs/jobs.yml')
+def setup_parser():
+    """Setup the commands and command line parser.
 
-subparsers = parser.add_subparsers(dest='command', help='subcommand to run')
-for command in commands:
-    command.populate_parser(subparsers)
+    Returns:
+        setup parser (argparse.ArgumentParser)
+    """
+    commands = [ListCommand(), RunCommand()]
 
-subparsers.required = True
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-b', '--benchmarks', default='benchmarks.yml',
+                        metavar='benchmarks file',
+                        help='path to benchmarks file')
+    parser.add_argument('-j', '--jobs', default='jobs/jobs.yml',
+                        dest='jobs_file', metavar='job configs file',
+                        help='path to job configs file')
 
-parser.add_argument('-r', '--results', metavar='results dir',
-                    help='directory to load/store results', default='./results')
+    subparsers = parser.add_subparsers(dest='command', help='subcommand to run')
+    for command in commands:
+        command.populate_parser(subparsers)
 
-parser.add_argument('--clowntown', help='lets you do potentially stupid things',
-                    action='store_true')
+    subparsers.required = True
 
-parser.add_argument('--verbose', '-v', action='count', default=0)
+    parser.add_argument('-r', '--results', metavar='results dir',
+                        default='./results',
+                        help='directory to load/store results')
+
+    parser.add_argument('--clowntown', action='store_true',
+                        help='lets you do potentially stupid things')
+
+    parser.add_argument('--verbose', '-v', action='count', default=0)
+
+    return parser
 
 
 # ignore sys.argv[0] because that is the name of the program
 def main(args=sys.argv[1:]):
+    parser = setup_parser()
     args = parser.parse_args(args)
 
     # warn is 30, should default to 30 when verbose=0
