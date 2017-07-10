@@ -61,6 +61,14 @@ class TestBaseFactory(unittest.TestCase):
         self.factory.register('subclass', Subclass1)
         self.assertTrue(isinstance(self.factory.create('subclass'), Subclass1))
 
+    def test_registered_names(self):
+        """Can get list of registered classes"""
+        self.assertListEqual([], self.factory.registered_names)
+        self.factory.register('default', Subclass1)
+        self.assertListEqual(['default'], self.factory.registered_names)
+        self.factory.register('subclass', Subclass1)
+        self.assertListEqual(['default', 'subclass'], self.factory.registered_names)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -19,6 +19,11 @@ class BaseFactory(object):
         self.base_class = base_class
         self.classes = {}
 
+    @property
+    def registered_names(self):
+        """list of str: class names registered with the factory."""
+        return list(self.classes.keys())
+
     def create(self, name):
         """Find the subclass with the correct name and instantiates it.
 
