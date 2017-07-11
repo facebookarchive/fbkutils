@@ -7,7 +7,6 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 from collections import defaultdict
-from json import JSONDecodeError
 import subprocess
 import unittest
 from unittest.mock import MagicMock
@@ -63,9 +62,13 @@ class TestJob(unittest.TestCase):
             ['--output-format=json', 'a'],
             BenchmarkJob.arg_list(['--output-format=json', 'a']))
 
-        self.assertListEqual(
-            ['--output-format', 'json', '--file'],
-            BenchmarkJob.arg_list({'output-format': 'json', 'file': None}))
+        expected = ['--output-format', 'json', '--file']
+        actual = BenchmarkJob.arg_list({'output-format': 'json', 'file': None})
+        # items are the same regardless of order
+        self.assertCountEqual(expected, actual)
+        # '--output-format' comes immediately before 'json'
+        self.assertEqual(actual.index('--output-format') + 1,
+                         actual.index('json'))
 
     def test_run_succeed(self):
         """Echo is able to run and be parsed correctly
@@ -92,15 +95,17 @@ class TestJob(unittest.TestCase):
     def test_run_fail(self):
         """Exit 1 raises an exception"""
         config = defaultdict(str)
-        config['args'] = ['-c', 'exit 1']
+        config['args'] = ['-c', 'echo "error" >&2; exit 1']
 
         mock_benchmark = MagicMock()
         mock_benchmark.path = 'sh'
 
         job = BenchmarkJob(config, mock_benchmark)
 
-        with self.assertRaises(subprocess.CalledProcessError):
+        with self.assertRaises(subprocess.CalledProcessError) as e:
             job.run()
+        e = e.exception
+        self.assertEqual('stdout:\n\nstderr:\nerror', e.output.rstrip())
 
     def test_run_run_no_binary(self):
         """Nonexistent binary raises an error"""
@@ -124,11 +129,11 @@ class TestJob(unittest.TestCase):
         mock_benchmark.path = 'echo'
         mock_parser = MagicMock()
         mock_benchmark.get_parser.return_value = mock_parser
-        mock_parser.parse.side_effect = JSONDecodeError('', '', 0)
+        mock_parser.parse.side_effect = ValueError('')
 
         job = BenchmarkJob(config, mock_benchmark)
 
-        with self.assertRaises(JSONDecodeError):
+        with self.assertRaises(ValueError):
             job.run()
 
 if __name__ == '__main__':

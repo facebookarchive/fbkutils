@@ -9,6 +9,7 @@
 import errno
 import logging
 import subprocess
+from subprocess import CalledProcessError
 
 from .metrics import Metrics
 
@@ -97,26 +98,31 @@ class BenchmarkJob(object):
 
         try:
             logger.info('Starting "{}"'.format(self.name))
-            process = subprocess.run([self.benchmark.path] + self.args,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE,
-                                     check=True)
-            stdout, stderr = process.stdout, process.stderr
+            cmd = [self.benchmark.path] + self.args
+            process = subprocess.Popen(cmd,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+            stdout = stdout.decode('utf-8', 'ignore')
+            stderr = stderr.decode('utf-8', 'ignore')
+            if process.returncode != 0:
+                output = 'stdout:\n{}\nstderr:\n{}'.format(stdout, stderr)
+                cmd = ' '.join(cmd)
+                raise CalledProcessError(process.returncode, cmd, output)
         except OSError as e:
             logger.error('"{}" failed ({})'.format(self.name, e))
             if e.errno == errno.ENOENT:
                 logger.error('Binary not found, did you forget to install it?')
             raise  # make sure it passes the exception up the chain
-        except subprocess.CalledProcessError as e:
+        except CalledProcessError as e:
             logger.error(e.output)
             raise  # make sure it passes the exception up the chain
         finally:
             # cleanup via hook - do this immediately in case the parser crashes
             logger.info('Running cleanup hooks for "{}"'.format(self.name))
             self.hook.after_job(self.hook_opts)
-
-        stdout = stdout.decode('utf-8', 'ignore').split('\n')
-        stderr = stderr.decode('utf-8', 'ignore').split('\n')
+        stdout = stdout.split('\n')
+        stderr = stderr.split('\n')
 
         parser = self.benchmark.get_parser()
         logger.info('Parsing results for "{}"'.format(self.name))
