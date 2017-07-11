@@ -8,6 +8,7 @@
 
 from abc import ABCMeta, abstractmethod
 
+
 class BenchpressCommand(object, metaclass=ABCMeta):
 
     @abstractmethod
