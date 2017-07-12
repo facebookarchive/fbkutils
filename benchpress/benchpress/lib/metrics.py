@@ -6,6 +6,8 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
+from numbers import Number
+
 
 class Metrics(object):
     """Container for metrics that are exported by a job
@@ -19,8 +21,7 @@ class Metrics(object):
         self.names = sorted(list(self.metrics_dict.keys()))
 
     def flatten(self, metrics, prefix=''):
-        """Flattens given dict using dot separated keys.
-        """
+        """Flattens given dict using dot separated keys."""
         flattened = {}
         if isinstance(metrics, dict):
             for key, metric in metrics.items():
@@ -31,13 +32,11 @@ class Metrics(object):
         return flattened
 
     def metrics(self):
-        """Get a dictionary of each metric and its value.
-        """
+        """Get a dictionary of each metric and its value."""
         return self.metrics_dict
 
     def metrics_list(self):
-        """Get a list of metric tuples (name, value) sorted by name.
-        """
+        """Get a list of metric tuples (name, value) sorted by name."""
         return [(name, self.metrics_dict[name]) for name in self.names]
 
     def __getitem__(self, name):
@@ -45,3 +44,29 @@ class Metrics(object):
 
     def items(self):
         return self.metrics_list()
+
+    def correctness_tests(self):
+        """Get a dictionary of correctness metrics
+        These are metrics that indicate whether a test passed or failed certain
+        test cases.
+        """
+        # correctness metrics are bools, all others are floats
+        return {key: val for key, val in self.items() if isinstance(val, bool)}
+
+    def performance_metrics(self):
+        """Get a dictionary of correctness metrics
+        These are metrics that indicate whether a test passed or failed certain
+        test cases.
+        """
+        def is_number(x):
+            """Detect if x is a performance metric (number) according to our
+            specifications:
+                - Must be instance of a Number
+                - Cannot be a bool
+            """
+            if isinstance(x, bool):
+                return False
+            if isinstance(x, Number):
+                return True
+        # performance metrics are floats or ints
+        return {key: val for key, val in self.items() if is_number(val)}

@@ -79,6 +79,19 @@ class TestMetrics(unittest.TestCase):
         self.assertListEqual([('rps', 1), ('second', 2)],
                              metrics.metrics_list())
 
+    def test_correctness(self):
+        """correctness_tests only returns metrics that are bools"""
+        metrics = Metrics({'rps': 1, 'second': 2, 'correct': True})
+        self.assertDictEqual({'correct': True}, metrics.correctness_tests())
+
+    def test_performance(self):
+        """performance_tests only returns metrics that are numbers"""
+        metrics = Metrics({'int': 1, 'float': 2.0, 'complex': complex(1, 1),
+                           'bool': True})
+        self.assertDictEqual(
+            {'int': 1, 'float': 2.0, 'complex': complex(1, 1)},
+            metrics.performance_metrics())
+
 
 if __name__ == '__main__':
     unittest.main()
