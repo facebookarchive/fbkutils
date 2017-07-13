@@ -65,9 +65,9 @@ class TestBaseFactory(unittest.TestCase):
         """Can get list of registered classes"""
         self.assertListEqual([], self.factory.registered_names)
         self.factory.register('default', Subclass1)
-        self.assertListEqual(['default'], self.factory.registered_names)
+        self.assertCountEqual(['default'], self.factory.registered_names)
         self.factory.register('subclass', Subclass1)
-        self.assertListEqual(['default', 'subclass'], self.factory.registered_names)
+        self.assertCountEqual(['default', 'subclass'], self.factory.registered_names)
 
 
 if __name__ == '__main__':
