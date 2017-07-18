@@ -61,7 +61,7 @@ class History(object):
         """
         results = []
 
-        job_name = job.name.replace(' ', '_')
+        job_name = job.safe_name
         rootdir = os.path.join(self.path, job_name)
         for directory, _, files in os.walk(rootdir):
             for f in files:
@@ -105,7 +105,7 @@ class History(object):
             metrics (Metrics): results
             time (datetime.datetime): start time of the benchmark
         """
-        job_name = job.name.replace(' ', '_')
+        job_name = job.safe_name
         time = time.strftime('%Y-%m-%dT%H:%M:%SZ')
 
         data = {

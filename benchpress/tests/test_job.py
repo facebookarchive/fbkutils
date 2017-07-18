@@ -11,7 +11,7 @@ import subprocess
 import unittest
 from unittest.mock import MagicMock
 
-from benchpress.lib.job import Job
+from benchpress.lib.job import Job, JobSuite
 from benchpress.lib.metrics import Metrics
 from benchpress.lib.hook_factory import HookFactory
 from benchpress.lib.parser_factory import ParserFactory
@@ -183,6 +183,30 @@ class TestJob(unittest.TestCase):
 
         with self.assertRaises(subprocess.TimeoutExpired):
             job.run()
+
+    def test_job_suite(self):
+        """JobSuite runs all jobs in the suite"""
+        jobs = [MagicMock() for i in range(10)]
+        for i, job in enumerate(jobs):
+            job.name = str(i)
+            job.safe_name = str(i)
+            job.metrics_config.names = ['a']
+            job.run.return_value = Metrics({'a': i})
+        suite = JobSuite({'name': 'suite', 'description': 'test'}, jobs)
+        suite.run()
+        metrics = suite.run()
+        expected = {str(i)+'.a': i for i in range(10)}
+        self.assertDictEqual(expected, metrics.metrics())
+
+    def test_job_suite_job_fail(self):
+        """JobSuite with a failed job raises an error"""
+        self.mock_benchmark['path'] = 'abinaryhasnopath'
+
+        fail_job = Job(self.job_config, self.mock_benchmark)
+
+        suite = JobSuite({'name': 'suite', 'description': 'test'}, [fail_job])
+        with self.assertRaises(OSError):
+            suite.run()
 
 
 if __name__ == '__main__':

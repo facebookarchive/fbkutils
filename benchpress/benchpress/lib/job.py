@@ -6,6 +6,7 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
+from collections import defaultdict
 import errno
 import logging
 import subprocess
@@ -192,3 +193,35 @@ class Job(object):
         for key in expected:
             assert key in metrics, 'Metric "{}" not exported'.format(key)
         return True
+
+    @property
+    def safe_name(self):
+        return self.name.replace(' ', '_')
+
+
+class JobSuite(Job):
+    """JobSuite is a collection of jobs that will be run as a group.
+    The results of all the jobs in the suite are compiled into a single dict.
+    """
+
+    def __init__(self, config, jobs):
+        self.config = config
+        self.name = config['name']
+        self.description = config['description']
+        # merge all the job's metrics_configs into one
+        metrics_names = {
+            job.safe_name: job.metrics_config.names for job in jobs
+        }
+        self.metrics_config = MetricsConfig(metrics_names)
+        self.jobs = jobs
+
+    def run(self):
+        """Run jobs in the suite and merges the results into a single dict."""
+        results = dict()
+        for job in self.jobs:
+            try:
+                results[job.safe_name] = job.run().metrics()
+            except Exception:
+                logger.error('Job "%s" failed', job.name)
+                raise
+        return Metrics(results)
