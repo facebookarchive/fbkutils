@@ -50,5 +50,5 @@ setup(
         'flake8'
     ],
     cmdclass={'test': NoseTestCommand},
-    scripts=['benchpress'],
+    scripts=['benchpress_cli.py'],
 )
