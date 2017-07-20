@@ -63,5 +63,6 @@ class TestFileHook(fake_filesystem_unittest.TestCase):
         self.hook.after_job([{'path': '/fake/file', 'type': 'file'}])
         self.assertFalse(self.fs.Exists('/fake/file'))
 
+
 if __name__ == '__main__':
     unittest.main()

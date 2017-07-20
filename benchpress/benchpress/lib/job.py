@@ -132,7 +132,7 @@ class BenchmarkJob(object):
             self.validate_metrics(metrics)
 
             return metrics
-        except:
+        except Exception:
             logger.error('stdout:')
             logger.error('\n\t'.join(stdout))
             logger.error('stderr:')

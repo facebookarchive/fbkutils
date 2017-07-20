@@ -85,7 +85,7 @@ class TestHistory(fake_filesystem_unittest.TestCase):
 
         expected_path = os.path.join(
             '/history', 'job_name',
-            now.strftime('%Y-%m-%dT%H:%M:%SZ')+'.json')
+            now.strftime('%Y-%m-%dT%H:%M:%SZ') + '.json')
 
         # make sure file doesn't already exist
         self.assertFalse(self.fs.Exists(expected_path))
