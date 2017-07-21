@@ -29,7 +29,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='benchpress',
+    name='fbkbenchpress',
     version='0.1',
     description='A framework for running benchmarks and reporting metrics',
     long_description=long_description,

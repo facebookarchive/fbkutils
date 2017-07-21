@@ -34,40 +34,90 @@ benchmark jobs to run (if this is omitted all defined jobs are run).
 
 Examples:  
 List available tests:  
-`./benchpress.py -b benchmarks.yml -j jobs/jobs.yml list`  
+`./benchpress_cli.py -b benchmarks.yml -j jobs/jobs.yml list`  
 Run all tests defined in `jobs/jobs.yml`:  
-`./benchpress.py -b benchmarks.yml -j jobs/jobs.yml run`  
+`./benchpress_cli.py -b benchmarks.yml -j jobs/jobs.yml run`  
 Run just the "fio aio" test:  
-`./benchpress.py -b benchmarks.yml -j jobs/jobs.yml run "fio aio"`  
+`./benchpress_cli.py -b benchmarks.yml -j jobs/jobs.yml run "fio aio"`  
 
 How benchpress works
 --------------------
 
-Benchmarks can be defined using yaml (see `benchmarks.yml`). A benchmark has a
-simple definition: the path to a binary, a parser class, and the metrics that
-the parser exports.
+`benchpress` is configured with 'jobs' and 'benchmarks'. A benchmark is a
+reference to a binary (that usually can be run with different arguments). A job
+is a specific run of that benchmark with a different configuration.  
 
-Benchmark definitions don't do anything by themselves, `benchpress` also needs
-a configuration for that benchmark. These are also defined using yaml (see
-`jobs/job_configs.yml`). A job is defined to point to a benchmark defined in the
-benchmarks file. Jobs also have a short name and longer description used to
-identify the test to the `benchpress` user. Lastly, a job has an array of
-arguments, these are passed to the program defined in the benchmark definition
-to be able to change the behavior of the benchmark. Job definitions can
-optionally specify a list of metrics in the same format as a benchmark
-definition that will override the default metrics for the benchmark.
+`benchpress` also has some support for running jobs that contain correctness
+tests, any metric that is a `bool` is assumed to be a 'correctness' metric and
+if `False`, will result in the job being reported as failing.
 
-Adding a benchmark
-------------------
+Benchmark config
+----------------
 
-Adding a benchmark to `benchpress` is simple - just write the yaml definitions
-of the benchmark program and the associated job(s). The usefulness of
-`benchpress` is enabled by your parser implementation. `benchpress` loads a
-parser module according to the parser name in the benchmark definition.
+An example benchmark is defined as follows:
+```yaml
+schbench:
+  parser: schbench
+  path: ./benchmarks/schbench
+  metrics:
+    - latency:
+        - p50
+        - p75
+        - p90
+        - p95
+        - p99
+        - p99.5
+        - p99.9
+```
+This defines the `schbench` benchmark to run the binary located at
+`./benchmarks/schbench`, using the parser `schbench` and exports metrics
+`latency.pXX`
 
-Once you've defined your metrics in the benchmark definition, you can write the
-parser that will produce those metrics for use by `benchpress`. A parser is a
-subclass of `Parser`, and must implement the `parse` method.  `parse` is called
-by `benchpress` with the output (stdout + stderr) of the benchmark and is where
-the parser should process that output, and return a dictionary of all the
-metrics matching the format of the metrics defined in the benchmark.
+Job config
+----------
+
+An example job is defined as follows:
+```yaml
+- benchmark: schbench
+  name: schbench default
+  description: defaults for schbench
+  args:
+    message-threads: 2
+    threads: 16
+    runtime: 30
+    sleeptime: 10000
+    cputime: 10000
+    pipe: 0
+    rps: 0
+```
+This job runs the binary from the `schbench` benchmark and exports the metrics
+from the benchmark definition.
+
+Job arguments:  
+The arguments are passed to the benchmark binary and can be either a dictionary
+or a list, if `args` is a dictionary, they are converted to the format `--<key>
+<value>`, if they are a list, they are used directly as argv for the binary.
+
+Job config overrides:  
+A job config can override the metrics configuration for its associated
+benchmark. If a job contains a `metrics` key, that is used instead of the
+metrics defined in the benchmark.
+
+Parsers
+-------
+
+Once you've defined your benchmarks and jobs, each benchmark needs a parser. A
+parser is a piece of Python code that can parse the output of a benchmark
+binary. A Parser is a subclass of `benchpress.lib.parser.Parser`, it must
+implement the `parse` method, which returns a dictionary of metrics given the
+stdout and stderr of the binary.
+
+Adding a plugin entails writing the `Parser` implementation and adding it to
+`register_parsers` in `benchpress/plugins/parsers/__init__.py`
+
+Reporting
+---------
+
+By default, `benchpress` simply reports job results to stdout, this can be
+customized by creating a subclass of `benchpress.lib.reporter.Reporter` and
+registering it with the `ReporterFactory`
