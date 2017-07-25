@@ -16,12 +16,13 @@ class Parser(object, metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def parse(self, stdout, stderr):
+    def parse(self, stdout, stderr, returncode):
         """Take stdout/stderr and convert it to a dictionary of metrics.
 
         Args:
             stdout (list of str): stdout of benchmark process split on newline
             stderr (list of str): stderr of benchmark process split on newline
+            returncode (int): subprocess return code
 
         Returns:
             (dict): metrics mapping name -> value - keys can be nested or flat

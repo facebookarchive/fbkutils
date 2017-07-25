@@ -108,7 +108,8 @@ class BenchmarkJob(object):
             stdout, stderr = process.communicate()
             stdout = stdout.decode('utf-8', 'ignore')
             stderr = stderr.decode('utf-8', 'ignore')
-            if process.returncode != 0:
+            returncode = process.returncode
+            if self.benchmark.check_returncode and returncode != 0:
                 output = 'stdout:\n{}\nstderr:\n{}'.format(stdout, stderr)
                 cmd = ' '.join(cmd)
                 raise CalledProcessError(process.returncode, cmd, output)
@@ -130,7 +131,7 @@ class BenchmarkJob(object):
         parser = self.benchmark.get_parser()
         logger.info('Parsing results for "{}"'.format(self.name))
         try:
-            metrics = Metrics(parser.parse(stdout, stderr))
+            metrics = Metrics(parser.parse(stdout, stderr, returncode))
 
             if self.metrics_config.validate:
                 metrics = self.strip_metrics(metrics)

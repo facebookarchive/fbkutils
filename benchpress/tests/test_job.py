@@ -118,7 +118,7 @@ class TestJob(unittest.TestCase):
         job = BenchmarkJob(config, mock_benchmark)
 
         metrics = job.run()
-        mock_parser.parse.assert_called_with([mock_data, ''], [''])
+        mock_parser.parse.assert_called_with([mock_data, ''], [''], 0)
         self.assertDictEqual({'key': 'hello'}, metrics.metrics())
 
     def test_run_fail(self):
@@ -135,6 +135,21 @@ class TestJob(unittest.TestCase):
             job.run()
         e = e.exception
         self.assertEqual('stdout:\n\nstderr:\nerror', e.output.rstrip())
+
+    def test_run_fail_no_check_returncode(self):
+        """Bad return code doesn't fail when check_returncode is False"""
+        config = defaultdict(str)
+        config['args'] = ['-c', 'echo "error" >&2; exit 1']
+
+        mock_benchmark = MagicMock()
+        mock_benchmark.check_returncode = False
+        mock_benchmark.path = 'sh'
+
+        job = BenchmarkJob(config, mock_benchmark)
+
+        # job.run won't raise an exception
+        job.run()
+
 
     def test_run_run_no_binary(self):
         """Nonexistent binary raises an error"""

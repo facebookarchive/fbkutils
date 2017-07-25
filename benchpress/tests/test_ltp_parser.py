@@ -45,7 +45,7 @@ class TestLtpParser(unittest.TestCase):
             'gf04        1  TWARN  :  Test warning',
             'gf05        1  TBROK  :  Test brok',
         ]
-        metrics = self.parser.parse(output, None)
+        metrics = self.parser.parse(output, None, 0)
         self.assertDictEqual({
             'gf01_1': False,
             'gf02_1': True,

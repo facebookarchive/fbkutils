@@ -19,7 +19,9 @@ class Benchmark(object):
         name (str): short name to identify the benchmark
         path (str): path to executable run by this benchmark
         metrics_config (MetricsConfig): default metrics configuration for
-            jobs using this benchmark
+                                        jobs using this benchmark
+        check_returncode (bool): automatically fail if the process returncode
+                                 was not 0, default True
     """
 
     def __init__(self, name, config):
@@ -27,6 +29,7 @@ class Benchmark(object):
         self.parser_name = config['parser']
         self.path = config['path']
         self.metrics_config = MetricsConfig(config['metrics'])
+        self.check_returncode = config.get('check_returncode', True)
 
     def get_parser(self):
         return ParserFactory.create(self.parser_name)

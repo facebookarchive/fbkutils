@@ -16,7 +16,7 @@ test_format_re = re.compile('\\w+\\s+\\d+\\s+T(FAIL|PASS|BROK|WARN|INFO).*')
 
 class LtpParser(Parser):
 
-    def parse(self, stdout, stderr):
+    def parse(self, stdout, stderr, returncode):
         # ltp run in quiet mode produces lines that are mostly a single line per
         # test with the test name and a status and optional message
         metrics = {}
