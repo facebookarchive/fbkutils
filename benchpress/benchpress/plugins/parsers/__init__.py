@@ -8,8 +8,10 @@
 
 from .fio import FioParser
 from .schbench import SchbenchParser
+from .ltp import LtpParser
 
 
 def register_parsers(factory):
     factory.register('fio', FioParser)
+    factory.register('ltp', LtpParser)
     factory.register('schbench', SchbenchParser)
