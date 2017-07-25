@@ -1,0 +1,45 @@
+- benchmark: schbench
+  name: schbench default 
+  description: defaults for schbench
+  args:
+    message-threads: 2
+    threads: 16
+    runtime: 30
+    sleeptime: 10000
+    cputime: 10000
+    pipe: 0
+    rps: 0
+- benchmark: fio
+  name: fio null
+  description: read /dev/null
+  args:
+    - --output-format=json
+    - jobs/null.fio
+  metrics:
+    - 'null':
+        - read:
+          - bw
+- benchmark: fio
+  name: fio aio
+  description: read 4 files with aio at different depths
+  args:
+    - --output-format=json
+    - jobs/aio-read.fio
+  hook:
+    hook: file
+    options:
+      - type: dir
+        path: ./data1
+  metrics:
+    - file1: &aiofilemetrics
+      - read: &aiorwmetrics
+        - bw
+        - iops_mean
+        - iops_stddev
+        - lat_ns:
+          - mean
+          - stddev
+      - write: *aiorwmetrics
+    - file2: *aiofilemetrics
+    - file3: *aiofilemetrics
+    - file4: *aiofilemetrics
