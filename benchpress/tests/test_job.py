@@ -56,6 +56,35 @@ class TestJob(unittest.TestCase):
         stripped = job.strip_metrics(Metrics({'rps': 1, 'extra': 2}))
         self.assertEqual(len(stripped.metrics_list()), 1)
 
+    def test_no_validate_metrics(self):
+        """When validation is disabled, job leaves metrics as-is"""
+        config = defaultdict(str)
+        config['args'] = {}
+        mock_benchmark = MagicMock()
+        mock_benchmark.path = 'true'
+
+        config['metrics'] = ['_no_validate', 'something']
+
+        mock_parser = MagicMock()
+        mock_benchmark.get_parser.return_value = mock_parser
+
+        job = BenchmarkJob(config, mock_benchmark)
+
+        # an empty set of metrics should stay empty
+        mock_parser.parse.return_value = {}
+        metrics = job.run()
+        self.assertEqual(len(metrics.metrics_list()), 0)
+
+        # metric defined in config should remain
+        mock_parser.parse.return_value = {'something': 1}
+        metrics = job.run()
+        self.assertEqual(len(metrics.metrics_list()), 1)
+
+        # more metrics besides defined should keep all
+        mock_parser.parse.return_value = {'something': 1, 'extra': 2}
+        metrics = job.run()
+        self.assertEqual(len(metrics.metrics_list()), 2)
+
     def test_arg_list(self):
         """Argument list is formatted correctly with lists or dicts"""
         self.assertListEqual(

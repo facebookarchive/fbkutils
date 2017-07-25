@@ -25,10 +25,13 @@ class MetricsConfig(object):
 
     Attributes:
         names (list of str): sorted metric names
+        validate (bool): validate metrics (strip unused, error on missing)
+                         default True
     """
 
     def __init__(self, config):
         self.names = self.flatten_names(config)
+        self.validate = '_no_validate' not in self.names
 
     def flatten_names(self, names, prefix=''):
         flat = []
@@ -128,8 +131,10 @@ class BenchmarkJob(object):
         logger.info('Parsing results for "{}"'.format(self.name))
         try:
             metrics = Metrics(parser.parse(stdout, stderr))
-            metrics = self.strip_metrics(metrics)
-            self.validate_metrics(metrics)
+
+            if self.metrics_config.validate:
+                metrics = self.strip_metrics(metrics)
+                self.validate_metrics(metrics)
 
             return metrics
         except Exception:
