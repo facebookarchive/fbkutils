@@ -10,8 +10,8 @@ Installation
 ------------
 
 `benchpress` requires `python3`  
-`benchpress` is currently tested on `python 3.3,3.4,3.5 and 3.6`, it most likely works on
-other `3.x` releases, but this is untested.  
+`benchpress` supports `python` 3.3 and higher, and is currently tested on
+`python 3.3,3.4,3.5` and `3.6`.
 
 pip:  
 `pip` is the default Python package management system used to install tools or

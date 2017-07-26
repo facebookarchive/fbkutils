@@ -152,7 +152,7 @@ class TestJob(unittest.TestCase):
         # job.run won't raise an exception
         job.run()
 
-    def test_run_run_no_binary(self):
+    def test_run_no_binary(self):
         """Nonexistent binary raises an error"""
         self.mock_benchmark['path'] = 'somethingthatdoesntexist'
         self.mock_benchmark['metrics'] = []
@@ -171,6 +171,17 @@ class TestJob(unittest.TestCase):
         job = Job(self.job_config, self.mock_benchmark)
 
         with self.assertRaises(ValueError):
+            job.run()
+
+    def test_run_timeout(self):
+        """Binary running past timeout raises an error"""
+        self.job_config['timeout'] = 0.1
+        self.mock_benchmark['path'] = 'sleep'
+        self.job_config['args'] = ['1']
+
+        job = Job(self.job_config, self.mock_benchmark)
+
+        with self.assertRaises(subprocess.TimeoutExpired):
             job.run()
 
 

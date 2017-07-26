@@ -85,6 +85,7 @@ class Job(object):
         self.binary = config['path']
         self.parser = ParserFactory.create(config['parser'])
         self.check_returncode = config.get('check_returncode', True)
+        self.timeout = config.get('timeout', None)
 
         hook_conf = config.get('hook', {'hook': 'noop'})
         self.hook_opts = hook_conf.get('options', {})
@@ -120,7 +121,7 @@ class Job(object):
             process = subprocess.Popen(cmd,
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
-            stdout, stderr = process.communicate()
+            stdout, stderr = process.communicate(timeout=self.timeout)
             stdout = stdout.decode('utf-8', 'ignore')
             stderr = stderr.decode('utf-8', 'ignore')
             returncode = process.returncode
