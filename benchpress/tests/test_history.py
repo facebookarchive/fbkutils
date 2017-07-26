@@ -10,10 +10,18 @@ from datetime import datetime, timezone
 import os
 from pyfakefs import fake_filesystem_unittest
 import unittest
+from unittest.mock import MagicMock
 
 from benchpress.lib.history import History
-from benchpress.lib.job import BenchmarkJob
+from benchpress.lib.job import Job
 from benchpress.lib.metrics import Metrics
+
+
+from benchpress.lib.hook_factory import HookFactory
+from benchpress.lib.parser_factory import ParserFactory
+
+HookFactory.create = MagicMock()
+ParserFactory.create = MagicMock()
 
 
 class TestHistory(fake_filesystem_unittest.TestCase):
@@ -24,7 +32,7 @@ class TestHistory(fake_filesystem_unittest.TestCase):
     def test_consistency(self):
         """History is able to detect when a job configuration has changed."""
         history = History('/history')
-        consistent_job = BenchmarkJob({
+        consistent_job = Job({
             'args': ['somearg'],
             'benchmark': 'bench',
             'description': 'cool description',
@@ -34,7 +42,10 @@ class TestHistory(fake_filesystem_unittest.TestCase):
             },
             'metrics': ['mysupercoolmetric'],
             'name': 'job name',
-        }, None)
+        }, {
+            'path': 'true',
+            'parser': 'parser',
+        })
 
         self.fs.CreateFile('/history/job_name/1.json',
                            contents='''
@@ -48,7 +59,9 @@ class TestHistory(fake_filesystem_unittest.TestCase):
                                  "options": []
                                },
                                "metrics": ["mysupercoolmetric"],
-                               "name": "job name"
+                               "name": "job name",
+                               "path": "true",
+                               "parser": "parser"
                              },
                              "job": "job name",
                              "metrics": {
@@ -69,7 +82,7 @@ class TestHistory(fake_filesystem_unittest.TestCase):
         """A json file is created in the right directory with the right name
            when saving a job result."""
         history = History('/history')
-        job = BenchmarkJob({
+        job = Job({
             'args': ['somearg'],
             'benchmark': 'bench',
             'description': 'cool description',
@@ -79,7 +92,10 @@ class TestHistory(fake_filesystem_unittest.TestCase):
             },
             'metrics': ['mysupercoolmetric'],
             'name': 'job name',
-        }, None)
+        }, {
+            'path': 'true',
+            'parser': 'parser',
+        })
 
         now = datetime.now(timezone.utc)
 
@@ -99,13 +115,16 @@ class TestHistory(fake_filesystem_unittest.TestCase):
         """History complains when a historical record is in an invalid format
            (missing key(s))."""
         history = History('/history')
-        job = BenchmarkJob({
+        job = Job({
             'args': ['somearg'],
             'benchmark': 'bench',
             'description': 'cool description',
             'metrics': ['mysupercoolmetric'],
             'name': 'broken job',
-        }, None)
+        }, {
+            'path': 'true',
+            'parser': 'parser',
+        })
 
         self.fs.CreateFile('/history/broken_job/1.json',
                            contents='''
@@ -119,7 +138,9 @@ class TestHistory(fake_filesystem_unittest.TestCase):
                                  "options": []
                                },
                                "metrics": ["mysupercoolmetric"],
-                               "name": "job name"
+                               "name": "job name",
+                               "path": "true",
+                               "parser": "parser"
                              },
                              "job": "broken_job",
                              "metrics": {

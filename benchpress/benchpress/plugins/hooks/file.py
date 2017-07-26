@@ -24,7 +24,7 @@ class FileHook(Hook):
     job runs and destroyed after.
     """
 
-    def before_job(self, opts):
+    def before_job(self, opts, job):
         for opt in opts:
             path = opt['path']
             logger.info('Creating "{}"'.format(path))
@@ -41,7 +41,7 @@ class FileHook(Hook):
             if opt['type'] == 'file':
                 os.mknod(path)
 
-    def after_job(self, opts):
+    def after_job(self, opts, job):
         for opt in opts:
             path = opt['path']
             logger.info('Deleting "{}"'.format(path))

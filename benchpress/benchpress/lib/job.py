@@ -14,6 +14,7 @@ from subprocess import CalledProcessError
 from .metrics import Metrics
 
 from .hook_factory import HookFactory
+from .parser_factory import ParserFactory
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +50,11 @@ class MetricsConfig(object):
         return sorted(flat)
 
 
-class BenchmarkJob(object):
+class Job(object):
     """Holds the run configuration for an individual job.
-    A BenchmarkJob has a reference to a Benchmark that it runs against. The
-    binary defined in the Benchmark is run according to the configuration of
-    this job.
+    A Job starts it's default config based on the benchmark configuration that
+    it references. The binary defined in the benchmark is run according to the
+    configuration of this job.
 
     Attributes:
         name (str): short name to identify job
@@ -61,20 +62,34 @@ class BenchmarkJob(object):
         config (dict): raw configuration dictionary
     """
 
-    def __init__(self, config, benchmark):
+    def __init__(self, job_config, benchmark_config):
+        """Create a Job with the default benchmark_config and the specific job
+        config
+
+        Args:
+            config (dict): job config
+            benchmark_config (dict): benchmark (aka default) config
+        """
+        # start with the config being the benchmark config and then update it
+        # with the job config so that a job can override any options in the
+        # benchmark config
+        config = benchmark_config
+        # TODO(vmagro) should there be some basic sanity check that a job_config
+        # contains certain fields?
+        config.update(job_config)
         self.config = config
-        self.benchmark = benchmark
+
         self.name = config['name']
         self.description = config['description']
+
+        self.binary = config['path']
+        self.parser = ParserFactory.create(config['parser'])
+        self.check_returncode = config.get('check_returncode', True)
 
         hook_conf = config.get('hook', {'hook': 'noop'})
         self.hook_opts = hook_conf.get('options', {})
         self.hook = HookFactory.create(hook_conf['hook'])
-
-        if 'metrics' in config:
-            self.metrics_config = MetricsConfig(config['metrics'])
-        else:
-            self.metrics_config = benchmark.metrics_config
+        self.metrics_config = MetricsConfig(config['metrics'])
 
         self.args = self.arg_list(config['args'])
 
@@ -97,11 +112,11 @@ class BenchmarkJob(object):
         """
         # take care of preprocessing setup via hook
         logger.info('Running setup hooks for "{}"'.format(self.name))
-        self.hook.before_job(self.hook_opts)
+        self.hook.before_job(self.hook_opts, self)
 
         try:
             logger.info('Starting "{}"'.format(self.name))
-            cmd = [self.benchmark.path] + self.args
+            cmd = [self.binary] + self.args
             process = subprocess.Popen(cmd,
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
@@ -109,7 +124,7 @@ class BenchmarkJob(object):
             stdout = stdout.decode('utf-8', 'ignore')
             stderr = stderr.decode('utf-8', 'ignore')
             returncode = process.returncode
-            if self.benchmark.check_returncode and returncode != 0:
+            if self.check_returncode and returncode != 0:
                 output = 'stdout:\n{}\nstderr:\n{}'.format(stdout, stderr)
                 cmd = ' '.join(cmd)
                 raise CalledProcessError(process.returncode, cmd, output)
@@ -124,11 +139,11 @@ class BenchmarkJob(object):
         finally:
             # cleanup via hook - do this immediately in case the parser crashes
             logger.info('Running cleanup hooks for "{}"'.format(self.name))
-            self.hook.after_job(self.hook_opts)
+            self.hook.after_job(self.hook_opts, self)
         stdout = stdout.split('\n')
         stderr = stderr.split('\n')
 
-        parser = self.benchmark.get_parser()
+        parser = self.parser
         logger.info('Parsing results for "{}"'.format(self.name))
         try:
             metrics = Metrics(parser.parse(stdout, stderr, returncode))

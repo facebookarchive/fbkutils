@@ -54,7 +54,7 @@ class History(object):
         """Load all results from a specific job.
 
         Args:
-            job (BenchmarkJob): job to load results for
+            job (Job): job to load results for
 
         Returns:
             list of HistoryEntry: historical entries sorted most recent first.
@@ -85,7 +85,7 @@ class History(object):
         change the behavior of the test and make interpreting results confusing.
 
         Args:
-            job (BenchmarkJob): job to verify
+            job (Job): job to verify
         """
         history = self.load_historical_results(job)
 
@@ -101,7 +101,7 @@ class History(object):
             <base path>/<job_name>/<timestamp>.json
 
         Args:
-            job (BenchmarkJob): job that was run
+            job (Job): job that was run
             metrics (Metrics): results
             time (datetime.datetime): start time of the benchmark
         """

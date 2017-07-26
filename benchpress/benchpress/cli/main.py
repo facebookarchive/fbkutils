@@ -11,8 +11,7 @@ import logging
 import sys
 import yaml
 
-from benchpress.lib.benchmark import Benchmark
-from benchpress.lib.job import BenchmarkJob
+from benchpress.lib.job import Job
 from benchpress.lib.reporter import StdoutReporter
 from benchpress.lib.reporter_factory import ReporterFactory
 
@@ -78,9 +77,7 @@ def main(args=sys.argv[1:]):
     with open(args.jobs_file) as jobs_file:
         jobs = yaml.load(jobs_file)
 
-    benchmarks = {key: Benchmark(key, val) for key, val in benchmarks.items()}
-
-    jobs = [BenchmarkJob(j, benchmarks[j['benchmark']]) for j in jobs]
+    jobs = [Job(j, benchmarks[j['benchmark']]) for j in jobs]
     jobs = {j.name: j for j in jobs}
 
     logger.info('Loaded {} benchmarks and {} jobs'

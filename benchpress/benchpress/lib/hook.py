@@ -13,7 +13,7 @@ class Hook(object, metaclass=ABCMeta):
     """Hook allows jobs to run some Python code before/after a job runs."""
 
     @abstractmethod
-    def before_job(self, opts):
+    def before_job(self, opts, job):
         """Do something to setup before this job.
 
         Args:
@@ -21,7 +21,7 @@ class Hook(object, metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def after_job(self, opts):
+    def after_job(self, opts, job):
         """Do something to teardown after this job.
 
         Args:

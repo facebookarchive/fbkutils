@@ -14,8 +14,8 @@ class NoopHook(Hook):
     name suggests, it doesn't do anything.
     """
 
-    def before_job(self, opts):
+    def before_job(self, opts, job):
         pass
 
-    def after_job(self, opts):
+    def after_job(self, opts, job):
         pass
