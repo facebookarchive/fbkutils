@@ -24,7 +24,6 @@ class LtpParser(Parser):
         for line in stdout:
             # make sure that the line matches the format of a test
             if not test_format_re.match(line):
-                print('failed: {}'.format(line))
                 continue
 
             line = line.split()
@@ -40,7 +39,7 @@ class LtpParser(Parser):
                 status = True
             else:
                 # if status is not one of these, just skip it
-                continue # pragma: no cover
+                continue  # pragma: no cover
 
             metrics[name] = status
 
