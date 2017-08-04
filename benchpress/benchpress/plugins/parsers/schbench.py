@@ -11,7 +11,7 @@ from benchpress.lib.parser import Parser
 
 class SchbenchParser(Parser):
 
-    def parse(self, stdout, stderr):
+    def parse(self, stdout, stderr, returncode):
         stdout = stderr  # schbench writes it output on stderr
         metrics = {'latency': {}}
 

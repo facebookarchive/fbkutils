@@ -8,8 +8,10 @@
 
 from .noop import NoopHook
 from .file import FileHook
+from .shell import ShellHook
 
 
 def register_hooks(factory):
     factory.register('noop', NoopHook)
     factory.register('file', FileHook)
+    factory.register('shell', ShellHook)

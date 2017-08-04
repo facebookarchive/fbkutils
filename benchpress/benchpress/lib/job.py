@@ -6,6 +6,7 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
+from collections import defaultdict
 import errno
 import logging
 import subprocess
@@ -14,6 +15,7 @@ from subprocess import CalledProcessError
 from .metrics import Metrics
 
 from .hook_factory import HookFactory
+from .parser_factory import ParserFactory
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +27,13 @@ class MetricsConfig(object):
 
     Attributes:
         names (list of str): sorted metric names
+        validate (bool): validate metrics (strip unused, error on missing)
+                         default True
     """
 
     def __init__(self, config):
         self.names = self.flatten_names(config)
+        self.validate = '_no_validate' not in self.names
 
     def flatten_names(self, names, prefix=''):
         flat = []
@@ -46,11 +51,11 @@ class MetricsConfig(object):
         return sorted(flat)
 
 
-class BenchmarkJob(object):
+class Job(object):
     """Holds the run configuration for an individual job.
-    A BenchmarkJob has a reference to a Benchmark that it runs against. The
-    binary defined in the Benchmark is run according to the configuration of
-    this job.
+    A Job starts it's default config based on the benchmark configuration that
+    it references. The binary defined in the benchmark is run according to the
+    configuration of this job.
 
     Attributes:
         name (str): short name to identify job
@@ -58,20 +63,35 @@ class BenchmarkJob(object):
         config (dict): raw configuration dictionary
     """
 
-    def __init__(self, config, benchmark):
+    def __init__(self, job_config, benchmark_config):
+        """Create a Job with the default benchmark_config and the specific job
+        config
+
+        Args:
+            config (dict): job config
+            benchmark_config (dict): benchmark (aka default) config
+        """
+        # start with the config being the benchmark config and then update it
+        # with the job config so that a job can override any options in the
+        # benchmark config
+        config = benchmark_config
+        # TODO(vmagro) should there be some basic sanity check that a job_config
+        # contains certain fields?
+        config.update(job_config)
         self.config = config
-        self.benchmark = benchmark
+
         self.name = config['name']
         self.description = config['description']
+
+        self.binary = config['path']
+        self.parser = ParserFactory.create(config['parser'])
+        self.check_returncode = config.get('check_returncode', True)
+        self.timeout = config.get('timeout', None)
 
         hook_conf = config.get('hook', {'hook': 'noop'})
         self.hook_opts = hook_conf.get('options', {})
         self.hook = HookFactory.create(hook_conf['hook'])
-
-        if 'metrics' in config:
-            self.metrics_config = MetricsConfig(config['metrics'])
-        else:
-            self.metrics_config = benchmark.metrics_config
+        self.metrics_config = MetricsConfig(config['metrics'])
 
         self.args = self.arg_list(config['args'])
 
@@ -94,18 +114,19 @@ class BenchmarkJob(object):
         """
         # take care of preprocessing setup via hook
         logger.info('Running setup hooks for "{}"'.format(self.name))
-        self.hook.before_job(self.hook_opts)
+        self.hook.before_job(self.hook_opts, self)
 
         try:
             logger.info('Starting "{}"'.format(self.name))
-            cmd = [self.benchmark.path] + self.args
+            cmd = [self.binary] + self.args
             process = subprocess.Popen(cmd,
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE)
-            stdout, stderr = process.communicate()
+            stdout, stderr = process.communicate(timeout=self.timeout)
             stdout = stdout.decode('utf-8', 'ignore')
             stderr = stderr.decode('utf-8', 'ignore')
-            if process.returncode != 0:
+            returncode = process.returncode
+            if self.check_returncode and returncode != 0:
                 output = 'stdout:\n{}\nstderr:\n{}'.format(stdout, stderr)
                 cmd = ' '.join(cmd)
                 raise CalledProcessError(process.returncode, cmd, output)
@@ -120,16 +141,18 @@ class BenchmarkJob(object):
         finally:
             # cleanup via hook - do this immediately in case the parser crashes
             logger.info('Running cleanup hooks for "{}"'.format(self.name))
-            self.hook.after_job(self.hook_opts)
+            self.hook.after_job(self.hook_opts, self)
         stdout = stdout.split('\n')
         stderr = stderr.split('\n')
 
-        parser = self.benchmark.get_parser()
+        parser = self.parser
         logger.info('Parsing results for "{}"'.format(self.name))
         try:
-            metrics = Metrics(parser.parse(stdout, stderr))
-            metrics = self.strip_metrics(metrics)
-            self.validate_metrics(metrics)
+            metrics = Metrics(parser.parse(stdout, stderr, returncode))
+
+            if self.metrics_config.validate:
+                metrics = self.strip_metrics(metrics)
+                self.validate_metrics(metrics)
 
             return metrics
         except Exception:
@@ -170,3 +193,35 @@ class BenchmarkJob(object):
         for key in expected:
             assert key in metrics, 'Metric "{}" not exported'.format(key)
         return True
+
+    @property
+    def safe_name(self):
+        return self.name.replace(' ', '_')
+
+
+class JobSuite(Job):
+    """JobSuite is a collection of jobs that will be run as a group.
+    The results of all the jobs in the suite are compiled into a single dict.
+    """
+
+    def __init__(self, config, jobs):
+        self.config = config
+        self.name = config['name']
+        self.description = config['description']
+        # merge all the job's metrics_configs into one
+        metrics_names = {
+            job.safe_name: job.metrics_config.names for job in jobs
+        }
+        self.metrics_config = MetricsConfig(metrics_names)
+        self.jobs = jobs
+
+    def run(self):
+        """Run jobs in the suite and merges the results into a single dict."""
+        results = dict()
+        for job in self.jobs:
+            try:
+                results[job.safe_name] = job.run().metrics()
+            except Exception:
+                logger.error('Job "%s" failed', job.name)
+                raise
+        return Metrics(results)

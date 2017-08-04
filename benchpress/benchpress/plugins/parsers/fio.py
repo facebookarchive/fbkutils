@@ -13,7 +13,7 @@ from benchpress.lib.parser import Parser
 
 class FioParser(Parser):
 
-    def parse(self, stdout, stderr):
+    def parse(self, stdout, stderr, returncode):
         metrics = {}
 
         stdout = ''.join(stdout)

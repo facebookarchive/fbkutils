@@ -11,19 +11,33 @@ import subprocess
 import unittest
 from unittest.mock import MagicMock
 
-from benchpress.lib.job import BenchmarkJob
+from benchpress.lib.job import Job, JobSuite
 from benchpress.lib.metrics import Metrics
+from benchpress.lib.hook_factory import HookFactory
+from benchpress.lib.parser_factory import ParserFactory
+
+HookFactory.create = MagicMock()
+ParserFactory.create = MagicMock()
 
 
 class TestJob(unittest.TestCase):
 
+    def setUp(self):
+        self.job_config = {
+            'name': 'test',
+            'description': 'desc',
+            'args': [],
+        }
+        self.mock_benchmark = defaultdict(str)
+        self.mock_hook = MagicMock()
+        HookFactory.create.return_value = self.mock_hook
+        self.mock_parser = MagicMock()
+        ParserFactory.create.return_value = self.mock_parser
+
     def test_validate_metrics(self):
         """Metrics with keys that don't match definition raise an error"""
-        config = defaultdict(str)
-        config['args'] = {}
-
-        config['metrics'] = ['rps']
-        job = BenchmarkJob(config, MagicMock())
+        self.job_config['metrics'] = ['rps']
+        job = Job(self.job_config, self.mock_benchmark)
         with self.assertRaises(AssertionError):
             job.validate_metrics(Metrics({}))
         with self.assertRaises(AssertionError):
@@ -31,8 +45,8 @@ class TestJob(unittest.TestCase):
 
         self.assertTrue(job.validate_metrics(Metrics({'rps': 1})))
 
-        config['metrics'] = {'latency': ['p50', 'p95']}
-        job = BenchmarkJob(config, MagicMock())
+        self.job_config['metrics'] = {'latency': ['p50', 'p95']}
+        job = Job(self.job_config, self.mock_benchmark)
         self.assertTrue(job.validate_metrics(
             Metrics({'latency': {'p50': 1, 'p95': 2}})))
 
@@ -41,8 +55,8 @@ class TestJob(unittest.TestCase):
         config = defaultdict(str)
         config['args'] = {}
 
-        config['metrics'] = ['rps']
-        job = BenchmarkJob(config, MagicMock())
+        self.job_config['metrics'] = ['rps']
+        job = Job(self.job_config, self.mock_benchmark)
 
         # an empty set of metrics should stay empty
         stripped = job.strip_metrics(Metrics({}))
@@ -56,14 +70,39 @@ class TestJob(unittest.TestCase):
         stripped = job.strip_metrics(Metrics({'rps': 1, 'extra': 2}))
         self.assertEqual(len(stripped.metrics_list()), 1)
 
+    def test_no_validate_metrics(self):
+        """When validation is disabled, job leaves metrics as-is"""
+        config = defaultdict(str)
+        config['args'] = {}
+        self.mock_benchmark['path'] = 'true'
+
+        self.job_config['metrics'] = ['_no_validate', 'something']
+
+        job = Job(self.job_config, self.mock_benchmark)
+
+        # an empty set of metrics should stay empty
+        self.mock_parser.parse.return_value = {}
+        metrics = job.run()
+        self.assertEqual(len(metrics.metrics_list()), 0)
+
+        # metric defined in config should remain
+        self.mock_parser.parse.return_value = {'something': 1}
+        metrics = job.run()
+        self.assertEqual(len(metrics.metrics_list()), 1)
+
+        # more metrics besides defined should keep all
+        self.mock_parser.parse.return_value = {'something': 1, 'extra': 2}
+        metrics = job.run()
+        self.assertEqual(len(metrics.metrics_list()), 2)
+
     def test_arg_list(self):
         """Argument list is formatted correctly with lists or dicts"""
         self.assertListEqual(
             ['--output-format=json', 'a'],
-            BenchmarkJob.arg_list(['--output-format=json', 'a']))
+            Job.arg_list(['--output-format=json', 'a']))
 
         expected = ['--output-format', 'json', '--file']
-        actual = BenchmarkJob.arg_list({'output-format': 'json', 'file': None})
+        actual = Job.arg_list({'output-format': 'json', 'file': None})
         # items are the same regardless of order
         self.assertCountEqual(expected, actual)
         # '--output-format' comes immediately before 'json'
@@ -75,66 +114,100 @@ class TestJob(unittest.TestCase):
 
         Run a job to echo some json and make sure it can be parse and is
         exported correctly."""
-        config = defaultdict(str)
         mock_data = '{"key": "hello"}'
-        config['args'] = [mock_data]
-        config['metrics'] = ['key']
+        self.job_config['args'] = [mock_data]
+        self.job_config['metrics'] = ['key']
 
-        mock_benchmark = MagicMock()
-        mock_benchmark.path = 'echo'
-        mock_parser = MagicMock()
-        mock_benchmark.get_parser.return_value = mock_parser
-        mock_parser.parse.return_value = {'key': 'hello'}
+        self.mock_benchmark['path'] = 'echo'
+        self.mock_parser.parse.return_value = {'key': 'hello'}
 
-        job = BenchmarkJob(config, mock_benchmark)
+        job = Job(self.job_config, self.mock_benchmark)
 
         metrics = job.run()
-        mock_parser.parse.assert_called_with([mock_data, ''], [''])
+        self.mock_parser.parse.assert_called_with([mock_data, ''], [''], 0)
         self.assertDictEqual({'key': 'hello'}, metrics.metrics())
 
     def test_run_fail(self):
         """Exit 1 raises an exception"""
-        config = defaultdict(str)
-        config['args'] = ['-c', 'echo "error" >&2; exit 1']
+        self.job_config['args'] = ['-c', 'echo "error" >&2; exit 1']
 
-        mock_benchmark = MagicMock()
-        mock_benchmark.path = 'sh'
+        self.mock_benchmark['path'] = 'sh'
 
-        job = BenchmarkJob(config, mock_benchmark)
+        job = Job(self.job_config, self.mock_benchmark)
 
         with self.assertRaises(subprocess.CalledProcessError) as e:
             job.run()
         e = e.exception
         self.assertEqual('stdout:\n\nstderr:\nerror', e.output.rstrip())
 
-    def test_run_run_no_binary(self):
+    def test_run_fail_no_check_returncode(self):
+        """Bad return code doesn't fail when check_returncode is False"""
+        self.job_config['args'] = ['-c', 'echo "error" >&2; exit 1']
+
+        self.mock_benchmark['path'] = 'sh'
+        self.mock_benchmark['check_returncode'] = False
+
+        job = Job(self.job_config, self.mock_benchmark)
+
+        # job.run won't raise an exception
+        job.run()
+
+    def test_run_no_binary(self):
         """Nonexistent binary raises an error"""
-        config = defaultdict(str)
-        config['args'] = []
+        self.mock_benchmark['path'] = 'somethingthatdoesntexist'
+        self.mock_benchmark['metrics'] = []
 
-        mock_benchmark = MagicMock()
-        mock_benchmark.path = 'somethingthatdoesntexist'
-
-        job = BenchmarkJob(config, mock_benchmark)
+        job = Job(self.job_config, self.mock_benchmark)
 
         with self.assertRaises(OSError):
             job.run()
 
     def test_run_parser_error(self):
         """A crashed parser raises an error"""
-        config = defaultdict(str)
-        config['args'] = []
+        self.mock_benchmark['path'] = 'true'
+        self.mock_benchmark['metrics'] = []
+        self.mock_parser.parse.side_effect = ValueError('')
 
-        mock_benchmark = MagicMock()
-        mock_benchmark.path = 'echo'
-        mock_parser = MagicMock()
-        mock_benchmark.get_parser.return_value = mock_parser
-        mock_parser.parse.side_effect = ValueError('')
-
-        job = BenchmarkJob(config, mock_benchmark)
+        job = Job(self.job_config, self.mock_benchmark)
 
         with self.assertRaises(ValueError):
             job.run()
+
+    def test_run_timeout(self):
+        """Binary running past timeout raises an error"""
+        self.job_config['timeout'] = 0.1
+        self.mock_benchmark['path'] = 'sleep'
+        self.job_config['args'] = ['1']
+
+        job = Job(self.job_config, self.mock_benchmark)
+
+        with self.assertRaises(subprocess.TimeoutExpired):
+            job.run()
+
+    def test_job_suite(self):
+        """JobSuite runs all jobs in the suite"""
+        jobs = [MagicMock() for i in range(10)]
+        for i, job in enumerate(jobs):
+            job.name = str(i)
+            job.safe_name = str(i)
+            job.metrics_config.names = ['a']
+            job.run.return_value = Metrics({'a': i})
+        suite = JobSuite({'name': 'suite', 'description': 'test'}, jobs)
+        suite.run()
+        metrics = suite.run()
+        expected = {str(i)+'.a': i for i in range(10)}
+        self.assertDictEqual(expected, metrics.metrics())
+
+    def test_job_suite_job_fail(self):
+        """JobSuite with a failed job raises an error"""
+        self.mock_benchmark['path'] = 'abinaryhasnopath'
+
+        fail_job = Job(self.job_config, self.mock_benchmark)
+
+        suite = JobSuite({'name': 'suite', 'description': 'test'}, [fail_job])
+        with self.assertRaises(OSError):
+            suite.run()
+
 
 if __name__ == '__main__':
     unittest.main()

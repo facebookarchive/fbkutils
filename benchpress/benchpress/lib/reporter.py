@@ -20,7 +20,7 @@ class Reporter(object, metaclass=ABCMeta):
         """Save job metrics somewhere in existing monitoring infrastructure.
 
         Args:
-            job (BenchmarkJob): job that was run
+            job (Job): job that was run
             metrics (Metrics): metrics that were exported by job
         """
         pass

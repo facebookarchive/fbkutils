@@ -1,3 +1,8 @@
+- name: fio tests
+  description: fio tests
+  tests:
+  - fio null
+  - fio aio
 - benchmark: schbench
   name: schbench default 
   description: defaults for schbench
