@@ -6,12 +6,10 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
-from .noop import NoopHook
 from .file import FileHook
 from .shell import ShellHook
 
 
 def register_hooks(factory):
-    factory.register('noop', NoopHook)
     factory.register('file', FileHook)
     factory.register('shell', ShellHook)

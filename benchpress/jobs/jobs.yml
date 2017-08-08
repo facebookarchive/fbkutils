@@ -30,11 +30,11 @@
   args:
     - --output-format=json
     - jobs/aio-read.fio
-  hook:
-    hook: file
-    options:
-      - type: dir
-        path: ./data1
+  hooks:
+    - hook: file
+      options:
+        - type: dir
+          path: ./data1
   metrics:
     - file1: &aiofilemetrics
       - read: &aiorwmetrics
