@@ -9,7 +9,7 @@
 from collections import defaultdict
 import subprocess
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 from benchpress.lib.job import Job, JobSuite
 from benchpress.lib.metrics import Metrics
@@ -183,6 +183,36 @@ class TestJob(unittest.TestCase):
 
         with self.assertRaises(subprocess.TimeoutExpired):
             job.run()
+
+    def test_hooks(self):
+        """Job runs hooks before/after in stack order"""
+        self.mock_benchmark['path'] = 'true'
+        self.job_config['hooks'] = [
+            {'hook': 'first', 'options': {'a': 1}},
+            {'hook': 'second', 'options': {'b': 1}},
+        ]
+        mock = MagicMock()
+        first = mock.first
+        second = mock.second
+
+        def get_mock_hook(name):
+            if name == 'first':
+                return first
+            else:
+                return second
+
+        HookFactory.create.side_effect = get_mock_hook
+
+        job = Job(self.job_config, self.mock_benchmark)
+        job.run()
+
+        self.assertListEqual([
+            call.first.before_job({'a': 1}, job),
+            call.second.before_job({'b': 1}, job),
+            # post hooks run in reverse order
+            call.second.after_job({'b': 1}, job),
+            call.first.after_job({'a': 1}, job),
+        ], mock.method_calls)
 
     def test_job_suite(self):
         """JobSuite runs all jobs in the suite"""

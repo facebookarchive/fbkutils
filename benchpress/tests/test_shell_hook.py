@@ -43,13 +43,19 @@ class TestShellHook(unittest.TestCase):
     def test_pre_subprocess(self, check_call):
         """pre hook executes commands"""
         self.hook.before_job({'before': ['echo "hello world" extra']})
-        check_call.assert_called_once_with(['echo', 'hello world', 'extra'])
+        check_call.assert_called_once_with('echo "hello world" extra',
+                                           shell=True,
+                                           stdout=subprocess.DEVNULL,
+                                           stderr=subprocess.DEVNULL)
 
     @patch('subprocess.check_call')
     def test_post_subprocess(self, check_call):
         """post hook executes commands"""
         self.hook.after_job({'after': ['echo "hello world" extra']})
-        check_call.assert_called_once_with(['echo', 'hello world', 'extra'])
+        check_call.assert_called_once_with('echo "hello world" extra',
+                                           shell=True,
+                                           stdout=subprocess.DEVNULL,
+                                           stderr=subprocess.DEVNULL)
 
     @patch('subprocess.check_call')
     def test_subprocess_fail(self, check_call):

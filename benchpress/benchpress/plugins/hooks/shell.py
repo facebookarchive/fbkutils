@@ -33,14 +33,19 @@ class ShellHook(Hook):
     @staticmethod
     def run_commands(cmds):
         for cmd in cmds:
-            cmd = shlex.split(cmd)
-            if cmd[0] == 'cd':
-                assert len(cmd) == 2
-                dst = cmd[1]
+            # running with shell=True means we should give command as a string
+            # and not pre-process it
+            split = shlex.split(cmd)
+            if split[0] == 'cd':
+                assert len(split) == 2
+                dst = split[1]
                 logger.info('Switching to dir "%s"', dst)
                 os.chdir(dst)
             else:
-                subprocess.check_call(cmd)
+                logger.info('Running "%s"', cmd)
+                subprocess.check_call(cmd, shell=True,
+                                      stdout=subprocess.DEVNULL,
+                                      stderr=subprocess.DEVNULL)
 
     def before_job(self, opts, job=None):
         self.original_dir = os.getcwd()

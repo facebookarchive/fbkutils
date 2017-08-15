@@ -89,9 +89,11 @@ class Job(object):
         self.check_returncode = config.get('check_returncode', True)
         self.timeout = config.get('timeout', None)
 
-        hook_conf = config.get('hook', {'hook': 'noop'})
-        self.hook_opts = hook_conf.get('options', {})
-        self.hook = HookFactory.create(hook_conf['hook'])
+        self.hooks = config.get('hooks', [])
+        self.hooks = [
+            (HookFactory.create(h['hook']), h.get('options', None))
+            for h in self.hooks]
+        # self.hooks is list of (hook, options)
         self.metrics_config = MetricsConfig(config['metrics'])
 
         self.tolerances = config.get('tolerances', {})
@@ -118,7 +120,9 @@ class Job(object):
         """
         # take care of preprocessing setup via hook
         logger.info('Running setup hooks for "{}"'.format(self.name))
-        self.hook.before_job(self.hook_opts, self)
+        for hook, opts in self.hooks:
+            logger.info('Running %s %s', hook, opts)
+            hook.before_job(opts, self)
 
         try:
             logger.info('Starting "{}"'.format(self.name))
@@ -145,7 +149,9 @@ class Job(object):
         finally:
             # cleanup via hook - do this immediately in case the parser crashes
             logger.info('Running cleanup hooks for "{}"'.format(self.name))
-            self.hook.after_job(self.hook_opts, self)
+            # run hooks in reverse this time so it operates like a stack
+            for hook, opts in reversed(self.hooks):
+                hook.after_job(opts, self)
         stdout = stdout.split('\n')
         stderr = stderr.split('\n')
 
