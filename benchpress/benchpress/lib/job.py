@@ -6,7 +6,6 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
-from collections import defaultdict
 import errno
 import logging
 import subprocess
@@ -60,6 +59,8 @@ class Job(object):
     Attributes:
         name (str): short name to identify job
         description (str): longer description to state intent of job
+        tolerances (dict str: number): percentage tolerance around the mean of
+                                       historical results
         config (dict): raw configuration dictionary
     """
 
@@ -92,6 +93,9 @@ class Job(object):
         self.hook_opts = hook_conf.get('options', {})
         self.hook = HookFactory.create(hook_conf['hook'])
         self.metrics_config = MetricsConfig(config['metrics'])
+
+        self.tolerances = config.get('tolerances', {})
+        self.tolerances = Metrics.flatten(self.tolerances)
 
         self.args = self.arg_list(config['args'])
 
