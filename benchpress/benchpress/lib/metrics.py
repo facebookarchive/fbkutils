@@ -20,12 +20,13 @@ class Metrics(object):
         self.metrics_dict = self.flatten(metrics_dict)
         self.names = sorted(list(self.metrics_dict.keys()))
 
-    def flatten(self, metrics, prefix=''):
+    @staticmethod
+    def flatten(metrics, prefix=''):
         """Flattens given dict using dot separated keys."""
         flattened = {}
         if isinstance(metrics, dict):
             for key, metric in metrics.items():
-                flattened.update(self.flatten(metric, prefix + key + '.'))
+                flattened.update(Metrics.flatten(metric, prefix + key + '.'))
         else:
             flattened = {str(prefix[:-1]): metrics}
 

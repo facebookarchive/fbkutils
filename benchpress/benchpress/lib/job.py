@@ -59,6 +59,8 @@ class Job(object):
     Attributes:
         name (str): short name to identify job
         description (str): longer description to state intent of job
+        tolerances (dict str: number): percentage tolerance around the mean of
+                                       historical results
         config (dict): raw configuration dictionary
     """
 
@@ -93,6 +95,9 @@ class Job(object):
             for h in self.hooks]
         # self.hooks is list of (hook, options)
         self.metrics_config = MetricsConfig(config['metrics'])
+
+        self.tolerances = config.get('tolerances', {})
+        self.tolerances = Metrics.flatten(self.tolerances)
 
         self.args = self.arg_list(config['args'])
 
