@@ -1,8 +1,3 @@
-- name: fio tests
-  description: fio tests
-  tests:
-  - fio null
-  - fio aio
 - benchmark: schbench
   name: schbench default 
   description: defaults for schbench
@@ -14,6 +9,25 @@
     cputime: 10000
     pipe: 0
     rps: 0
+- benchmark: schbench
+  name: schbench-load-test
+  description: p95 latency when cpu under high load
+  args:
+    message-threads: 2
+    threads: 16
+    runtime: 30
+    sleeptime: 30000
+    cputime: 30000
+    pipe: 0
+    rps: 0
+  hook:
+    hook: cpu-limit
+    options: 0xfffffffff
+- name: fio tests
+  description: fio tests
+  tests:
+  - fio null
+  - fio aio
 - benchmark: fio
   name: fio null
   description: read /dev/null
