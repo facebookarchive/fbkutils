@@ -7,6 +7,7 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 import os
+from pyfakefs import fake_filesystem_unittest
 import subprocess
 import unittest
 from unittest.mock import patch
@@ -14,11 +15,14 @@ from unittest.mock import patch
 from benchpress.plugins.hooks.shell import ShellHook
 
 
-class TestShellHook(unittest.TestCase):
+class TestShellHook(fake_filesystem_unittest.TestCase):
 
     def setUp(self):
+        self.setUpPyfakefs()
         self.original_dir = os.getcwd()
         self.hook = ShellHook()
+
+        self.fs.CreateDirectory('/tmp')
 
     def tearDown(self):
         os.chdir(self.original_dir)
