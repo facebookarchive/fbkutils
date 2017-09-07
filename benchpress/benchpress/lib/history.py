@@ -10,8 +10,6 @@ import json
 import logging
 import os
 
-from .metrics import Metrics
-
 logger = logging.getLogger(__name__)
 
 
@@ -21,7 +19,7 @@ class HistoryEntry(object):
     Attributes:
         job_name (str): name of the job
         timestamp (str): time of the run (format: YYYY-MM-DDTHH:MM:SS)
-        metrics (Metrics): run's exported metrics
+        metrics (dict): run's exported metrics
         config (dict): dict of job config at run time
     """
     def __init__(self, record):
@@ -33,7 +31,7 @@ class HistoryEntry(object):
         self.job_name = record['job']
         self.timestamp = record['timestamp']
         self.config = record['config']
-        self.metrics = Metrics(record['metrics'])
+        self.metrics = record['metrics']
 
 
 class History(object):
@@ -102,7 +100,7 @@ class History(object):
 
         Args:
             job (Job): job that was run
-            metrics (Metrics): results
+            metrics (dict): results
             time (datetime.datetime): start time of the benchmark
         """
         job_name = job.safe_name
@@ -111,7 +109,7 @@ class History(object):
         data = {
             'job': job.name,
             'timestamp': time,
-            'metrics': metrics.metrics(),
+            'metrics': metrics,
             'config': job.config,
         }
 

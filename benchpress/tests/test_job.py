@@ -12,7 +12,6 @@ import unittest
 from unittest.mock import MagicMock, call
 
 from benchpress.lib.job import Job, JobSuite
-from benchpress.lib.metrics import Metrics
 from benchpress.lib.hook_factory import HookFactory
 from benchpress.lib.parser_factory import ParserFactory
 
@@ -33,67 +32,6 @@ class TestJob(unittest.TestCase):
         HookFactory.create.return_value = self.mock_hook
         self.mock_parser = MagicMock()
         ParserFactory.create.return_value = self.mock_parser
-
-    def test_validate_metrics(self):
-        """Metrics with keys that don't match definition raise an error"""
-        self.job_config['metrics'] = ['rps']
-        job = Job(self.job_config, self.mock_benchmark)
-        with self.assertRaises(AssertionError):
-            job.validate_metrics(Metrics({}))
-        with self.assertRaises(AssertionError):
-            job.validate_metrics(Metrics({'latency': {'p50': 1}}))
-
-        self.assertTrue(job.validate_metrics(Metrics({'rps': 1})))
-
-        self.job_config['metrics'] = {'latency': ['p50', 'p95']}
-        job = Job(self.job_config, self.mock_benchmark)
-        self.assertTrue(job.validate_metrics(
-            Metrics({'latency': {'p50': 1, 'p95': 2}})))
-
-    def test_strip_metrics(self):
-        """Metrics with keys that aren't in definition are removed"""
-        config = defaultdict(str)
-        config['args'] = {}
-
-        self.job_config['metrics'] = ['rps']
-        job = Job(self.job_config, self.mock_benchmark)
-
-        # an empty set of metrics should stay empty
-        stripped = job.strip_metrics(Metrics({}))
-        self.assertEqual(len(stripped.metrics_list()), 0)
-
-        # only passing the desired metric should stay the same
-        stripped = job.strip_metrics(Metrics({'rps': 1}))
-        self.assertEqual(len(stripped.metrics_list()), 1)
-
-        # passing in more metrics should give just the requested ones
-        stripped = job.strip_metrics(Metrics({'rps': 1, 'extra': 2}))
-        self.assertEqual(len(stripped.metrics_list()), 1)
-
-    def test_no_validate_metrics(self):
-        """When validation is disabled, job leaves metrics as-is"""
-        config = defaultdict(str)
-        config['args'] = {}
-        self.mock_benchmark['path'] = 'true'
-
-        self.job_config['metrics'] = ['_no_validate', 'something']
-
-        job = Job(self.job_config, self.mock_benchmark)
-
-        # an empty set of metrics should stay empty
-        self.mock_parser.parse.return_value = {}
-        metrics = job.run()
-        self.assertEqual(len(metrics.metrics_list()), 0)
-
-        # metric defined in config should remain
-        self.mock_parser.parse.return_value = {'something': 1}
-        metrics = job.run()
-        self.assertEqual(len(metrics.metrics_list()), 1)
-
-        # more metrics besides defined should keep all
-        self.mock_parser.parse.return_value = {'something': 1, 'extra': 2}
-        metrics = job.run()
-        self.assertEqual(len(metrics.metrics_list()), 2)
 
     def test_arg_list(self):
         """Argument list is formatted correctly with lists or dicts"""
@@ -125,7 +63,7 @@ class TestJob(unittest.TestCase):
 
         metrics = job.run()
         self.mock_parser.parse.assert_called_with([mock_data, ''], [''], 0)
-        self.assertDictEqual({'key': 'hello'}, metrics.metrics())
+        self.assertDictEqual({'key': 'hello'}, metrics)
 
     def test_run_fail(self):
         """Exit 1 raises an exception"""
@@ -221,12 +159,12 @@ class TestJob(unittest.TestCase):
             job.name = str(i)
             job.safe_name = str(i)
             job.metrics_config.names = ['a']
-            job.run.return_value = Metrics({'a': i})
+            job.run.return_value = {'a': i}
         suite = JobSuite({'name': 'suite', 'description': 'test'}, jobs)
         suite.run()
         metrics = suite.run()
-        expected = {str(i)+'.a': i for i in range(10)}
-        self.assertDictEqual(expected, metrics.metrics())
+        expected = {str(i): {'a': i} for i in range(10)}
+        self.assertDictEqual(expected, metrics)
 
     def test_job_suite_job_fail(self):
         """JobSuite with a failed job raises an error"""
