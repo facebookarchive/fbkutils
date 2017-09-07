@@ -11,43 +11,10 @@ import logging
 import subprocess
 from subprocess import CalledProcessError
 
-from .metrics import Metrics
-
 from .hook_factory import HookFactory
 from .parser_factory import ParserFactory
 
 logger = logging.getLogger(__name__)
-
-
-class MetricsConfig(object):
-    """Holds the metrics configuration for a job.
-    In the future, metrics will likely have additional configuration options
-    rather than just a list of names.
-
-    Attributes:
-        names (list of str): sorted metric names
-        validate (bool): validate metrics (strip unused, error on missing)
-                         default True
-    """
-
-    def __init__(self, config):
-        self.names = self.flatten_names(config)
-        self.validate = '_no_validate' not in self.names
-
-    def flatten_names(self, names, prefix=''):
-        flat = []
-        if isinstance(names, list):
-            for name in names:
-                flat += self.flatten_names(name, prefix)
-        elif isinstance(names, dict):
-            for name, nest in names.items():
-                flat += self.flatten_names(nest, prefix + name + '.')
-        else:
-            # '.' is used as a separator, so replace it with a '_'
-            name = prefix + str(names).replace('.', '_')
-            return [name]
-
-        return sorted(flat)
 
 
 class Job(object):
@@ -59,8 +26,8 @@ class Job(object):
     Attributes:
         name (str): short name to identify job
         description (str): longer description to state intent of job
-        tolerances (dict str: number): percentage tolerance around the mean of
-                                       historical results
+        tolerances (dict): percentage tolerance around the mean of historical
+                           results
         config (dict): raw configuration dictionary
     """
 
@@ -94,10 +61,8 @@ class Job(object):
             (HookFactory.create(h['hook']), h.get('options', None))
             for h in self.hooks]
         # self.hooks is list of (hook, options)
-        self.metrics_config = MetricsConfig(config['metrics'])
 
         self.tolerances = config.get('tolerances', {})
-        self.tolerances = Metrics.flatten(self.tolerances)
 
         self.args = self.arg_list(config['args'])
 
@@ -116,7 +81,7 @@ class Job(object):
         return l
 
     def run(self):
-        """Run the benchmark and return the Metrics that are reported.
+        """Run the benchmark and return the metrics that are reported.
         """
         # take care of preprocessing setup via hook
         logger.info('Running setup hooks for "{}"'.format(self.name))
@@ -158,13 +123,7 @@ class Job(object):
         parser = self.parser
         logger.info('Parsing results for "{}"'.format(self.name))
         try:
-            metrics = Metrics(parser.parse(stdout, stderr, returncode))
-
-            if self.metrics_config.validate:
-                metrics = self.strip_metrics(metrics)
-                self.validate_metrics(metrics)
-
-            return metrics
+            return parser.parse(stdout, stderr, returncode)
         except Exception:
             logger.error('stdout:')
             logger.error('\n\t'.join(stdout))
@@ -173,36 +132,6 @@ class Job(object):
             logger.error('Failed to parse results, this might mean the'
                          ' benchmark failed')
             raise
-
-    def strip_metrics(self, metrics):
-        """Remove metrics that were not required by the test.
-        If the parser exports more data than was requested, just drop the extra
-        data.
-
-        Args:
-            metrics (Metrics): results of benchmark run
-
-        Returns:
-            (Metrics): only the requested metrics that were exported
-        """
-        expected = self.metrics_config.names
-        new_metrics = {name: v for name, v in metrics.metrics().items()
-                       if name in expected}
-        return Metrics(new_metrics)
-
-    def validate_metrics(self, metrics):
-        """Exported metrics sanity check.
-        Ensure that the defined list of metrics is exactly the same as the
-        actually exported names.
-
-        Args:
-            metrics (Metrics): results of benchmark run
-        """
-        expected = self.metrics_config.names
-        metrics = metrics.names
-        for key in expected:
-            assert key in metrics, 'Metric "{}" not exported'.format(key)
-        return True
 
     @property
     def safe_name(self):
@@ -218,20 +147,15 @@ class JobSuite(Job):
         self.config = config
         self.name = config['name']
         self.description = config['description']
-        # merge all the job's metrics_configs into one
-        metrics_names = {
-            job.safe_name: job.metrics_config.names for job in jobs
-        }
-        self.metrics_config = MetricsConfig(metrics_names)
         self.jobs = jobs
 
     def run(self):
         """Run jobs in the suite and merges the results into a single dict."""
-        results = dict()
+        results = {}
         for job in self.jobs:
             try:
-                results[job.safe_name] = job.run().metrics()
+                results[job.safe_name] = job.run()
             except Exception:
                 logger.error('Job "%s" failed', job.name)
                 raise
-        return Metrics(results)
+        return results

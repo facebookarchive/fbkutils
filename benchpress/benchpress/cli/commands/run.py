@@ -10,7 +10,6 @@ import logging
 from datetime import datetime, timezone
 
 from .command import BenchpressCommand
-from benchpress.lib.analysis import analyze
 from benchpress.lib.history import History
 from benchpress.lib.reporter_factory import ReporterFactory
 
@@ -52,9 +51,7 @@ class RunCommand(BenchpressCommand):
 
             metrics = job.run()
 
-            anomalies = analyze(metrics, job, history)
-
-            reporter.report(job, metrics, anomalies)
+            reporter.report(job, metrics)
 
             history.save_job_result(job, metrics, now)
 

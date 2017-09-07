@@ -14,7 +14,6 @@ from unittest.mock import MagicMock
 
 from benchpress.lib.history import History
 from benchpress.lib.job import Job
-from benchpress.lib.metrics import Metrics
 
 
 from benchpress.lib.hook_factory import HookFactory
@@ -97,7 +96,7 @@ class TestHistory(fake_filesystem_unittest.TestCase):
         # make sure file doesn't already exist
         self.assertFalse(self.fs.Exists(expected_path))
 
-        history.save_job_result(job, Metrics({'mysupercoolmetric': 1}), now)
+        history.save_job_result(job, {'mysupercoolmetric': 1}, now)
 
         # make sure it exists now
         self.assertTrue(self.fs.Exists(expected_path))
