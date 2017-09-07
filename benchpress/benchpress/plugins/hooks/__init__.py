@@ -7,13 +7,11 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 from .cpu_limit import CpuLimit
-from .noop import NoopHook
 from .file import FileHook
 from .shell import ShellHook
 
 
 def register_hooks(factory):
     factory.register('cpu-limit', CpuLimit)
-    factory.register('noop', NoopHook)
     factory.register('file', FileHook)
     factory.register('shell', ShellHook)

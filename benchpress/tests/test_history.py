@@ -36,10 +36,7 @@ class TestHistory(fake_filesystem_unittest.TestCase):
             'args': ['somearg'],
             'benchmark': 'bench',
             'description': 'cool description',
-            'hook': {
-                'hook': 'noop',
-                'options': []
-            },
+            'hooks': [],
             'metrics': ['mysupercoolmetric'],
             'name': 'job name',
         }, {
@@ -54,10 +51,7 @@ class TestHistory(fake_filesystem_unittest.TestCase):
                                "args": ["somearg"],
                                "benchmark": "bench",
                                "description": "cool description",
-                               "hook": {
-                                 "hook": "noop",
-                                 "options": []
-                               },
+                               "hooks": [],
                                "metrics": ["mysupercoolmetric"],
                                "name": "job name",
                                "path": "true",
@@ -86,10 +80,7 @@ class TestHistory(fake_filesystem_unittest.TestCase):
             'args': ['somearg'],
             'benchmark': 'bench',
             'description': 'cool description',
-            'hook': {
-                'hook': 'noop',
-                'options': []
-            },
+            'hooks': [],
             'metrics': ['mysupercoolmetric'],
             'name': 'job name',
         }, {
@@ -133,10 +124,7 @@ class TestHistory(fake_filesystem_unittest.TestCase):
                                "args": ["somearg"],
                                "benchmark": "bench",
                                "description": "cool description",
-                               "hook": {
-                                 "hook": "noop",
-                                 "options": []
-                               },
+                               "hooks": [],
                                "metrics": ["mysupercoolmetric"],
                                "name": "job name",
                                "path": "true",
