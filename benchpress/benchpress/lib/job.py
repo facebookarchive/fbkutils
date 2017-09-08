@@ -103,6 +103,17 @@ class Job(object):
                 output = 'stdout:\n{}\nstderr:\n{}'.format(stdout, stderr)
                 cmd = ' '.join(cmd)
                 raise CalledProcessError(process.returncode, cmd, output)
+
+            logger.info('Parsing results for "{}"'.format(self.name))
+            try:
+                return self.parser.parse(stdout.splitlines(),
+                                         stderr.splitlines(), returncode)
+            except Exception:
+                logger.error('Failed to parse results, this might mean the'
+                             ' benchmark failed')
+                logger.error('stdout:\n{}'.format(stdout))
+                logger.error('stderr:\n{}'.format(stderr))
+                raise
         except OSError as e:
             logger.error('"{}" failed ({})'.format(self.name, e))
             if e.errno == errno.ENOENT:
@@ -112,26 +123,10 @@ class Job(object):
             logger.error(e.output)
             raise  # make sure it passes the exception up the chain
         finally:
-            # cleanup via hook - do this immediately in case the parser crashes
             logger.info('Running cleanup hooks for "{}"'.format(self.name))
             # run hooks in reverse this time so it operates like a stack
             for hook, opts in reversed(self.hooks):
                 hook.after_job(opts, self)
-        stdout = stdout.split('\n')
-        stderr = stderr.split('\n')
-
-        parser = self.parser
-        logger.info('Parsing results for "{}"'.format(self.name))
-        try:
-            return parser.parse(stdout, stderr, returncode)
-        except Exception:
-            logger.error('stdout:')
-            logger.error('\n\t'.join(stdout))
-            logger.error('stderr:')
-            logger.error('\n\t'.join(stderr))
-            logger.error('Failed to parse results, this might mean the'
-                         ' benchmark failed')
-            raise
 
     @property
     def safe_name(self):
