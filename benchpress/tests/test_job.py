@@ -62,7 +62,7 @@ class TestJob(unittest.TestCase):
         job = Job(self.job_config, self.mock_benchmark)
 
         metrics = job.run()
-        self.mock_parser.parse.assert_called_with([mock_data, ''], [''], 0)
+        self.mock_parser.parse.assert_called_with([mock_data], [], 0)
         self.assertDictEqual({'key': 'hello'}, metrics)
 
     def test_run_fail(self):
