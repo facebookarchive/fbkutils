@@ -10,6 +10,7 @@ from .fio import FioParser
 from .ltp import LtpParser
 from .returncode import ReturncodeParser
 from .schbench import SchbenchParser
+from .silo import SiloParser
 
 
 def register_parsers(factory):
@@ -17,3 +18,4 @@ def register_parsers(factory):
     factory.register('ltp', LtpParser)
     factory.register('returncode', ReturncodeParser)
     factory.register('schbench', SchbenchParser)
+    factory.register('silo', SiloParser)
