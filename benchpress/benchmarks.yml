@@ -15,3 +15,14 @@ fio:
   parser: fio
   path: ./benchmarks/fio
   metrics: []
+
+silo:
+  parser: silo
+  path: ./benchmarks/dbtest
+  metrics:
+    - throughput:
+        - agg_throughput
+        - avg_per_core_throughput
+    - latency:
+        - avg_latency
+

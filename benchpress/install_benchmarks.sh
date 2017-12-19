@@ -7,5 +7,6 @@ mkdir -p benchmarks
 
 ./install_schbench.sh
 ./install_fio.sh
+./install_silo.sh
 
 echo "Benchmarks installed into ./benchmarks/"

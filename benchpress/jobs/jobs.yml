@@ -62,3 +62,13 @@
     - file2: *aiofilemetrics
     - file3: *aiofilemetrics
     - file4: *aiofilemetrics
+- benchmark: silo
+  name: silo default
+  description: defaults for silo
+  args:
+    verbose: true
+    bench: tpcc
+    num-threads: 1
+    scale-factor: 1
+    runtime: 1
+
