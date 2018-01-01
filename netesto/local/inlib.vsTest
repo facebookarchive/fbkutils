@@ -1,11 +1,5 @@
-# Versus Tests 2 -> 1 & 3 -> 1
-
-# Copyright (C) 2016, Facebook, Inc.
-# All rights reserved.
 #
-# This source code is licensed under the BSD-style license found in the LICENSE
-# file in the root directory of this source tree.
-
+# Versus Tests 2 -> 1 & 3 -> 1
 #   Examine the interaction of 2 TCP variants
 #   a) ca1, ca2: ca1 for client 1, ca2 for clients 2 & 3
 #   b) use netem to specify client 1's RTT

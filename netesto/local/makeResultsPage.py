@@ -1,13 +1,5 @@
 #!/usr/local/bin/python
 
-# makeResultsPage.py
-#
-# Copyright (C) 2016, Facebook, Inc.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the LICENSE
-# file in the root directory of this source tree.
-
 import sys
 import os
 
@@ -126,7 +118,7 @@ files = os.listdir(exp)
 fieldDictList = []
 
 for f in files:
-    if f.find('.exp.out') >= 0:
+    if f.find('.exp.out') >= 0 and f.find('all') < 0:
         fieldDict = processFile(exp + '/' + f)
         if len(fieldDict) > 0:
             fieldDict = processFields(fieldDict)
@@ -173,11 +165,13 @@ for field in fieldList:
 
 fout.write('  </table>\n')
 fout.write('  <img src="rates.jpg">\n')
-fout.write('  <img src="send.jpg">\n')
+fout.write('  <img src="acked_rate.jpg">\n')
+#fout.write('  <img src="send.jpg">\n')
 fout.write('  <img src="cwnd.jpg">\n')
+fout.write('  <img src="unacked.jpg">\n')
 fout.write('  <img src="rtt.jpg">\n')
-if nvFlag:
-    fout.write('  <img src="vegas_minrtt.jpg">\n')
+fout.write('  <img src="minrtt.jpg">\n')
+fout.write('  <img src="retrans.jpg">\n')
 fout.write('</BODY>\n</HTML>\n')
 fout.close()
 

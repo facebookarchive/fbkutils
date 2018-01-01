@@ -1,13 +1,5 @@
 #!/usr/local/bin/python
 
-# plotMonitor.py - Tool to graph values from ss or inet_monitor
-#
-# Copyright (C) 2016, Facebook, Inc.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the LICENSE
-# file in the root directory of this source tree.
-
 import sys
 import os
 import psPlot
@@ -17,57 +9,79 @@ def processFileRetrans(inFilename, field):
     X = []
     delay = 0.0
     firstTime = True
+    time = -0.200
     lastY = -340987
     for line in inFile:
         line = line.strip()
+        if line.find("Recv-Q") >= 0:
+            time += 0.200
         kvals = line.split(' ')
         for kv in kvals:
             if kv.find(':') < 0:
                 continue
-            key, val = kv.split(':')
+            key, val = kv.split(':', 1)
+            if val.find('/') > 0:
+                val = val[val.find('/') + 1:]
             if firstTime:
-                firstTime = False
                 if key == 'delay':
                     delay = float(val)
-            if key == 'time':
-                x = float(val) + delay
-            elif key == field:
+                    firstTime = False
+                    break
+            if key == field:
                 y = float(val)
                 if y > lastY:
-                    X.append(x)
-#					Y.append(y)
+                    X.append(time+delay)
                 lastY = y
     inFile.close()
     return X
 
 def processFile(inFilename, field):
+    caNames = ['cubic', 'reno', 'nv', 'dctcp', 'bbr', 'bic', 'cdg',
+               'highspeed', 'htcp', 'hybla', 'illinois', 'lp', 'westwood',
+			   'yeah']
+
     inFile = open(inFilename, 'r')
     X = []
     Y = []
     ca = "?"
     delay = 0.0
+    time = -0.200
     firstTime = True
-    if inFilename.find('ss') >= 0:
-        ssFlag = True
-        time = 0.0
-        firstTime = False
-    else:
-        ssFlag = False
+    old_acked = 0
+    new_acked = 0
 
     for line in inFile:
         line = line.strip()
 #		print 'Line: ', line
+        if line.find("Recv-Q") >= 0:
+            time += 0.200
+
+        if firstTime:
+            for caName in caNames:
+                if line.find(' ' + caName + ' ') > 0:
+                  ca = caName
+            if ca != '?':
+                firstTime = False
+
         kvals = line.split(' ')
 
         for kv in kvals:
-            if ssFlag and kv.find(field) < 0:
-                continue
             if kv.find(':') < 0:
                 continue
-            key, val = kv.split(':')
+            key, val = kv.split(':', 1)
+            if key == 'delay':
+                    delay = float(val)
+                    if delay > 0:
+                        X.append(0.0)
+                        X.append(delay)
+                        Y.append(0.0)
+                        Y.append(0.0)
             if key == field:
-                if ssFlag:
-                    val = val.split('/')[0]
+                if val.find('/') > 0:
+                    if field == 'rtt':
+                        val = val.split('/')[0]
+                    else:
+                        val = val.split('/')[1]
                 if field == 'send':
                     p = val.find('bps')
                     if p > 0:
@@ -77,23 +91,14 @@ def processFile(inFilename, field):
                             val /= 1000.0
                         elif m == 'G':
                             val *= 1000.0
+                elif field == 'bytes_acked':
+                    new_acked = int(val) - old_acked
+                    old_acked = int(val)
+                    val = new_acked*8/(0.200 * 1000000)
                 Y.append(float(val))
-                if ssFlag:
-                    X.append(time + delay)
-                    time += 0.200
-            elif key == 'time':
-                X.append(float(val) + delay)
-            if firstTime:
-                if key == 'ca':
-                    ca = val
-                    firstTime = False
-                elif key == 'delay':
-                    delay = float(val)
-                    if delay > 0:
-                        X.append(0.0)
-                        X.append(delay)
-                        Y.append(0.0)
-                        Y.append(0.0)
+                X.append(time + delay)
+#            elif key == 'time':
+#                X.append(float(val) + delay)
     inFile.close()
     return X, Y, ca
 
@@ -120,10 +125,9 @@ for name in sys.argv[2:]:
     flow = flow.replace('.out', '')
     #print 'processing:', name, ' flow:', flow
     X, Y, ca = processFile(name, field)
-    if name.find('ss') < 0:
-        Xd = processFileRetrans(name, 'retrans_total')
-        if len(Xd) > 0:
-            Xdrop.extend(Xd)
+    Xd = processFileRetrans(name, 'retrans')
+    if len(Xd) > 0:
+         Xdrop.extend(Xd)
     if len(X) != len(Y) or len(X) == 0:
         continue
 
@@ -157,10 +161,14 @@ for X in XList:
 
 path = os.path.dirname(sys.argv[2])
 
+if field == 'bytes_acked':
+    field = 'acked_rate'
 p = psPlot.PsPlot(path + '/' + field, '', '', 1)
 p.SetPlotBgLevel(0.95)
 if field == 'rtt':
     yTitle = 'RTT (ms)'
+elif field == 'acked_rate':
+    yTitle = 'Acked Rate (Mbps)'
 else:
     yTitle = field
 
@@ -170,7 +178,8 @@ p.seriesTitle = 'Flows'
 p.SeriesNames(flowNames)
 
 #p.PlotVBars(Xdrop, '{ 0.7 0.6 0.6 setrgbcolor } plotVBarsC')
-p.PlotVBars(Xdrop, '{ 0.9 0.8 0.8 setrgbcolor } plotVBarsC')
+#p.PlotVBars(Xdrop, '{ 0.9 0.8 0.8 setrgbcolor } plotVBarsC')
+p.PlotVBars(Xdrop, '{ 1.0 0.4 0.4 setrgbcolor } plotVBarsC')
 
 i = 0
 for X in XList:

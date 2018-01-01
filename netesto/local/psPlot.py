@@ -8,8 +8,10 @@ import commands
 import types
 import math
 
-# gsPath = '/usr/local/bin/gs'
+#gsPath = '/usr/local/bin/gs'
 gsPath = 'gs'
+logFile = '/dev/null'
+#logFile = 'plot.log'
 
 #--- class PsPlot(fname, pageHeader, pageSubHeader, plotsPerPage)
 #
@@ -59,7 +61,7 @@ class PsPlot(object):
 
         shutil.copy('plot-header.ps', self.fname)
         self.fout = open(self.fname, 'a')
-        self.flog = open('/dev/null', 'a')
+        self.flog = open(logFile, 'a')
 #    self.flog = open('./psPlot.out', 'a')
         if plotsPerPage == 4:
             print >>self.fout, '/doGraph { graph4v } def'
@@ -451,7 +453,7 @@ class PsPlot(object):
             if x == ' ' and indx == len(xList)-1:
                 continue
             indx += 1
-            print >>self.fout, x
+            print >>self.fout, x, 0.0
             if (indx != 0) and (indx % 1000) == 0:
                 print >>self.fout, endFun+type+'\nbeginFunction\n'
                 print >>self.fout, x
@@ -465,7 +467,7 @@ class PsPlot(object):
         print >>flog, 'graph xList: ', self.xList, ' xList: ', xList, \
                       ' yList: ', yList
         print >>self.fout, '%\n% Plot '+id+'\n%\n'
-        print >>self.fout, '/xfix { ', self.x0 - self.xInc - self.xOffset,' sub ', self.xInc, ' div ', 0,' add } def\n'
+        print >>self.fout, '/xfix { ', self.x0 - self.xInc - self.xOffset,' sub ', self.xInc, ' div ', 0.0,' add } def\n'
         if axis == 2:
             print >>self.fout, self.yfix2
         elif axis == 1:
@@ -519,7 +521,8 @@ class PsPlot(object):
             xres = int(100 * self.xSize * 6.5 / (1200 * self.xLen))
             yres = int(110 * self.ySize / 550)
             res = ' -r%dx%d ' % (xres, yres)
-            cmdStr = gsPath +' -sDEVICE=jpeg'+size+'-sOutputFile='+self.foutPath+self.foutName+'.jpg -dNOPAUSE '+ res +self.fname+' -c quit'
+            cmdStr = gsPath + ' -sDEVICE=jpeg'+size+'-sOutputFile='+self.foutPath+self.foutName+'.jpg -dNOPAUSE '+ res +self.fname+' -c quit'
+#            cmdStr = gsPath + ' -sDEVICE=jpeg'+size+'-sOutputFile='+self.foutPath+self.foutName+'.jpg -dNOPAUSE -r100x100 '+self.fname+' -c quit'
         else:
             size = ' -g1200x1100 '
             cmdStr = gsPath + ' -sDEVICE=jpeg'+size+'-sOutputFile='+self.foutPath+self.foutName+'%d.jpg -dNOPAUSE -r100x100 '+self.fname+' -c quit'

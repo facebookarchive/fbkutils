@@ -72,13 +72,15 @@ setSysctlDict = { \
     "net.ipv4.tcp_wmem" : [[4096, 10000], [16000, 270000], [128000, 61000000]],
     "net.ipv4.tcp_rmem" : [[4096, 10000], [16000, 270000], [128000, 61000000]],
     "net.ipv4.tcp_allowed_congestion_control" : None,
+    "net.ipv4.tcp_cong_dscp_mask" : [[0, 255]],
+    "net.ipv4.tcp_cong_dscp_val"  : [[0, 255]],
     "net.ipv4.tcp_ecn" : [[0, 2]],
-    "net.ipv4.tcp_congestion_control" : None,
+    "net.ipv4.tcp_congestion_control" : None
 }
 
 TEST_FILE="This is the test file, only one line"
 
-SERVER_PORT = 12868
+SERVER_PORT = 12870
 MAX_PORTS = 5
 serverPort = SERVER_PORT
 
@@ -324,9 +326,8 @@ def processExp(subdir):
         elif file.find('netperf') >= 0:
             netperfList.append(subdir + '/' + file)
     doDebug("monitorList: " + str(monitorList))
-#	doDebug("netperfList: " + str(netperfList))
 
-    cmd = ["./plotMonitor.py", "send"]
+    cmd = ["./plotMonitor.py", "bytes_acked"]
     cmd.extend(monitorList)
     doDebug("Calling: " + str(cmd))
     subprocess.call(cmd)
@@ -334,25 +335,23 @@ def processExp(subdir):
     cmd.extend(monitorList)
     doDebug("Calling: " + str(cmd))
     subprocess.call(cmd)
+    cmd = ["./plotMonitor.py", "unacked"]
+    cmd.extend(monitorList)
+    doDebug("Calling: " + str(cmd))
+    subprocess.call(cmd)
     cmd = ["./plotMonitor.py", "rtt"]
     cmd.extend(monitorList)
     doDebug("Calling: " + str(cmd))
     subprocess.call(cmd)
-
-    cmd = ["egrep",  "-c", "vegas_minrtt"]
+    cmd = ["./plotMonitor.py", "minrtt"]
     cmd.extend(monitorList)
-    fout = open('x.tmp', 'w')
-    subprocess.call(cmd, stdout=fout)
-    fout.close()
-    fin = open('x.tmp', 'r')
-    for line in fin:
-        line = line.strip()
-        if line[0] != '0':
-            cmd = ["./plotMonitor.py", "vegas_minrtt"]
-            cmd.extend(monitorList)
-            doDebug("Calling: " + str(cmd))
-            subprocess.call(cmd)
-        break
+    doDebug("Calling: " + str(cmd))
+    subprocess.call(cmd)
+    cmd = ["./plotMonitor.py", "retrans"]
+    cmd.extend(monitorList)
+    doDebug("Calling: " + str(cmd))
+    subprocess.call(cmd)
+
     cmd = ["./plotNetperfRates.py"]
     cmd.extend(netperfList)
     doDebug("Calling: " + str(cmd))
@@ -522,12 +521,23 @@ def sendMsgDoClient(sock, argDict):
                argDict["delay"], argDict["instances"], argDict["test"], \
                argDict["expName"]))
     s = createMsgHdr(sock, MSG_DO_CLIENT, MSG_LEN[MSG_DO_CLIENT])
+
+    # Support running stream tests from req test by using S as req size
+    argTest = argDict["test"]
+    argReq = argDict["req"]
+    doDebug("argTest=%s, argReq=%s" % (argTest, argReq))
+    if (argReq == 'S' or argReq == 's' or  argReq == 'STREAM' or
+        argReq == 'stream') and argTest == 'TCP_RR':
+        argTest = 'TCP_STREAM'
+        argReq = 'S'
+        doDebug("*** Changing to STREAMING!")
+
     s += struct.pack(MSG_FORMAT[MSG_DO_CLIENT], int(argDict["exp"]),
             server, argDict["ca"], int(argDict["dur"]),
             int(argDict["delay"]), int(argDict["instances"]),
-            argDict["req"], argDict["reply"], int(argDict["stats"]),
+            argReq, argDict["reply"], int(argDict["stats"]),
             int(argDict["localBuffer"]), int(argDict["remoteBuffer"]),
-            argDict["test"], int(argDict["group"]), argDict["expName"])
+            argTest, int(argDict["group"]), argDict["expName"])
     return send(sock, s)
 
 #--- sendMsgGetData
@@ -864,11 +874,17 @@ def processMsg(sock, msgType, msgData):
         if noRunFlag:
             return sendMsgRV(sock, 1)
         else:
-            cmd = ["tcpdump", "-K", "-s", "96", "-w",
-                   str(exp)+'/'+HostName+'-'+server+'.pcap',
-                   "-c", str(packets), "-i", "eth0", "host", server]
+            if server != 'X':
+                cmd = ["tcpdump", "-K", "-s", "128", "-w",
+                       str(exp)+'/'+HostName+'-'+server+'.pcap',
+                       "-c", str(packets), "-i", "eth0", "host", server]
+            else:
+                cmd = ["tcpdump", "-K", "-s", "128", "-w",
+                       str(exp)+'/'+HostName+'.pcap',
+                       "-c", str(packets), "-i", "eth0"]
             doDebug("cmd: %s" % str(cmd))
-            os.mkdir(str(exp))
+            if not os.access(str(exp), os.F_OK):
+                os.mkdir(str(exp))
             subprocess.Popen(cmd)
     elif msgType == MSG_SET_QDISC:
         qdisc, action, rate, burst, limit, other = msgData
@@ -1212,6 +1228,7 @@ def processCmd(line, funArgDict=None):
         forDict['name'] = "FOR varName:%s, varList:%s" % (varName, str(varList))
         forDict['lineList'] = []
         forDict['varList'] = varList
+        forLoopPrint(" FOR varList:%s" % str(varList))
         forDict['varName'] = varName
         forDefFlag = True
         return ''
@@ -1229,16 +1246,23 @@ def processCmd(line, funArgDict=None):
         if indx >= len(forLoopList):
             error("FORLOOP ID out of bounds")
         forDict = forLoopList[indx]
+        doDebug("forDict:%s" % str(forDict))
         forLoopPrint("FORLOOP %s" % forDict['name'])
         forDict['varIndx'] = 0
+        forLoopPrint("FORLOOP varList is '%s'" % str(forDict['varList']))
         if len(forDict['varList']) == 1 and forDict['varList'][0][0] == '$':
             v = forDict['varList'][0]
             vl = getValue(v, funArgDict, "FOR")
-            forDict['varList'] = vl.split(',')
+            forVarList = vl.split(',')
+#            forDict['varList'] = vl.split(',')
             forLoopPrint("FORLOOP varList is '%s' from %s" % (vl, v))
+        else:
+			forVarList = forDict['varList']
 #        print "FORLOOP varList:", forDict['varList']
-        while forDict['varIndx'] < len(forDict['varList']):
-            varDict[forDict['varName']] = forDict['varList'][forDict['varIndx']]
+#        while forDict['varIndx'] < len(forDict['varList']):
+        while forDict['varIndx'] < len(forVarList):
+#            varDict[forDict['varName']] = forDict['varList'][forDict['varIndx']]
+            varDict[forDict['varName']] = forVarList[forDict['varIndx']]
             forDict['varIndx'] += 1
             forLoopPrint("\nLOOP INC   inside varIndx loop, varIndx:%d, varName:%s" \
                     % (forDict['varIndx'], varDict[forDict['varName']]))
@@ -1288,7 +1312,6 @@ def processCmd(line, funArgDict=None):
                 forLoopPrintFlag = False
             else:
                 forLoopPrintFlag = True
-            print "forLoopPrintFlag: ", forLoopPrint
         else:
             varDict[kv[0]] = v
         forLoopPrint("SET %s to %s" % (kv[0], v))
@@ -1388,6 +1411,7 @@ def processCmd(line, funArgDict=None):
                 fArgDict[k] = v
                 if k == 'ca':
                     caList = v.split(',')
+        doDebug("RUN %s, fArgDict:%s" % (fName, str(fArgDict)))
         while reps > 0:
             reps -= 1
             for ca in caList:
@@ -1570,6 +1594,9 @@ try:
 except getopt.GetoptError, err:
     doDebug(str(err))
     error(str(err))
+
+#print >>flog, 'opts = ', opts
+#print >>flog, 'args = ', args
 
 for opt in opts:
     key = opt[0]

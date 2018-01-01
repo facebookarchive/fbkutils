@@ -85,6 +85,8 @@ SET instances=1             # how many flow instances per host
 SET dur=60                  # duration of each run in seconds
 SET delay=0                 
 SET exp=COUNTER
+SET netemLimit=20000
+SET netemLoss=0
 
 #
 # tcpCA23
@@ -100,7 +102,7 @@ SET_EXP dur3_3=$dur/3
 SET_EXP delay3_3=$dur/3+5
 
 SET netemHost=$server1
-SET_NETEM host=$netemHost netem_delay=$delay
+SET_NETEM host=$netemHost netem_delay=$delay limit=$netemLimit loss=$netemLoss
 
 # Baseline
 SET ca1=$baselineCA

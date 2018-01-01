@@ -1,7 +1,5 @@
 #
-# Sample basic script
-# replace variable values appropriately before running
-# Run by: ./netesto.py [-d | --debug=netesto.log] < script.basic
+# Sample script
 #
 
 HOST_SUFFIX <suffix>    # Example: mynetwork.com
@@ -26,44 +24,26 @@ SET randDelay=0.1       # wait between 0 and 0.1 secs before staring flows
                         # introduces randomness necessary when running the
                         # same test multiple times
 
-
-# Define commands to run before each test
-# 
-# On Server(s)
-#
-BEGIN preServer
-# set large receive buffers in server
-SET_SYSCTL host=$host net.ipv4.tcp_rmem=10000,262144,20971520
-END preServer
-#
-# On Client(s)
-#
-BEGIN preClient
-# set large send buffers in client
-SET_SYSCTL host=$host net.ipv4.tcp_wmem=10000,262144,20971520
-END preClient
-
-
 # 1 client, 1 server, RPC and STREAM
 #
-IF $doRPC: RUN MServerRR,$reps exp=COUNTER servers=$server1 clients=$client1 expName=1h1fr ca=$ca dur=$dur delay=0 instances=$instances reqs=$req reply=$reply
+IF $doRPC: RUN OneFlowRR,$reps exp=COUNTER server=$server1 client=$client1 expName=1h1fr ca=$ca dur=$dur delay=0 instances=$instances req=$req reply=$reply
 
-IF $doSTREAM: RUN MServerStream,$reps exp=COUNTER servers=$server1 clients=$client1 expName=1h1fs ca=$ca dur=$dur delay=0 instances=$instances 
+IF $doSTREAM: RUN OneFlowStream,$reps exp=COUNTER server=$server1 client=$client1 expName=1h1fs ca=$ca dur=$dur delay=0 instances=$instances 
 
 # If you want a larger delay (specified in ms), you can use netem on a given host
-SET_NETEM host=$server1 netem_delay=10
+SET_NETEM host=$client1 netem_delay=100
 
 # Add values to other columns in exp.csv. This columns must be specified in the file
 # "fields.txt". Only change "fields.txt"  before you start a new series of experiments;
 # that is, when there is no exp.html or exp.csv
 OTHER netem=10
 
-IF $doRPC: RUN MServerRR,$reps exp=COUNTER servers=$server1 clients=$client1 expName=1h1fr ca=$ca dur=$dur delay=0 instances=$instances reqs=$req reply=$reply
+IF $doRPC: RUN OneFlowRR,$reps exp=COUNTER server=$server1 client=$client1 expName=1h1fr ca=$ca dur=$dur delay=0 instances=$instances req=$req reply=$reply
  
-IF $doSTREAM: RUN MServerStream,$reps exp=COUNTER servers=$server1 clients=$client1 expName=1h1fs ca=$ca dur=$dur delay=0 instances=$instances
+IF $doSTREAM: RUN OneFlowStream,$reps exp=COUNTER server=$server1 client=$client1 expName=1h1fs ca=$ca dur=$dur delay=0 instances=$instances
 
 # Reset delay
-SET_NETEM host=$server1 netem_delay=0
+SET_NETEM host=$client1 netem_delay=100
 OTHER netem=0
 
 # You can also use multiple servers and clients and specify multiple CAs (one test per ca)

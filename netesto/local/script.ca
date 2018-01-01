@@ -1,0 +1,222 @@
+#
+# Script for testing TCP CAs
+#
+# Uses inlib.caTest
+#
+
+# Set default host suffix
+HOST_SUFFIX 06.atn1.facebook.com
+
+# replace with your own hostnames
+SET client1=kerneltest002
+SET client2=kerneltest004
+SET client3=kerneltest005
+
+SET clients1=$client1
+SET clients2=$client1,$client2
+SET clients3=$client1,$client2,$client3
+
+SET server_no_router=kerneltest011
+SET server_with_router=kerneltest001
+
+# Load library with macros
+DEBUG_DISABLE
+SOURCE inlib.caTest
+SOURCE inlib.rateTest
+DEBUG_RESTORE
+
+#OTHER testType=VS_RTT,netem=25,testNote=dctcp_vs_cubic_ecn,ecn=400/1802
+#OTHER testType=vs,testNote=4.8.0-rc6-01478-g2d7a892,netem=10,ecn=9k
+
+# set default reply size of RPCs
+SET reply=1						# use RPC reply size of 1 byte
+
+#
+# Define commands to run before each test
+# 
+# On Server(s)
+#
+BEGIN preServer
+# set large receive buffers in server
+SET_SYSCTL host=$host net.core.rmem_max=67108864
+SET_SYSCTL host=$host net.ipv4.tcp_rmem=10000,262144,33554432
+END preServer
+#
+# On Client(s)
+#
+BEGIN preClient
+# set large send buffers in client
+SET_SYSCTL host=$host net.core.wmem_max=67108864
+SET_SYSCTL host=$host net.ipv4.tcp_wmem=10000,262144,33554432
+END preClient
+
+SET kernel=4.11.0-rc3
+
+SET baselineCA=cubic    # Baseline CA
+SET testCA=bbr           # CA to test (can be more than one separated with commas, no spaces)
+#SET testCA=reno
+SET dur=60              # Duration of individual tests in seconds
+SET delay=0             # Netem delay to use in milliseconds
+
+# Use fs qdisc for senders (test clients) because of bbr
+SET qdisc=fq
+#SET qdisc=pfifo
+FOR c IN $clients3 DO
+  SET_QDISC host=$c qdisc=$qdisc
+DONE
+
+# Enable all tcpCA23 tests
+SET tcpCA23_baseline=1
+SET tcpCA23_test=1
+SET tcpCA23_vs1=1
+SET tcpCA23_vs2=1
+
+#SET tcpDump=10000
+
+
+# Use server not going through router
+SET server1=$server_no_router
+SET server=$server1
+
+# *** LAN 10G 2 & 3 flows
+#
+SET rate=10gbits
+OTHER testType=tcpCA23,testNote=x,kernel=$kernel,qdisc=$qdisc,netem=$delay,ecn=9k,bw=$rate,buffers=1000,burst=3000
+#RUN tcpCA23
+
+# *** WAN 10G 10ms 2 & 3 flows
+#
+SET delay=10
+OTHER testType=tcpCA23,testNote=x,kernel=$kernel,qdisc=$qdisc,netem=$delay,ecn=9k,bw=$rate,buffers=1000,burst=3000
+#RUN tcpCA23
+
+### *** Tests of 10,40ms RTT and 5,10,40,100 Mbps using server as router
+#       Testing 2 & 3 flows with 2nd and 3rd flows starting after earlier flows
+#       It also does baselineCA vs. testCA
+#
+SET server1=$server_with_router
+SET server=$server1
+SET servers1=$server1
+
+# Set router for experiments using router to limit rate and set buffer  
+SET router=kerneltest010
+
+SET delays=10,40
+SET rates=5mbit,10mbit,40mbit,100mbit
+SET limit=1500000  # in bytes, divide by 1500 for packets
+SET_EXP buffers=$limit/1500
+
+FOR delay IN $delays DO
+  FOR rate IN $rates DO
+    SET_QDISC host=$router qdisc=tbf rate=$rate burst=3000 limit=$limit
+    OTHER testType=tcpCA23,testNote=x,kernel=$kernel,qdisc=$qdisc,netem=$delay,ecn=9k,bw=$rate,buffers=$buffers,burst=3000
+#    RUN tcpCA23
+  DONE
+DONE
+
+### *** Tests of 10,40ms RTT and 10 Mbps using server as router
+#       Testing 2 & 3 flows with 2nd and 3rd flows starting after earlier flows
+#       Evaluating decreasing buffer size at bottleneck
+#
+
+SET delays=10,40
+SET rates=10mbit
+SET limits=1500000,750000,375000,187500,96000  # in bytes, divide by 1500 for packets
+SET tcpCA23_vs1=0  # turn off vs testing
+SET tcpCA23_vs2=0  # turn off vs testing
+
+FOR limit IN $limits DO
+  SET_EXP buffers=$limit/1500
+  FOR delay IN $delays DO
+    FOR rate IN $rates DO
+      SET_QDISC host=$router qdisc=tbf rate=$rate burst=3000 limit=$limit
+      OTHER testType=tcpCA23,testNote=buffers,kernel=$kernel,qdisc=$qdisc,netem=$delay,ecn=9k,bw=$rate,buffers=$buffers,burst=3000
+      RUN tcpCA23
+    DONE
+  DONE
+DONE
+
+END
+
+### *** Tests of 10,80ms RTT and 10,100 Mbps using server as router
+#       Testing 1,2,4,8,16 Stream flows from 3 clients into -> 1 server
+#
+SET server1=$server_with_router
+SET server=$server1
+SET servers1=$server1
+
+# Set router for experiments using router to limit rate and set buffer  
+SET router=kerneltest010
+
+SET delays=10,80
+SET rates=10mbit,100mbit
+SET limit=1500000  # in bytes, divide by 1500 for packets
+SET_EXP buffers=$limit/1500
+
+SET rate3s=1
+FOR delay IN $delays DO
+  FOR rate IN $rates DO
+    SET_QDISC host=$router qdisc=tbf rate=$rate burst=3000 limit=$limit
+    OTHER testType=3Stream1,testNote=x,kernel=$kernel,qdisc=$qdisc,netem=$delay,ecn=9k,bw=$rate,buffers=$buffers,burst=3000
+    RUN ExpRate servers=$servers1 clients=$clients3 ca=$baselineCA dur=$dur
+    RUN ExpRate servers=$servers1 clients=$clients3 ca=$testCA dur=$dur
+  DONE
+DONE
+
+### *** Tests of 10,80ms RTT and 10,100 Mbps using server as router
+#       Testing 1,2,4,8,16 x2 RPC flows (1KB and 1MB) from 3 clients into -> 1 server
+#
+SET server1=$server_with_router
+SET server=$server1
+SET servers1=$server1
+
+# Set router for experiments using router to limit rate and set buffer  
+SET router=kerneltest010
+
+SET delays=10,80
+SET rates=10mbit,100mbit
+SET limit=1500000  # in bytes, divide by 1500 for packets
+SET_EXP buffers=$limit/1500
+
+SET rate3s=0
+SET rate3p=1
+SET delays=10,80
+SET rates=10mbit,100mbit
+FOR delay IN $delays DO 
+  FOR rate IN $rates DO
+    SET_QDISC host=$router qdisc=tbf rate=$rate burst=3000 limit=$limit
+    OTHER testType=3RPC1,testNote=x,kernel=$kernel,qdisc=$qdisc,netem=$delay,ecn=9k,bw=$rate,buffers=$buffers,burst=3000
+    RUN ExpRate servers=$servers1 clients=$clients3 ca=$baselineCA dur=$dur
+    RUN ExpRate servers=$servers1 clients=$clients3 ca=$testCA dur=$dur
+  DONE
+DONE  
+
+
+END
+
+### 25x LAN 10G 2 & 3 flows just for test CA to check fairness stability
+# Use server not going through router
+SET server1=$server_no_router
+SET server=$server1
+
+NEXT_COUNTER
+SET delay=0
+SET tcpCA23_baseline=0
+SET tcpCA23_vs1=0
+SET tcpCA23_vs2=0
+OTHER testType=tcpCA23,testNote=25,kernel=$kernel,qdisc=$qdisc,netem=$delay,ecn=9k,bw=$rate,buffers=1000,burst=3000
+RUN tcpCA23,25
+
+### 25x WAN 10G 10ms 2 & 3 flows just for test CA to check fairness stability
+# Use server not going through router
+SET server1=$server_no_router
+SET server=$server1
+
+NEXT_COUNTER
+SET delay=10
+OTHER testType=tcpCA23,testNote=25,kernel=$kernel,qdisc=$qdisc,netem=$delay,ecn=9k,bw=$rate,buffers=1000,burst=3000
+RUN tcpCA23,25
+
+END
+
+
