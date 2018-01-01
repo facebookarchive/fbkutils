@@ -1,14 +1,5 @@
 #!/bin/bash
 
-# doServer.sh - program to be used with netesto.py to run network tests
-#
-# Copyright (C) 2016, Facebook, Inc.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the LICENSE
-# file in the root directory of this source tree.
-
-
 exp="ZZ"
 order="0"
 name="$0"

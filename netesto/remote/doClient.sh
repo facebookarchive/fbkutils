@@ -57,6 +57,8 @@ processArgs() {
       ca="${i#*=}"
       if [ "$ca" == "dctcp" ] ; then
         remCa=$ca
+      elif [ "$ca" == "nv" ] ; then
+        remCa="nv"
       else
         remCa="cubic"
       fi

@@ -1,14 +1,5 @@
 #!/usr/local/bin/python
 
-# netstat.py - program to be process netstat and snmp output
-#
-# Copyright (C) 2016, Facebook, Inc.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the LICENSE
-# file in the root directory of this source tree.
-
-
 import sys
 
 def processNames(namesStr):
