@@ -1,0 +1,154 @@
+#
+# Script for testing TCP CAs
+# Tests use an intermediate server as router in order to reduce
+# bandwdith and vary the buffer sizes
+# Runs many different flows from clients to server
+#
+
+# Set default host suffix
+HOST_SUFFIX mynetwork.net
+
+# replace with your own hostnames here or use script.hosts below
+SET client1router=server1
+SET client2router=server2
+SET client3router=server3
+
+SET server_no_router=server4
+SET server_with_router=server5
+
+# Set router for experiments using router to limit rate and set buffer
+SET router=server6
+
+# Uncomment following line if you have your server names in the
+# file script.hosts
+#SOURCE script.hosts
+
+SET clients1=$client1router
+SET clients2=$client1,router$client2router
+SET clients3=$client1router,$client2router,$client3router
+
+# Load library with macros
+DEBUG_DISABLE
+SOURCE inlib.caTest
+SOURCE inlib.rateTest
+DEBUG_RESTORE
+
+# set default reply size of RPCs
+SET reply=1						# use RPC reply size of 1 byte
+
+BEGIN QDISC
+FOR c IN $clients DO
+  SET_SYSCTL host=$c net.core.default_qdisc=$qdisc
+  SET_QDISC host=$c qdisc=pfifo action=replace
+  SET_QDISC host=$c qdisc=mq action=replace
+DONE
+END QDISC
+
+#
+# Define commands to run before each test
+# 
+# On Server(s)
+#
+BEGIN preServer
+# set large receive buffers in server
+SET_SYSCTL host=$host net.core.rmem_max=67108864
+SET_SYSCTL host=$host net.ipv4.tcp_rmem=10000,262144,33554432
+END preServer
+#
+# On Client(s)
+#
+BEGIN preClient
+# set large send buffers in client
+SET_SYSCTL host=$host net.core.wmem_max=67108864
+SET_SYSCTL host=$host net.ipv4.tcp_wmem=10000,262144,33554432
+SET_SYSCTL host=$c net.core.default_qdisc=$qdisc
+SET_QDISC host=$c qdisc=pfifo action=replace
+SET_QDISC host=$c qdisc=mq action=replace
+END preClient
+
+SET kernel=4.14.0-rc5
+
+SET ca=cubic,bbr
+
+SET dur=60              # Duration of individual tests in seconds
+SET delay=40            # Netem delay to use in milliseconds
+
+SET qdisc=fq_codel
+RUN QDISC clients=$clients3 qdisc=$qdisc
+
+# For collecting tcpdumps on all hots. The number represents the number of
+# packets to collect
+#SET tcpDump=10000
+
+SET server1=$server_with_router
+SET server=$server1
+SET servers1=$server1
+
+# Run tests 10 times
+FOR n IN 1,2,3,4,5,6,7,8,9,10 DO
+
+SET rate=10mbit
+SET reps=1
+SET limits=400000,50000,25000 #in bytes, 4x,1x,1/2x BDP
+
+FOR limit IN $limits DO
+  SET_EXP buffers=$limit/1500
+      SET_QDISC host=$router qdisc=tbf rate=$rate burst=3000 limit=$limit action=replace
+      OTHER testType=tcpSizes,testNote=buffers,kernel=$kernel,qdisc=$qdisc,netem=$delay,bw=$rate,buffers=$buffers,burst=3000
+
+      SET L=1M
+      SET S=10K
+#      SET L=8M
+#      SET S=1M
+
+      # 1 host: 3 flows, stream, 1MB, 10KB
+      RUN MServerStreamRR servers=$server clients=$clients1 expName=1s1c01f.rs ca=$ca dur=$dur delay=0 instances=1 reqs=$L,$S reply=1
+
+      # 3 hosts, 1 flow from each host: stream, 1MB, 10KB
+      RUN MServerRR_client3_req3 servers=$server clients1=$client1 clients2=$client2 clients3=$client3 expName=1s3c01f.srr ca=$ca dur=$dur delay=0 instances=1 reqs1=S reqs2=$L reqs3=$S reply=1
+
+      # 2 hosts: 3 flows from each: stream, 1MB, 10KB
+      RUN MServerStreamRR servers=$server clients=$clients2 expName=1s2c01f.rs ca=$ca dur=$dur delay=0 instances=1 reqs=$L,$S reply=1
+
+      # 3 hosts: 3 flows from each: stream, 1MB, 10KB
+      RUN MServerStreamRR servers=$server clients=$clients3 expName=1s3c01f.rs ca=$ca dur=$dur delay=0 instances=1 reqs=$L,$S reply=1
+
+      # 3 hosts: 6 flows from each: stream, 2 *1MB, 10KB
+      RUN MServerStreamRR servers=$server clients=$clients3 expName=1s3c02f.rs ca=$ca dur=$dur delay=0 instances=1 reqs=$L,$L,$L,$L,$S reply=1
+
+DONE
+
+SET rate=100mbit
+SET reps=1
+SET limits=4000000,500000,250000 #in bytes, 8x,1x,1/2x BDP
+
+FOR limit IN $limits DO
+  SET_EXP buffers=$limit/1500
+      SET_QDISC host=$router qdisc=tbf rate=$rate burst=3000 limit=$limit action=replace
+      OTHER testType=tcpSizes,testNote=buffers,kernel=$kernel,qdisc=$qdisc,netem=$delay,bw=$rate,buffers=$buffers,burst=3000
+
+      SET L=1M
+      SET S=10K
+#      SET L=8M
+#      SET S=1M
+
+      # 1 host: 3 flows, stream, 1MB, 10KB
+      RUN MServerStreamRR servers=$server clients=$clients1 expName=1s1c01f.rs ca=$ca dur=$dur delay=0 instances=1 reqs=$L,$S reply=1
+
+      # 3 hosts, 1 flow from each host: stream, 1MB, 10KB
+      RUN MServerRR_client3_req3 servers=$server clients1=$client1 clients2=$client2 clients3=$client3 expName=1s3c01f.srr ca=$ca dur=$dur delay=0 instances=1 reqs1=S reqs2=$L reqs3=$S reply=1
+
+      # 2 hosts: 3 flows from each: stream, 1MB, 10KB
+      RUN MServerStreamRR servers=$server clients=$clients2 expName=1s2c01f.rs ca=$ca dur=$dur delay=0 instances=1 reqs=$L,$S reply=1
+
+      # 3 hosts: 3 flows from each: stream, 1MB, 10KB
+      RUN MServerStreamRR servers=$server clients=$clients3 expName=1s3c01f.rs ca=$ca dur=$dur delay=0 instances=1 reqs=$L,$S reply=1
+
+      # 3 hosts: 6 flows from each: stream, 2 *1MB, 10KB
+      RUN MServerStreamRR servers=$server clients=$clients3 expName=1s3c02f.rs ca=$ca dur=$dur delay=0 instances=1 reqs=$L,$L,$L,$L,$S reply=1
+
+DONE
+
+DONE
+END
+

@@ -1,0 +1,149 @@
+#
+# Script for testing TCP CAs
+# Tests use an intermediate server as router in order to reduce
+# bandwdith and vary the buffer sizes
+#
+# Runs 1, 2 or 3 flows
+#
+# Uses inlib.caTest
+#
+
+# Set default host suffix
+HOST_SUFFIX mynetwork.net
+
+# replace with your own hostnames here or use script.hosts below
+SET client1router=server1
+SET client2router=server2
+SET client3router=server3
+
+SET server_no_router=server4
+SET server_with_router=server5
+
+# Set router for experiments using router to limit rate and set buffer
+SET router=server6
+
+# Uncomment following line if you have your server names in the
+# file script.hosts
+#SOURCE script.hosts
+
+SET clients1=$client1router
+SET clients2=$client1router,$client2router
+SET clients3=$client1router,$client2router,$client3router
+
+# Load library with macros
+DEBUG_DISABLE
+SOURCE inlib.caTest
+SOURCE inlib.rateTest
+DEBUG_RESTORE
+
+# set default reply size of RPCs
+SET reply=1						# use RPC reply size of 1 byte
+
+# Macro for setting client qdisc
+BEGIN QDISC
+FOR c IN $clients DO
+  SET_SYSCTL host=$c net.core.default_qdisc=$qdisc
+  SET_QDISC host=$c qdisc=pfifo action=replace
+  SET_QDISC host=$c qdisc=mq action=replace
+DONE
+END QDISC
+
+#
+# Define commands to run before each test
+# 
+# On Server(s)
+#
+BEGIN preServer
+# set large receive buffers in server
+SET_SYSCTL host=$host net.core.rmem_max=67108864
+SET_SYSCTL host=$host net.ipv4.tcp_rmem=10000,262144,33554432
+END preServer
+#
+# On Client(s)
+#
+BEGIN preClient
+# set large send buffers in client
+SET_SYSCTL host=$host net.core.wmem_max=67108864
+SET_SYSCTL host=$host net.ipv4.tcp_wmem=10000,262144,33554432
+SET_SYSCTL host=$c net.core.default_qdisc=$qdisc
+SET_QDISC host=$c qdisc=pfifo action=replace
+SET_QDISC host=$c qdisc=mq action=replace
+END preClient
+
+# Set current kernel to associate results with kernels
+SET kernel=4.14.0-rc5
+
+SET baselineCA=cubic       # Baseline CA
+#SET testCA=reno,bic,bbr   # CA to test (can be more than one separated
+                           # with commas, no spaces)
+SET dur=60                 # Duration of individual tests in seconds
+SET delay=40               # Netem delay to use in milliseconds
+SET qdisc=fq_codel
+RUN QDISC clients=$clients3 qdisc=$qdisc
+
+# Enable all tcpCA23 tests
+SET tcpCA23_baseline=1
+SET tcpCA23_test=1
+SET tcpCA23_vs1=1
+SET tcpCA23_vs2=1
+
+# For collecting tcpdumps on all hots. The number represents the number of
+# packets to collect
+#SET tcpDump=10000
+
+SET server1=$server_with_router
+SET server=$server1
+SET reps=1
+SET delay=40
+SET rate=10mbit
+SET limit=1400000
+
+OTHER testType=tcpCA23,testNote=limit:5000,qdisc=$qdisc,netem=$delay,bw=$rate
+#RUN tcpCA23,$reps
+
+
+### *** Tests of 10,40ms RTT and 10,40,100 Mbps using server as router
+#       Testing 2 & 3 flows with 2nd and 3rd flows starting after earlier flows
+#       It also does baselineCA vs. testCA
+#
+SET server1=$server_with_router
+SET server=$server1
+SET servers1=$server1
+
+# Set router for experiments using router to limit rate and set buffer  
+SET router=kerneltest010
+
+# Run 10 iterations of the tests
+FOR n IN 1,2,3,4,5,6,7,8,9,10 DO
+
+# First set of tests, rate 10mbit
+SET rate=10mbit
+SET reps=1
+SET limits=400000,200000,100000,50000,25000 #in bytes, 8x, 4x,2x,1x,1/2x BDP
+SET tcpCA23_vs2=1  # turn off vs2 testing
+
+FOR limit IN $limits DO
+  SET_EXP buffers=$limit/1500
+      SET_QDISC host=$router qdisc=tbf rate=$rate burst=3000 limit=$limit action=replace
+      OTHER testType=tcpCA23,testNote=40ms,kernel=$kernel,qdisc=$qdisc,netem=$delay,bw=$rate,buffers=$buffers,burst=3000
+      RUN tcpCA23,$reps
+DONE
+
+# Second set of tests, rate 100mbit
+SET rate=100mbit
+SET reps=1
+SET limits=4000000,2000000,1000000,500000,250000 #in bytes, 8x, 4x,2x,1x,1/2x BDP
+SET tcpCA23_vs2=1  # turn off vs2 testing
+
+FOR limit IN $limits DO
+  SET_EXP buffers=$limit/1500
+      SET_QDISC host=$router qdisc=tbf rate=$rate burst=3000 limit=$limit action=replace
+      OTHER testType=tcpCA23,testNote=40ms,kernel=$kernel,qdisc=$qdisc,netem=$delay,bw=$rate,buffers=$buffers,burst=3000
+      RUN tcpCA23,$reps
+DONE
+
+DONE  # for the 10 iterations
+
+END
+
+
