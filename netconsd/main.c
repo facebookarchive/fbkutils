@@ -22,7 +22,7 @@ static void parse_arguments(int argc, char **argv, struct netconsd_params *p)
 {
 	int i;
 	char *tmp;
-	static const char *optstr = "hw:l:b:u:g:";
+	static const char *optstr = "hw:l:b:a:u:g:";
 	static const struct option optlong[] = {
 		{
 			.name = "help",
@@ -47,8 +47,13 @@ static void parse_arguments(int argc, char **argv, struct netconsd_params *p)
 		case 'b':
 			p->mmsg_batch = atoi(optarg);
 			break;
+		case 'a':
+			if (!inet_pton(AF_INET6, optarg, &p->listen_addr.sin6_addr))
+				fatal("invalid listen address\n");
+			debug("listening for address %s\n", optarg);
+			break;
 		case 'u':
-			p->udp_listen_port = atoi(optarg);
+			p->listen_addr.sin6_port = htons(atoi(optarg));
 			break;
 		case 'g':
 			tmp = index(optarg, '/');
@@ -66,7 +71,7 @@ static void parse_arguments(int argc, char **argv, struct netconsd_params *p)
 			goto done;
 		case 'h':
 			printf("Usage: %s [-w workers] [-l listeners] "
-			     "[-b mmsg_batch] [-u udp_listen_port] "
+			     "[-b mmsg_batch] [-p udp_listen_addr] [-u udp_listen_port] "
 			     "[-g '${interval}/${age}'] [output module path] "
 			     "[another output module path...]\n", argv[0]);
 
@@ -139,9 +144,13 @@ int main(int argc, char **argv)
 		.nr_workers = 2,
 		.nr_listeners = 1,
 		.mmsg_batch = 512,
-		.udp_listen_port = 1514,
 		.gc_int_ms = 0,
 		.gc_age_ms = 0,
+		.listen_addr = {
+			.sin6_family = AF_INET6,
+			.sin6_addr = IN6ADDR_ANY_INIT,
+			.sin6_port = htons(1514),
+		}
 	};
 
 	parse_arguments(argc, argv, &params);

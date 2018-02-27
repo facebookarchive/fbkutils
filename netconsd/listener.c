@@ -118,15 +118,9 @@ static void free_mmsghdr_vec(struct mmsghdr *vec, int nr)
 	free(vec);
 }
 
-static int get_listen_socket(int port)
+static int get_listen_socket(struct sockaddr_in6 *bindaddr)
 {
 	int fd, ret, optval = 1;
-	struct sockaddr_in6 bindaddr = {
-		.sin6_family = AF_INET6,
-		.sin6_addr = IN6ADDR_ANY_INIT,
-	};
-
-	bindaddr.sin6_port = htons(port);
 
 	fd = socket(AF_INET6, SOCK_DGRAM, 0);
 	if (fd == -1)
@@ -136,7 +130,7 @@ static int get_listen_socket(int port)
 	if (ret == -1)
 		fatal("Couldn't set SO_REUSEPORT on socket: %m\n");
 
-	ret = bind(fd, &bindaddr, sizeof(bindaddr));
+	ret = bind(fd, bindaddr, sizeof(*bindaddr));
 	if (ret == -1)
 		fatal("Couldn't bind: %m\n");
 
@@ -151,7 +145,7 @@ void *udp_listener_thread(void *arg)
 	struct mmsghdr *vec;
 	struct msgbuf *cur;
 
-	fd = get_listen_socket(us->port);
+	fd = get_listen_socket(us->address);
 	vec = alloc_mmsghdr_vec(us->batch, RCVBUF_SIZE);
 
 	while (!us->stop) {

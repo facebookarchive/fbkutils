@@ -185,8 +185,8 @@ static void create_listener_threads(struct tctl *ctl, struct netconsd_params *p)
 		cur->prequeues = prequeues;
 		cur->workers = ctl->workers;
 		cur->nr_workers = ctl->nr_workers;
-		cur->port = p->udp_listen_port;
 		cur->batch = p->mmsg_batch;
+		cur->address = &p->listen_addr;
 
 		r = pthread_create(&cur->id, NULL, udp_listener_thread, cur);
 		if (r)

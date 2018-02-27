@@ -28,9 +28,9 @@ struct ncrx_listener {
 	struct ncrx_prequeue *prequeues;
 	struct ncrx_worker *workers;
 	int nr_workers;
-	int port;
 	int batch;
 	uint64_t processed;
+	struct sockaddr_in6 *address;
 
 	/*
 	 * Flags
