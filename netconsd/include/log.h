@@ -6,7 +6,6 @@
  * file in the root directory of this source tree. An additional grant of patent
  * rights can be found in the PATENTS file in the same directory.
  */
-
 #ifndef __LOG_H__
 #define __LOG_H__
 

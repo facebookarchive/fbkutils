@@ -75,9 +75,9 @@ struct netconsd_params {
 	int nr_workers;
 	int nr_listeners;
 	int mmsg_batch;
-	int udp_listen_port;
 	unsigned int gc_int_ms;
 	unsigned int gc_age_ms;
+	struct sockaddr_in6 listen_addr;
 };
 
 #endif /* __COMMON_H__ */
