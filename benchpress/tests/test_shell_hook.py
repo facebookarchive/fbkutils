@@ -15,6 +15,8 @@ from unittest.mock import patch
 from benchpress.plugins.hooks.shell import ShellHook
 
 
+FAKEDIR = '/tmp_benchpress_test'
+
 class TestShellHook(fake_filesystem_unittest.TestCase):
 
     def setUp(self):
@@ -22,25 +24,25 @@ class TestShellHook(fake_filesystem_unittest.TestCase):
         self.original_dir = os.getcwd()
         self.hook = ShellHook()
 
-        self.fs.CreateDirectory('/tmp')
+        self.fs.CreateDirectory(FAKEDIR)
 
     def tearDown(self):
         os.chdir(self.original_dir)
 
     def test_cd_pre(self):
         """Can cd to change the working directory of a test"""
-        self.assertNotEqual('/tmp', os.getcwd())
+        self.assertNotEqual(FAKEDIR, os.getcwd())
         self.assertEqual(self.original_dir, os.getcwd())
-        self.hook.before_job({'before': ['cd /tmp']})
-        self.assertEqual('/tmp', os.getcwd())
+        self.hook.before_job({'before': ['cd {}'.format(FAKEDIR)]})
+        self.assertEqual(FAKEDIR, os.getcwd())
 
     def test_cd_pre_reset(self):
         """cd in a before hook is reset in post"""
-        self.assertNotEqual('/tmp', os.getcwd())
+        self.assertNotEqual(FAKEDIR, os.getcwd())
         self.assertEqual(self.original_dir, os.getcwd())
-        self.hook.before_job({'before': ['cd /tmp']})
-        self.assertEqual('/tmp', os.getcwd())
-        self.hook.after_job({'before': ['cd /tmp']})
+        self.hook.before_job({'before': ['cd {}'.format(FAKEDIR)]})
+        self.assertEqual(FAKEDIR, os.getcwd())
+        self.hook.after_job({'before': ['cd {}'.format(FAKEDIR)]})
         self.assertEqual(self.original_dir, os.getcwd())
 
     @patch('subprocess.check_call')
