@@ -47,10 +47,6 @@ How benchpress works
 reference to a binary (that usually can be run with different arguments). A job
 is a specific run of that benchmark with a different configuration.  
 
-`benchpress` also has some support for running jobs that contain correctness
-tests, any metric that is a `bool` is assumed to be a 'correctness' metric and
-if `False`, will result in the job being reported as failing.
-
 Benchmark config
 ----------------
 

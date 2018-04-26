@@ -55,11 +55,4 @@ class RunCommand(BenchpressCommand):
 
             history.save_job_result(job, metrics, now)
 
-            # if a correctness test failed, make it obvious
-            if False in metrics.correctness_tests().values():
-                # find which one(s) failed
-                for key, val in metrics.correctness_tests().items():
-                    if not val:
-                        logger.error('Correctness test "%s" failed', key)
-
         reporter.close()
