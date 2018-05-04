@@ -7,6 +7,7 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 from .fio import FioParser
+from .generic import JSONParser
 from .ltp import LtpParser
 from .returncode import ReturncodeParser
 from .schbench import SchbenchParser
@@ -15,6 +16,7 @@ from .silo import SiloParser
 
 def register_parsers(factory):
     factory.register('fio', FioParser)
+    factory.register('json', JSONParser)
     factory.register('ltp', LtpParser)
     factory.register('returncode', ReturncodeParser)
     factory.register('schbench', SchbenchParser)
