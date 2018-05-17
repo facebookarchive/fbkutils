@@ -1,5 +1,6 @@
 /*
  * Lifted from 4.4 Linux kernel source. Alterations for netconsd:
+ // @lint-ignore TXT2 T25377293 Grandfathered in
  *	- Pulled in rol32() from linux/bitops.h
  *	- Use stdint fixed-width types instead of kernel shorthand types
  *	- Deleted unaligned jhash() because we don't use it and C++ hates it.

@@ -22,6 +22,7 @@
 #include "include/threads.h"
 
 struct tctl {
+ // @lint-ignore TXT2 T25377293 Grandfathered in
 	int nr_listeners;
 	int nr_workers;
 	struct ncrx_listener *listeners;

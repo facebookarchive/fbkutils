@@ -14,6 +14,7 @@
 
 #include <inttypes.h>
 
+// @lint-ignore TXT2 T25377293 Grandfathered in
 #define NCRX_LINE_MAX		8192
 
 /* max payload len for responses, this is what netconsole uses on tx side */
