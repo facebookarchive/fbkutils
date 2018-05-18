@@ -71,6 +71,34 @@ class TestJSONParser(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.parser.parse(['garbage'], output, 1)
 
+    def test_parse_with_surrounding_garbage(self):
+        output = [
+            '',
+            '{ json-like looking part } }'
+            'some garbage here',
+            '{"hello": "world", "x": 42}',
+            'some other unreachable garbage',
+            '{ some other json like thing }',
+            '[ another ]'
+        ]
+        metrics = self.parser.parse(output, ['garbage'], 0)
+        self.assertDictEqual({'hello': 'world', 'x': 42}, metrics)
+        metrics = self.parser.parse(['garbage'], output, 0)
+        self.assertDictEqual({'hello': 'world', 'x': 42}, metrics)
+
+    def test_two_or_more_valid_json_snippets(self):
+        output = [
+            '',
+            '{"hello": "world", "x": 42}',
+            'some other unreachable garbage',
+            '{ "another valid": "json", "but": "should not be returned" }',
+            '[ "another", "valid", "section" ]'
+        ]
+        metrics = self.parser.parse(output, ['garbage'], 0)
+        self.assertDictEqual({'hello': 'world', 'x': 42}, metrics)
+        metrics = self.parser.parse(['garbage'], output, 0)
+        self.assertDictEqual({'hello': 'world', 'x': 42}, metrics)
+
 
 if __name__ == '__main__':
     unittest.main()
