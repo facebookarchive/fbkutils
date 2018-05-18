@@ -12,6 +12,7 @@
 
 #include "threads.h"
 
+// @lint-ignore TXT2 T25377293 Grandfathered in
 #define RCVBUF_SIZE	1024
 
 struct ncrx_worker;

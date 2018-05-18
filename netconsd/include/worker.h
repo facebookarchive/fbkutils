@@ -23,6 +23,7 @@ struct hashtable;
 struct timerlist;
 
 struct ncrx_worker {
+ // @lint-ignore TXT2 T25377293 Grandfathered in
 	struct msgbuf *queue_head;
 	struct msgbuf *queue_tail;
 

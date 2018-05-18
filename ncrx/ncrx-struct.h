@@ -11,6 +11,7 @@
 #define __NETCONSOLE_NCRX_STRUCT__
 
 struct ncrx_list {
+ // @lint-ignore TXT2 T25377293 Grandfathered in
 	struct ncrx_list	*next;
 	struct ncrx_list	*prev;
 };
