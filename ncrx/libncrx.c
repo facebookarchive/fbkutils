@@ -325,15 +325,6 @@ static void slot_maybe_complete(struct ncrx_slot *slot)
 		return;
 
 	list_del(&slot->hole_node);
-
-	msg->dict = strchr(msg->text, '\n');
-	if (msg->dict) {
-		int len = msg->text_len;
-		msg->text_len = msg->dict - msg->text;
-		msg->text[msg->text_len] = '\0';
-		msg->dict_len = len - msg->text_len - 1;
-		msg->dict++;
-	}
 }
 
 /* retire the last queued slot whether complete or not */
@@ -712,9 +703,27 @@ const char *ncrx_response(struct ncrx *ncrx, int *lenp)
 	return NULL;
 }
 
+/* parse out the dictionary in a complete message, if it exists */
+static void terminate_msg_and_dict(struct ncrx_msg *msg)
+{
+	msg->dict = strchr(msg->text, '\n');
+	if (msg->dict) {
+		int len = msg->text_len;
+		msg->text_len = msg->dict - msg->text;
+		msg->text[msg->text_len] = '\0';
+		msg->dict_len = len - msg->text_len - 1;
+		msg->dict++;
+	}
+}
+
 struct ncrx_msg *ncrx_next_msg(struct ncrx *ncrx)
 {
-	return msg_list_pop(&ncrx->retired_list);
+	struct ncrx_msg *msg = msg_list_pop(&ncrx->retired_list);
+
+	if (msg)
+		terminate_msg_and_dict(msg);
+
+	return msg;
 }
 
 uint64_t ncrx_invoke_process_at(struct ncrx *ncrx)
