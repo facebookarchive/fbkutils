@@ -10,6 +10,7 @@ import errno
 import logging
 import subprocess
 from subprocess import CalledProcessError
+import sys
 
 from .hook_factory import HookFactory
 from .parser_factory import ParserFactory
@@ -55,6 +56,11 @@ class Job(object):
         self.parser = ParserFactory.create(config['parser'])
         self.check_returncode = config.get('check_returncode', True)
         self.timeout = config.get('timeout', None)
+        # if tee_output is True, the stdout and stderr commands of the child
+        # process will be copied onto the stdout and stderr of benchpress
+        # if this option is a string, the output will be written to the file
+        # named by this value
+        self.tee_output = config.get('tee_output', False)
 
         self.hooks = config.get('hooks', [])
         self.hooks = [
@@ -103,6 +109,22 @@ class Job(object):
                 output = 'stdout:\n{}\nstderr:\n{}'.format(stdout, stderr)
                 cmd = ' '.join(cmd)
                 raise CalledProcessError(process.returncode, cmd, output)
+
+            # optionally copy stdout/err of the child process to our own
+            if self.tee_output:
+                # default to stdout if no filename given
+                tee = sys.stdout
+                # if a file was specified, write to that file instead
+                if isinstance(self.tee_output, str):
+                    tee = open(self.tee_output, 'w')
+                # do this so each line is prefixed with stdout
+                for line in stdout.splitlines():
+                    tee.write(f'stdout: {line}\n')
+                for line in stderr.splitlines():
+                    tee.write(f'stderr: {line}\n')
+                # close the output if it was a file
+                if tee != sys.stdout:
+                    tee.close()
 
             logger.info('Parsing results for "{}"'.format(self.name))
             try:
