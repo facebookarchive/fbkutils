@@ -26,3 +26,9 @@ silo:
     - latency:
         - avg_latency
 
+graph500_omp_csr:
+  parser: graph500
+  path: ./benchmarks/graph500/omp-csr
+  metrics:
+    - harmonic_mean_TEPS
+    - harmonic_stddev_TEPS

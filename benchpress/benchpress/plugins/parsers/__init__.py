@@ -8,6 +8,7 @@
 
 from .fio import FioParser
 from .generic import JSONParser
+from .graph500 import Graph500Parser
 from .ltp import LtpParser
 from .returncode import ReturncodeParser
 from .schbench import SchbenchParser
@@ -16,6 +17,7 @@ from .silo import SiloParser
 
 def register_parsers(factory):
     factory.register('fio', FioParser)
+    factory.register('graph500', Graph500Parser)
     factory.register('json', JSONParser)
     factory.register('ltp', LtpParser)
     factory.register('returncode', ReturncodeParser)

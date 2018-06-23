@@ -1,5 +1,5 @@
 - benchmark: schbench
-  name: schbench default 
+  name: schbench default
   description: defaults for schbench
   args:
     message-threads: 2
@@ -72,3 +72,8 @@
     scale-factor: 1
     runtime: 1
 
+- benchmark: graph500_omp_csr
+  name: graph500_omp_csr
+  description: Graph500 OpenMP Compressed-Sparse-Row
+  args:
+    - -s 20
