@@ -10,6 +10,9 @@ from collections import defaultdict
 import subprocess
 import unittest
 from unittest.mock import MagicMock, call
+import sys
+import tempfile
+import os
 
 from benchpress.lib.job import Job, JobSuite
 from benchpress.lib.hook_factory import HookFactory
@@ -121,6 +124,63 @@ class TestJob(unittest.TestCase):
 
         with self.assertRaises(subprocess.TimeoutExpired):
             job.run()
+
+    def test_tee_stdouterr(self):
+        """tee_output option works correctly
+
+        With tee_option=True, the job should print the subprocess stdout lines
+        starting with 'stdout:' and stderr starting with 'stderr:'"""
+        mock_data = 'line 1 from echo\nthis is the second line'
+        self.job_config['args'] = [mock_data]
+        self.job_config['metrics'] = ['key']
+        self.job_config['tee_output'] = True
+
+        self.mock_benchmark['path'] = 'echo'
+        self.mock_parser.parse.return_value = {'key': 'hello'}
+
+        job = Job(self.job_config, self.mock_benchmark)
+        job.run()
+
+        expected = 'stdout: line 1 from echo\nstdout: this is the second line\n'
+        self.assertEqual(sys.stdout.getvalue(), expected)
+
+        # test with stderr and stdout
+        # first reset stdout string
+        sys.stdout.truncate(0)
+        sys.stdout.seek(0)
+
+        self.mock_benchmark['path'] = 'sh'
+        self.job_config['args'] = ['-c',
+                                   'echo "error" >&2 && echo "from stdout"']
+        self.job_config['tee_output'] = True
+
+        job = Job(self.job_config, self.mock_benchmark)
+        job.run()
+
+        expected = 'stdout: from stdout\nstderr: error\n'
+        self.assertEqual(sys.stdout.getvalue(), expected)
+
+    def test_tee_output_file(self):
+        """tee_output can write to file."""
+        mock_data = 'line 1 from echo\nthis is the second line'
+        self.job_config['args'] = [mock_data]
+        self.job_config['metrics'] = ['key']
+
+        fd, teefile = tempfile.mkstemp()
+        os.close(fd)
+
+        self.mock_benchmark['path'] = 'sh'
+        self.job_config['args'] = ['-c',
+                                   'echo "error" >&2 && echo "from stdout"']
+        self.job_config['tee_output'] = teefile
+
+        job = Job(self.job_config, self.mock_benchmark)
+        job.run()
+
+        expected = 'stdout: from stdout\nstderr: error\n'
+        with open(teefile, 'r') as tmp:
+            self.assertEqual(tmp.read(), expected)
+        os.remove(teefile)
 
     def test_hooks(self):
         """Job runs hooks before/after in stack order"""
