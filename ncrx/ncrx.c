@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 {
 	char buf[NCRX_LINE_MAX + 1];
 	struct ncrx *ncrx;
-	struct sockaddr_in laddr = { };
+	struct sockaddr_in6 laddr = { };
 	uint64_t next_seq = 0, next_at = UINT64_MAX, now;
 	int prev_cont = 0;
 	int fd;
@@ -35,15 +35,15 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	fd = socket(AF_INET6, SOCK_DGRAM, 0);
 	if (fd < 0) {
 		perror("socket");
 		return 1;
 	}
 
-	laddr.sin_family = AF_INET;
-	laddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	laddr.sin_port = htons(atoi(argv[1]));
+	laddr.sin6_family = AF_INET6;
+	laddr.sin6_addr = in6addr_any;
+	laddr.sin6_port = htons(atoi(argv[1]));
 
 	if (bind(fd, (struct sockaddr *)&laddr, sizeof(laddr)) < 0) {
 		perror("bind");
