@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, call
 import sys
 import tempfile
 import os
+import io
 
 from benchpress.lib.job import Job, JobSuite
 from benchpress.lib.hook_factory import HookFactory
@@ -139,6 +140,11 @@ class TestJob(unittest.TestCase):
         self.mock_parser.parse.return_value = {'key': 'hello'}
 
         job = Job(self.job_config, self.mock_benchmark)
+        # capture stdout/err
+        orig_stdout, orig_stderr = sys.stdout, sys.stderr
+        sys.stdout = io.StringIO()
+        sys.stderr = io.StringIO()
+
         job.run()
 
         expected = 'stdout: line 1 from echo\nstdout: this is the second line\n'
@@ -159,6 +165,10 @@ class TestJob(unittest.TestCase):
 
         expected = 'stdout: from stdout\nstderr: error\n'
         self.assertEqual(sys.stdout.getvalue(), expected)
+
+        sys.stdout = orig_stdout
+        sys.stderr = orig_stderr
+
 
     def test_tee_output_file(self):
         """tee_output can write to file."""
