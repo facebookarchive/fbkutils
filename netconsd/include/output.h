@@ -20,6 +20,6 @@ int register_output_module(char *path, int nr_workers);
 void destroy_output_modules(void);
 
 void execute_output_pipeline(int thread_nr, struct in6_addr *src,
-		struct msgbuf *buf, struct ncrx_msg *msg);
+		struct msg_buf *buf, struct ncrx_msg *msg);
 
 #endif /* __OUTPUT_H__ */

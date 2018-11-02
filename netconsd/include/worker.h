@@ -23,8 +23,8 @@ struct hashtable;
 struct timerlist;
 
 struct ncrx_worker {
-	struct msgbuf *queue_head;
-	struct msgbuf *queue_tail;
+	struct msg_buf *queue_head;
+	struct msg_buf *queue_tail;
 
 	pthread_t id;
 	pthread_condattr_t condattr;

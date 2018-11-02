@@ -17,8 +17,8 @@
 struct ncrx_worker;
 
 struct ncrx_prequeue {
-	struct msgbuf *queue_head;
-	struct msgbuf *queue_tail;
+	struct msg_buf *queue_head;
+	struct msg_buf *queue_tail;
 	int count;
 };
 

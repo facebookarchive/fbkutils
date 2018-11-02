@@ -23,8 +23,8 @@
 
 struct ncrx_msg;
 
-struct msgbuf {
-	struct msgbuf *next;
+struct msg_buf {
+	struct msg_buf *next;
 
 	struct iovec iovec;
 	struct sockaddr_in6 src;
@@ -38,6 +38,6 @@ struct msgbuf {
 __cpp int netconsd_output_init(int nr_workers);
 __cpp void netconsd_output_exit(void);
 __cpp void netconsd_output_handler(int t, struct in6_addr *src,
-				   struct msgbuf *b, struct ncrx_msg *m);
+				   struct msg_buf *b, struct ncrx_msg *m);
 
 #endif /* __MSGBUF_STRUCT_H__ */

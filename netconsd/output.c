@@ -23,7 +23,7 @@
 #include "include/output.h"
 
 static void *output_dlhandles[MAXOUTS];
-static void (*outputs[MAXOUTS])(int, struct in6_addr *, struct msgbuf *,
+static void (*outputs[MAXOUTS])(int, struct in6_addr *, struct msg_buf *,
 		struct ncrx_msg *);
 static int nr_outputs;
 
@@ -97,7 +97,7 @@ void destroy_output_modules(void)
 }
 
 void execute_output_pipeline(int thread_nr, struct in6_addr *src,
-		struct msgbuf *buf, struct ncrx_msg *msg)
+		struct msg_buf *buf, struct ncrx_msg *msg)
 {
 	int i;
 

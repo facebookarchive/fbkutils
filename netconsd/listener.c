@@ -39,9 +39,9 @@ static void handle_listen_error(int err)
 	}
 }
 
-static struct msgbuf *msgbuf_from_iovec(struct iovec *vecptr)
+static struct msg_buf *msgbuf_from_iovec(struct iovec *vecptr)
 {
-	return container_of(vecptr, struct msgbuf, iovec);
+	return container_of(vecptr, struct msg_buf, iovec);
 }
 
 static unsigned long hash_srcaddr(struct in6_addr *addr)
@@ -51,7 +51,7 @@ static unsigned long hash_srcaddr(struct in6_addr *addr)
 	return jhash2(addrptr, sizeof(*addr) / sizeof(*addrptr), LISTEN_SEED);
 }
 
-static void prequeue_msgbuf(struct ncrx_listener *listener, struct msgbuf *buf)
+static void prequeue_msgbuf(struct ncrx_listener *listener, struct msg_buf *buf)
 {
 	struct ncrx_prequeue *prequeue;
 	unsigned long hash;
@@ -70,7 +70,7 @@ static void prequeue_msgbuf(struct ncrx_listener *listener, struct msgbuf *buf)
 
 static void reinit_mmsghdr_vec(struct mmsghdr *vec, int nr, int rcvbufsz)
 {
-	struct msgbuf *cur;
+	struct msg_buf *cur;
 	int i;
 
 	memset(vec, 0, sizeof(*vec) * nr);
@@ -107,7 +107,7 @@ static struct mmsghdr *alloc_mmsghdr_vec(int nr, int rcvbufsz)
 
 static void free_mmsghdr_vec(struct mmsghdr *vec, int nr)
 {
-	struct msgbuf *cur;
+	struct msg_buf *cur;
 	int i;
 
 	for (i = 0; i < nr; i++) {
@@ -143,7 +143,7 @@ void *udp_listener_thread(void *arg)
 	uint64_t now;
 	struct ncrx_listener *us = arg;
 	struct mmsghdr *vec;
-	struct msgbuf *cur;
+	struct msg_buf *cur;
 
 	fd = get_listen_socket(us->address);
 	vec = alloc_mmsghdr_vec(us->batch, RCVBUF_SIZE);

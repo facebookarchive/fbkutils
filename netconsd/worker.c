@@ -477,7 +477,7 @@ out:
 	return now;
 }
 
-static void consume_msgbuf(struct ncrx_worker *cur, struct msgbuf *buf)
+static void consume_msgbuf(struct ncrx_worker *cur, struct msg_buf *buf)
 {
 	struct bucket *ncrx_bucket;
 
@@ -502,9 +502,9 @@ static void consume_msgbuf(struct ncrx_worker *cur, struct msgbuf *buf)
 	execute_output_pipeline(cur->thread_nr, &ncrx_bucket->src, buf, NULL);
 }
 
-static struct msgbuf *grab_prequeue(struct ncrx_worker *cur)
+static struct msg_buf *grab_prequeue(struct ncrx_worker *cur)
 {
-	struct msgbuf *ret;
+	struct msg_buf *ret;
 
 	assert_pthread_mutex_locked(&cur->queuelock);
 	ret = cur->queue_head;
@@ -516,7 +516,7 @@ static struct msgbuf *grab_prequeue(struct ncrx_worker *cur)
 void *ncrx_worker_thread(void *arg)
 {
 	struct ncrx_worker *cur = arg;
-	struct msgbuf *curbuf, *tmp;
+	struct msg_buf *curbuf, *tmp;
 	uint64_t lastrun = now_mono_ms();
 	int nr_dequeued;
 
