@@ -46,6 +46,11 @@
  *	A missing message expires after this period and the sequence number
  *	will be skipped in the output.
  *
+ * cont_msg_timeout
+ *	If cont_merging_enabled is true, when waiting for completion of a CONT
+ *	sequence, we will finalise reassembly of the CONT message without a clear
+ *	ending message after this period.
+ *
  * oos_thr
  *	Among last 32 message, if more than this number of messages are
  *	out-of-order, the message stream is reset.
@@ -57,6 +62,11 @@
  * oos_timeout
  *	If sequence is not reset in this period after reception of an
  *	out-of-order message, the message is output.
+ *
+ * cont_merging_enabled
+ *  Enable merging subsequent text of CONT sequences into the first packet.
+ *  This will introduce an extra delay of cont_msg_timeout extra ms to allow
+ *  time to receive further CONT packets.
  */
 struct ncrx_param {
 	int			nr_slots;
@@ -65,10 +75,13 @@ struct ncrx_param {
 	int			retx_intv;
 	int			retx_stride;
 	int			msg_timeout;
+	int			cont_msg_timeout;
 
 	int			oos_thr;
 	int			oos_intv;
 	int			oos_timeout;
+
+	int			cont_merging_enabled;
 };
 
 /* default params */
@@ -79,10 +92,13 @@ struct ncrx_param {
 #define NCRX_DFL_RETX_INTV	1000
 #define NCRX_DFL_RETX_STRIDE	256
 #define NCRX_DFL_MSG_TIMEOUT	30000
+#define NCRX_DFL_CONT_MSG_TIMEOUT	10000
 
 #define NCRX_DFL_OOS_THR	(32 * 3 / 5)			/* 19 */
 #define NCRX_DFL_OOS_INTV	5000
 #define NCRX_DFL_OOS_TIMEOUT	NCRX_DFL_MSG_TIMEOUT
+
+#define NCRX_DFL_CONT_MERGING_ENABLED	1
 
 /*
  * A ncrx instance is created by ncrx_create() and destroyed by

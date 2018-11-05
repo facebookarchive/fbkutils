@@ -120,7 +120,6 @@ static void write_log(struct logtarget& tgt, struct msgbuf *buf,
 	else
 		dprintf(tgt.fd, "%06lu %014lu %d %d %s%s%s%s%s\n", msg->seq,
 			msg->ts_usec, msg->facility, msg->level,
-			msg->cont_start ? "[CONT START] " : "",
 			msg->cont ? "[CONT] " : "",
 			msg->oos ? "[OOS] ": "",
 			msg->seq_reset ? "[SEQ RESET] " : "",

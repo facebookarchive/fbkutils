@@ -41,10 +41,10 @@ struct ncrx_msg {
 
 	uint8_t			facility;	/* log facility */
 	uint8_t			level;		/* printk level */
-	unsigned		cont_start:1;	/* first of continued msgs */
 	unsigned		cont:1;		/* continuation of prev msg */
 	unsigned		oos:1;		/* sequence out-of-order */
 	unsigned		seq_reset:1;	/* sequence reset */
+	unsigned		cont_merged:1;	/* blanked continuation of prev msg to preserve sequence */
 
 	/* private fields */
 	struct ncrx_list	node;

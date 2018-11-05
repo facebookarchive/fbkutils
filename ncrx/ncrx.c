@@ -143,8 +143,7 @@ int main(int argc, char **argv)
 
 			printf("%s", msg->text);
 
-			prev_cont = msg->cont_start || msg->cont;
-			if (!prev_cont)
+			if (!msg->cont)
 				printf("\n");
 		}
 

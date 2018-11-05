@@ -40,7 +40,6 @@ void netconsd_output_handler(int t, struct in6_addr *src, struct msgbuf *buf,
 	else
 		printf("%40s: S%06lu T%014lu F%d/L%d %s%s%s%s%s\n", addr,
 			msg->seq, msg->ts_usec, msg->facility, msg->level,
-			msg->cont_start ? "[CONT START] " : "",
 			msg->cont ? "[CONT] " : "",
 			msg->oos ? "[OOS] ": "",
 			msg->seq_reset ? "[SEQ RESET] " : "",

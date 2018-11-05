@@ -25,6 +25,7 @@
 
 /* oos history is tracked with a uint32_t */
 #define NCRX_OOS_MAX		32
+#define NCRX_CONT_REALLOC_SIZE		NCRX_LINE_MAX
 
 struct ncrx_msg_list {
 	struct ncrx_list	head;
@@ -69,10 +70,13 @@ static const struct ncrx_param ncrx_dfl_param = {
 	.retx_intv		= NCRX_DFL_RETX_INTV,
 	.retx_stride		= NCRX_DFL_RETX_STRIDE,
 	.msg_timeout		= NCRX_DFL_MSG_TIMEOUT,
+	.cont_msg_timeout	= NCRX_DFL_CONT_MSG_TIMEOUT,
 
 	.oos_thr		= NCRX_DFL_OOS_THR,
 	.oos_intv		= NCRX_DFL_OOS_INTV,
 	.oos_timeout		= NCRX_DFL_OOS_TIMEOUT,
+
+	.cont_merging_enabled		= NCRX_DFL_CONT_MERGING_ENABLED,
 };
 
 /* utilities mostly stolen from kernel */
@@ -240,10 +244,10 @@ static int parse_packet(const char *payload, struct ncrx_msg *msg)
 			msg->ts_usec = v;
 			continue;
 		case 3:
-			if (tok[0] == 'c')
-				msg->cont_start = 1;
-			else if (tok[0] == '+')
+			if (tok[0] == 'c') {
 				msg->cont = 1;
+				msg->cont_merged = 0;
+			}
 			continue;
 		}
 
@@ -713,17 +717,96 @@ static void terminate_msg_and_dict(struct ncrx_msg *msg)
 		msg->text[msg->text_len] = '\0';
 		msg->dict_len = len - msg->text_len - 1;
 		msg->dict++;
+	} else {
+		msg->dict_len = 0;
 	}
 }
 
 struct ncrx_msg *ncrx_next_msg(struct ncrx *ncrx)
 {
-	struct ncrx_msg *msg = msg_list_pop(&ncrx->retired_list);
+	struct ncrx_msg *start_msg, *next_msg;
+	uint64_t last_seen_cont_seq = 0;
 
-	if (msg)
-		terminate_msg_and_dict(msg);
+	start_msg = msg_list_peek(&ncrx->retired_list);
+	if (!start_msg) {
+		return NULL;
+	}
 
-	return msg;
+	last_seen_cont_seq = start_msg->seq;
+
+	/* If strlen(start_msg->text) is 0, this was already part of a CONT
+	 * sequence we merged so we don't need to consider it for further merging
+	 */
+	if (!ncrx->p.cont_merging_enabled || !strlen(start_msg->text)) {
+		msg_list_del(start_msg, &ncrx->retired_list);
+		terminate_msg_and_dict(start_msg);
+		return start_msg;
+	}
+
+	if (start_msg->rx_at_mono + ncrx->p.cont_msg_timeout > ncrx->now_mono) {
+		/* It's possible that any message might be appended to by a CONT
+		 * message, so wait a while to see if one will appear to merge.
+		 */
+		return NULL;
+	}
+
+	/* Ok, we've waited long enough for this packet. Grab all of the CONTs next
+	 * in the queue and merge them with this message.
+	 */
+	msg_list_del(start_msg, &ncrx->retired_list);
+	terminate_msg_and_dict(start_msg);
+
+	next_msg = msg_list_peek(&ncrx->retired_list);
+	if (next_msg && next_msg->cont && next_msg->seq == start_msg->seq + 1) {
+		/* We start with no space free due to using the memory allocated in
+		 * copy_msg, make it as large as possible so as to avoid repeatedly
+		 * having to realloc
+		 */
+		if (!(start_msg->text = realloc(start_msg->text, NCRX_CONT_REALLOC_SIZE))) {
+			return NULL;
+		}
+
+		if (start_msg->dict) {
+			start_msg->dict = memmove(
+				start_msg->text + NCRX_CONT_REALLOC_SIZE - start_msg->dict_len - 1,
+				start_msg->dict,
+				start_msg->dict_len
+			);
+			start_msg->text[NCRX_CONT_REALLOC_SIZE - 1] = '\0';
+		}
+	}
+
+	while (next_msg && next_msg->cont && next_msg->seq == last_seen_cont_seq + 1) {
+		int num_bytes_to_copy;
+
+		terminate_msg_and_dict(next_msg);
+		num_bytes_to_copy = next_msg->text_len;
+
+		if (start_msg->text_len + start_msg->dict_len +
+			next_msg->text_len >= NCRX_CONT_REALLOC_SIZE - 1) {
+			/* We're going to overflow, clamp to max */
+			num_bytes_to_copy = NCRX_CONT_REALLOC_SIZE - 1 -
+								start_msg->text_len - start_msg->dict_len;
+		}
+
+		memcpy(start_msg->text + start_msg->text_len,
+			   next_msg->text,
+			   num_bytes_to_copy);
+		start_msg->text_len += num_bytes_to_copy;
+
+		/* We can't throw out the CONT messages after merging because then
+		 * there would be artificial holes in the sequence. Instead, just zero
+		 * out messages already returned.
+		 */
+		memset(next_msg->text, 0, next_msg->text_len + next_msg->dict_len);
+		next_msg->cont_merged = 1;
+
+		next_msg = node_to_msg(next_msg->node.next);
+		last_seen_cont_seq = next_msg->seq;
+	}
+	start_msg->text[start_msg->text_len] = '\0';
+
+	return start_msg;
 }
 
 uint64_t ncrx_invoke_process_at(struct ncrx *ncrx)
@@ -746,6 +829,11 @@ uint64_t ncrx_invoke_process_at(struct ncrx *ncrx)
 	/* oos timeout */
 	if ((msg = msg_list_peek(&ncrx->oos_list)))
 		when = min(when, msg->rx_at_mono + ncrx->p.oos_timeout);
+
+	/* cont reassembly timeout */
+	if ((msg = msg_list_peek(&ncrx->retired_list))) {
+		when = min(when, msg->rx_at_mono + ncrx->p.cont_msg_timeout);
+	}
 
 	/* min 10ms intv to avoid busy loop in case something goes bonkers */
 	return max(when, ncrx->now_mono + 10);
@@ -770,10 +858,14 @@ struct ncrx *ncrx_create(const struct ncrx_param *param)
 		p->retx_intv	= param->retx_intv	?: dfl->retx_intv;
 		p->retx_stride	= param->retx_stride	?: dfl->retx_stride;
 		p->msg_timeout	= param->msg_timeout	?: dfl->msg_timeout;
+		p->cont_msg_timeout	= param->cont_msg_timeout	?: dfl->cont_msg_timeout;
 
 		p->oos_thr	= param->oos_thr	?: dfl->oos_thr;
 		p->oos_intv	= param->oos_intv	?: dfl->oos_intv;
 		p->oos_timeout	= param->oos_timeout	?: dfl->oos_timeout;
+
+		p->cont_merging_enabled	=
+			param->cont_merging_enabled	?: dfl->cont_merging_enabled;
 	} else {
 		*p = *dfl;
 	}
