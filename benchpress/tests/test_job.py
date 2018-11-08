@@ -126,6 +126,22 @@ class TestJob(unittest.TestCase):
         with self.assertRaises(subprocess.TimeoutExpired):
             job.run()
 
+    def test_run_timeout_is_pass(self):
+        """Binary running past timeout raises an error"""
+        self.job_config['timeout'] = 0.1
+        self.job_config['timeout_is_pass'] = True
+        self.mock_benchmark['path'] = '/bin/sh'
+        self.job_config['args'] = \
+            ['-c', 'echo "wow" && echo "err" > /dev/stderr && sleep 2']
+
+        self.mock_parser.parse.return_value = {'success': 'True'}
+
+        job = Job(self.job_config, self.mock_benchmark)
+
+        job.run()
+
+        self.mock_parser.parse.assert_called_with(['wow'], ['err'], 0)
+
     def test_tee_stdouterr(self):
         """tee_output option works correctly
 
