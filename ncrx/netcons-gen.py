@@ -61,7 +61,7 @@ ARG_TO_MODE_MAP = {"reset": Mode.RESET, "skip": Mode.SKIP}
 
 def make_dictionary_string(msg):
     """Format X=Y\0X=Y, no trailing \0"""
-    return "\0".join("{}={}".format(k, v) for k, v in msg.items())
+    return "\n".join("{}={}".format(k, v) for k, v in msg.items())
 
 
 def make_ext_header(seq, facility, level, cont):
@@ -74,17 +74,16 @@ def make_ext_header(seq, facility, level, cont):
     return "{},{},{},{};".format(faclev, seq, ts_usec, "c" if cont else "-")
 
 
-def _body_escape(text):
-    return text.replace("\0", "\n")
-
-
 def make_ext_body(text, dict_str):
     """
     See printk.c's msg_print_ext_body for format spec.
 
     Escaping of unprintables is currently unimplemented.
     """
-    return "{}\n{}".format(_body_escape(text), _body_escape(dict_str))
+    out = text
+    if dict_str:
+        out += "\n{}".format(dict_str)
+    return out
 
 
 def make_netcons_msg(
@@ -96,7 +95,7 @@ def make_netcons_msg(
     meta_dict=None,
 ):
     if meta_dict is None:
-        meta_dict = {"DICT": "test"}
+        meta_dict = {}
 
     dict_str = make_dictionary_string(meta_dict)
 
@@ -117,6 +116,12 @@ def parse_args():
     parser.add_argument(
         "--cont", action="store_true", help="Randomly insert LOG_CONT messages"
     )
+    parser.add_argument(
+        "--dict",
+        dest="dict_",
+        action="store_true",
+        help="Randomly choose to omit or include dicts",
+    )
     return parser.parse_args()
 
 
@@ -131,12 +136,12 @@ if __name__ == "__main__":
 
     seq = 0
     cont = False
+    meta_dict_def = {"UNAME": "it's minix i swear", "FOO": "bar"}
+    meta_dict = meta_dict_def
 
     while True:
         print(
-            make_netcons_msg(
-                seq=seq, text="hi", meta_dict={"UNAME": "it's minix i swear"}, cont=cont
-            ),
+            make_netcons_msg(seq=seq, text="hi", meta_dict=meta_dict, cont=cont),
             flush=True,
         )
 
@@ -152,8 +157,14 @@ if __name__ == "__main__":
         if args.cont:
             cont = random.choice([True, False])
 
+        meta_dict = meta_dict_def
+        if args.dict_ and random.choice([True, False]):
+            meta_dict = {}
+
         print(
-            "seq: {} -> {}, mode: {}, cont: {}".format(seq, new_seq, chosen_mode, cont),
+            "seq: {} -> {}, mode: {}, cont: {}, dict: {!r}".format(
+                seq, new_seq, chosen_mode, cont, meta_dict
+            ),
             file=sys.stderr,
         )
         seq = new_seq
