@@ -29,7 +29,7 @@ void netconsd_output_exit(void)
 /*
  * This is the actual function called by netconsd.
  */
-void netconsd_output_handler(int t, struct in6_addr *src, struct msgbuf *buf,
+void netconsd_output_handler(int t, struct in6_addr *src, struct msg_buf *buf,
 		struct ncrx_msg *msg)
 {
 	char addr[INET6_ADDRSTRLEN] = {0};

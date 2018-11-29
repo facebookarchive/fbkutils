@@ -112,7 +112,7 @@ static struct logtarget& get_target(int thread_nr, struct in6_addr *src)
 /*
  * Actually write the line to the file
  */
-static void write_log(struct logtarget& tgt, struct msgbuf *buf,
+static void write_log(struct logtarget& tgt, struct msg_buf *buf,
 		struct ncrx_msg *msg)
 {
 	if (!msg)
@@ -142,7 +142,7 @@ extern "C" void netconsd_output_exit(void)
  * This is the actual function called by netconsd.
  */
 extern "C" void netconsd_output_handler(int t, struct in6_addr *src,
-		struct msgbuf *buf, struct ncrx_msg *msg)
+		struct msg_buf *buf, struct ncrx_msg *msg)
 {
 	struct logtarget& cur = get_target(t, src);
 	write_log(cur, buf, msg);
