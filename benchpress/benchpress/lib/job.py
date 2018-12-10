@@ -99,16 +99,52 @@ class Job(object):
         try:
             logger.info('Starting "{}"'.format(self.name))
             cmd = [self.binary] + self.args
-            process = subprocess.run(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                check=False, timeout=self.timeout, encoding='utf-8',
-            )
-            stdout, stderr = process.stdout, process.stderr
-            returncode = process.returncode
+            try:
+                process = subprocess.run(
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    check=False, timeout=self.timeout, encoding='utf-8',
+                )
+            except TimeoutExpired as e:
+                stdout, stderr = e.stdout, e.stderr
+                if not self.timeout_is_pass:
+                    logger.error('Job timed out\n'
+                        'stdout:\n{}\nstderr:\n{}'.format(stdout, stderr))
+                    raise
+                returncode = 0
+            else:
+                stdout, stderr = process.stdout, process.stderr
+                returncode = process.returncode
             if self.check_returncode and returncode != 0:
                 output = 'stdout:\n{}\nstderr:\n{}'.format(stdout, stderr)
                 cmd = ' '.join(cmd)
                 raise CalledProcessError(process.returncode, cmd, output)
+
+            # optionally copy stdout/err of the child process to our own
+            if self.tee_output:
+                # default to stdout if no filename given
+                tee = sys.stdout
+                # if a file was specified, write to that file instead
+                if isinstance(self.tee_output, str):
+                    tee = open(self.tee_output, 'w')
+                # do this so each line is prefixed with stdout
+                for line in stdout.splitlines():
+                    tee.write(f'stdout: {line}\n')
+                for line in stderr.splitlines():
+                    tee.write(f'stderr: {line}\n')
+                # close the output if it was a file
+                if tee != sys.stdout:
+                    tee.close()
+
+            logger.info('Parsing results for "{}"'.format(self.name))
+            try:
+                return self.parser.parse(stdout.splitlines(),
+                                         stderr.splitlines(), returncode)
+            except Exception:
+                logger.error('Failed to parse results, this might mean the'
+                             ' benchmark failed')
+                logger.error('stdout:\n{}'.format(stdout))
+                logger.error('stderr:\n{}'.format(stderr))
+                raise
         except OSError as e:
             logger.error('"{}" failed ({})'.format(self.name, e))
             if e.errno == errno.ENOENT:
@@ -117,52 +153,11 @@ class Job(object):
         except CalledProcessError as e:
             logger.error(e.output)
             raise  # make sure it passes the exception up the chain
-        except TimeoutExpired as e:
-            stdout, stderr = e.stdout, e.stderr
-            # if this test is declared as passing if the timeout expires, grab
-            # the output, otherwise re-raise the exception
-            if not self.timeout_is_pass:
-                logger.error('Job timed out\n'
-                    'stdout:\n{}\nstderr:\n{}'.format(stdout, stderr))
-                raise
-            # set so that parsers can see that this command passed even if the
-            # process timed out
-            returncode = 0
         finally:
             logger.info('Running cleanup hooks for "{}"'.format(self.name))
             # run hooks in reverse this time so it operates like a stack
             for hook, opts in reversed(self.hooks):
                 hook.after_job(opts, self)
-
-        # process the job output here after handling all the exceptions gso
-        # that we can treat timeouts as success if necessary
-
-        # optionally copy stdout/err of the child process to our own
-        if self.tee_output:
-            # default to stdout if no filename given
-            tee = sys.stdout
-            # if a file was specified, write to that file instead
-            if isinstance(self.tee_output, str):
-                tee = open(self.tee_output, 'w')
-            # do this so each line is prefixed with stdout
-            for line in stdout.splitlines():
-                tee.write(f'stdout: {line}\n')
-            for line in stderr.splitlines():
-                tee.write(f'stderr: {line}\n')
-            # close the output if it was a file
-            if tee != sys.stdout:
-                tee.close()
-
-        logger.info('Parsing results for "{}"'.format(self.name))
-        try:
-            return self.parser.parse(stdout.splitlines(),
-                                     stderr.splitlines(), returncode)
-        except Exception:
-            logger.error('Failed to parse results, this might mean the'
-                         ' benchmark failed')
-            logger.error('stdout:\n{}'.format(stdout))
-            logger.error('stderr:\n{}'.format(stderr))
-            raise
 
     @property
     def safe_name(self):
