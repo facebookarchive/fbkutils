@@ -6,9 +6,9 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
-from abc import ABCMeta, abstractmethod
 import json
 import sys
+from abc import ABCMeta, abstractmethod
 
 
 class Reporter(object, metaclass=ABCMeta):
@@ -34,6 +34,7 @@ class Reporter(object, metaclass=ABCMeta):
 
 class StdoutReporter(Reporter):
     """Default reporter implementation, logs a JSON object to stdout."""
+
     def report(self, job, metrics):
         """Log JSON report to stdout.
         Attempt to detect whether a real person is running the program then
@@ -45,7 +46,7 @@ class StdoutReporter(Reporter):
             json.dump(metrics, sys.stdout, sort_keys=True, indent=2)
         else:
             json.dump(metrics, sys.stdout)
-        sys.stdout.write('\n')
+        sys.stdout.write("\n")
 
     def close(self):
         pass

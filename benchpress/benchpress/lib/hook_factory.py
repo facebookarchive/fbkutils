@@ -6,10 +6,11 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
+from benchpress.plugins.hooks import register_hooks
+
 from .factory import BaseFactory
 from .hook import Hook
 
-from benchpress.plugins.hooks import register_hooks
 
 HookFactory = BaseFactory(Hook)
 

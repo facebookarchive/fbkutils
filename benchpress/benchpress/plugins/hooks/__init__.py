@@ -12,6 +12,6 @@ from .shell import ShellHook
 
 
 def register_hooks(factory):
-    factory.register('cpu-limit', CpuLimit)
-    factory.register('file', FileHook)
-    factory.register('shell', ShellHook)
+    factory.register("cpu-limit", CpuLimit)
+    factory.register("file", FileHook)
+    factory.register("shell", ShellHook)

@@ -12,7 +12,8 @@ import re
 
 from benchpress.lib.parser import Parser
 
-JSON_LIKE_REGEX = r'\s*([{\[].*?[}\]]\s*[}\]]*)\s*'
+
+JSON_LIKE_REGEX = r"\s*([{\[].*?[}\]]\s*[}\]]*)\s*"
 JSON_LIKE_MATCHER = re.compile(JSON_LIKE_REGEX)
 
 
@@ -36,9 +37,9 @@ class JSONParser(Parser):
         Raises:
             ValueError: When neither stdout nor stderr could be parsed as JSON.
         """
-        err_msg = 'Failed to parse {1} as JSON: {0}'
-        for (output, kind) in [(stdout, 'stdout'), (stderr, 'stderr')]:
-            process_output = ' '.join(output)
+        err_msg = "Failed to parse {1} as JSON: {0}"
+        for (output, kind) in [(stdout, "stdout"), (stderr, "stderr")]:
+            process_output = " ".join(output)
             possible_json_matches = JSON_LIKE_MATCHER.findall(process_output)
             for m in possible_json_matches:
                 try:

@@ -7,7 +7,8 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 from os import path
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 from setuptools.command.test import test as TestCommand
 
 
@@ -21,42 +22,39 @@ class NoseTestCommand(TestCommand):
     def run_tests(self):
         # Run nose ensuring that argv simulates running nosetests directly
         import nose
-        nose.run_exit(argv=['nosetests'])
+
+        nose.run_exit(argv=["nosetests"])
 
 
 here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name='fbkbenchpress',
-    version='0.1',
-    description='A framework for running benchmarks and reporting metrics',
+    name="fbkbenchpress",
+    version="0.1",
+    description="A framework for running benchmarks and reporting metrics",
     long_description=long_description,
-    author='Vinnie Magro',
-    author_email='vmagro@fb.com',
-    license='BSD',
+    author="Vinnie Magro",
+    author_email="vmagro@fb.com",
+    license="BSD",
     classifiers=[
-        'Development Status :: 3 - Alpha',
-        'License :: OSI Approved :: BSD License',
-        'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python :: 3 :: Only',
-        'Programming Language :: Python :: 3.5',
-        'Topic :: Software Development :: Testing',
-        'Topic :: Utilities',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        "Development Status :: 3 - Alpha",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.5",
+        "Topic :: Software Development :: Testing",
+        "Topic :: Utilities",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: BSD License",
     ],
-    keywords='benchmark kernel test',
-    url='https://www.github.com/facebook/fbkutils',
-    packages=find_packages(exclude=['tests']),
-    install_requires=['pyyaml'],
-    tests_require=[
-        'nose', 'coverage', 'mock', 'pyfakefs'
-    ],
-    setup_requires=[
-        'flake8'
-    ],
-    cmdclass={'test': NoseTestCommand},
-    scripts=['benchpress_cli.py'],
+    keywords="benchmark kernel test",
+    url="https://www.github.com/facebook/fbkutils",
+    packages=find_packages(exclude=["tests"]),
+    install_requires=["pyyaml"],
+    tests_require=["nose", "coverage", "mock", "pyfakefs"],
+    setup_requires=["flake8"],
+    cmdclass={"test": NoseTestCommand},
+    scripts=["benchpress_cli.py"],
 )

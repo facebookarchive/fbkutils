@@ -9,11 +9,12 @@
 import errno
 import logging
 import subprocess
-from subprocess import CalledProcessError, TimeoutExpired
 import sys
+from subprocess import CalledProcessError, TimeoutExpired
 
 from .hook_factory import HookFactory
 from .parser_factory import ParserFactory
+
 
 logger = logging.getLogger(__name__)
 
@@ -49,29 +50,29 @@ class Job(object):
         config.update(job_config)
         self.config = config
 
-        self.name = config['name']
-        self.description = config['description']
+        self.name = config["name"]
+        self.description = config["description"]
 
-        self.binary = config['path']
-        self.parser = ParserFactory.create(config['parser'])
-        self.check_returncode = config.get('check_returncode', True)
-        self.timeout = config.get('timeout', None)
-        self.timeout_is_pass = config.get('timeout_is_pass', False)
+        self.binary = config["path"]
+        self.parser = ParserFactory.create(config["parser"])
+        self.check_returncode = config.get("check_returncode", True)
+        self.timeout = config.get("timeout", None)
+        self.timeout_is_pass = config.get("timeout_is_pass", False)
         # if tee_output is True, the stdout and stderr commands of the child
         # process will be copied onto the stdout and stderr of benchpress
         # if this option is a string, the output will be written to the file
         # named by this value
-        self.tee_output = config.get('tee_output', False)
+        self.tee_output = config.get("tee_output", False)
 
-        self.hooks = config.get('hooks', [])
+        self.hooks = config.get("hooks", [])
         self.hooks = [
-            (HookFactory.create(h['hook']), h.get('options', None))
-            for h in self.hooks]
+            (HookFactory.create(h["hook"]), h.get("options", None)) for h in self.hooks
+        ]
         # self.hooks is list of (hook, options)
 
-        self.tolerances = config.get('tolerances', {})
+        self.tolerances = config.get("tolerances", {})
 
-        self.args = self.arg_list(config['args'])
+        self.args = self.arg_list(config["args"])
 
     @staticmethod
     def arg_list(args):
@@ -82,7 +83,7 @@ class Job(object):
 
         l = []
         for key, val in args.items():
-            l.append('--' + key)
+            l.append("--" + key)
             if val is not None:
                 l.append(str(val))
         return l
@@ -93,7 +94,7 @@ class Job(object):
         # take care of preprocessing setup via hook
         logger.info('Running setup hooks for "{}"'.format(self.name))
         for hook, opts in self.hooks:
-            logger.info('Running %s %s', hook, opts)
+            logger.info("Running %s %s", hook, opts)
             hook.before_job(opts, self)
 
         try:
@@ -101,22 +102,28 @@ class Job(object):
             cmd = [self.binary] + self.args
             try:
                 process = subprocess.run(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    check=False, timeout=self.timeout, encoding='utf-8',
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=False,
+                    timeout=self.timeout,
+                    encoding="utf-8",
                 )
             except TimeoutExpired as e:
                 stdout, stderr = e.stdout, e.stderr
                 if not self.timeout_is_pass:
-                    logger.error('Job timed out\n'
-                        'stdout:\n{}\nstderr:\n{}'.format(stdout, stderr))
+                    logger.error(
+                        "Job timed out\n"
+                        "stdout:\n{}\nstderr:\n{}".format(stdout, stderr)
+                    )
                     raise
                 returncode = 0
             else:
                 stdout, stderr = process.stdout, process.stderr
                 returncode = process.returncode
             if self.check_returncode and returncode != 0:
-                output = 'stdout:\n{}\nstderr:\n{}'.format(stdout, stderr)
-                cmd = ' '.join(cmd)
+                output = "stdout:\n{}\nstderr:\n{}".format(stdout, stderr)
+                cmd = " ".join(cmd)
                 raise CalledProcessError(process.returncode, cmd, output)
 
             # optionally copy stdout/err of the child process to our own
@@ -125,30 +132,32 @@ class Job(object):
                 tee = sys.stdout
                 # if a file was specified, write to that file instead
                 if isinstance(self.tee_output, str):
-                    tee = open(self.tee_output, 'w')
+                    tee = open(self.tee_output, "w")
                 # do this so each line is prefixed with stdout
                 for line in stdout.splitlines():
-                    tee.write(f'stdout: {line}\n')
+                    tee.write(f"stdout: {line}\n")
                 for line in stderr.splitlines():
-                    tee.write(f'stderr: {line}\n')
+                    tee.write(f"stderr: {line}\n")
                 # close the output if it was a file
                 if tee != sys.stdout:
                     tee.close()
 
             logger.info('Parsing results for "{}"'.format(self.name))
             try:
-                return self.parser.parse(stdout.splitlines(),
-                                         stderr.splitlines(), returncode)
+                return self.parser.parse(
+                    stdout.splitlines(), stderr.splitlines(), returncode
+                )
             except Exception:
-                logger.error('Failed to parse results, this might mean the'
-                             ' benchmark failed')
-                logger.error('stdout:\n{}'.format(stdout))
-                logger.error('stderr:\n{}'.format(stderr))
+                logger.error(
+                    "Failed to parse results, this might mean the" " benchmark failed"
+                )
+                logger.error("stdout:\n{}".format(stdout))
+                logger.error("stderr:\n{}".format(stderr))
                 raise
         except OSError as e:
             logger.error('"{}" failed ({})'.format(self.name, e))
             if e.errno == errno.ENOENT:
-                logger.error('Binary not found, did you forget to install it?')
+                logger.error("Binary not found, did you forget to install it?")
             raise  # make sure it passes the exception up the chain
         except CalledProcessError as e:
             logger.error(e.output)
@@ -161,7 +170,7 @@ class Job(object):
 
     @property
     def safe_name(self):
-        return self.name.replace(' ', '_')
+        return self.name.replace(" ", "_")
 
 
 class JobSuite(Job):
@@ -171,8 +180,8 @@ class JobSuite(Job):
 
     def __init__(self, config, jobs):
         self.config = config
-        self.name = config['name']
-        self.description = config['description']
+        self.name = config["name"]
+        self.description = config["description"]
         self.jobs = jobs
 
     def run(self):

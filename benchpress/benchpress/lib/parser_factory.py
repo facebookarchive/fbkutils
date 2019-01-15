@@ -6,10 +6,11 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
+from benchpress.plugins.parsers import register_parsers
+
 from .factory import BaseFactory
 from .parser import Parser
 
-from benchpress.plugins.parsers import register_parsers
 
 ParserFactory = BaseFactory(Parser)
 

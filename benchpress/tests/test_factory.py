@@ -6,8 +6,8 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
-from abc import ABCMeta, abstractmethod
 import unittest
+from abc import ABCMeta, abstractmethod
 
 from benchpress.lib.factory import BaseFactory
 
@@ -34,7 +34,6 @@ Superclass.register(RegisteredClass)
 
 
 class TestBaseFactory(unittest.TestCase):
-
     def setUp(self):
         self.factory = BaseFactory(Superclass)
 
@@ -42,33 +41,35 @@ class TestBaseFactory(unittest.TestCase):
         """Can't register a non-subclass"""
         # Dummy is not a subclass, so registering it should fail
         with self.assertRaises(AssertionError):
+
             class Dummy:
                 pass
-            self.factory.register('dummy', Dummy)
+
+            self.factory.register("dummy", Dummy)
 
     def test_register(self):
         """Can register subclasses"""
-        self.factory.register('subclass', Subclass1)
-        self.factory.register('registered', RegisteredClass)
+        self.factory.register("subclass", Subclass1)
+        self.factory.register("registered", RegisteredClass)
 
     def test_create_unregistered(self):
         """Can't create unregistered type"""
         with self.assertRaises(KeyError):
-            self.factory.create('dummy')
+            self.factory.create("dummy")
 
     def test_create_registered(self):
         """Can create registered type"""
-        self.factory.register('subclass', Subclass1)
-        self.assertTrue(isinstance(self.factory.create('subclass'), Subclass1))
+        self.factory.register("subclass", Subclass1)
+        self.assertTrue(isinstance(self.factory.create("subclass"), Subclass1))
 
     def test_registered_names(self):
         """Can get list of registered classes"""
         self.assertListEqual([], self.factory.registered_names)
-        self.factory.register('default', Subclass1)
-        self.assertCountEqual(['default'], self.factory.registered_names)
-        self.factory.register('subclass', Subclass1)
-        self.assertCountEqual(['default', 'subclass'], self.factory.registered_names)
+        self.factory.register("default", Subclass1)
+        self.assertCountEqual(["default"], self.factory.registered_names)
+        self.factory.register("subclass", Subclass1)
+        self.assertCountEqual(["default", "subclass"], self.factory.registered_names)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

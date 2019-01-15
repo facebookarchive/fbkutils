@@ -8,11 +8,11 @@
 
 # main functionality is actually provided in cli/main.py
 from benchpress.cli.main import main
-
 from benchpress.lib.reporter import StdoutReporter
 from benchpress.lib.reporter_factory import ReporterFactory
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # register a default class for reporting metrics
-    ReporterFactory.register('default', StdoutReporter)
+    ReporterFactory.register("default", StdoutReporter)
     main()

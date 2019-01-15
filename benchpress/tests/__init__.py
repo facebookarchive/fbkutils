@@ -8,5 +8,6 @@
 
 import logging
 
+
 # Disables logging while running unit tests
 logging.disable(logging.CRITICAL)

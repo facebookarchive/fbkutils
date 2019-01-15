@@ -10,7 +10,6 @@ from abc import ABCMeta, abstractmethod
 
 
 class BenchpressCommand(object, metaclass=ABCMeta):
-
     @abstractmethod
     def populate_parser(self, parser):
         pass

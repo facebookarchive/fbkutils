@@ -13,6 +13,7 @@ import shutil
 
 from benchpress.lib.hook import Hook
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,26 +27,27 @@ class FileHook(Hook):
 
     def before_job(self, opts, job):
         for opt in opts:
-            path = opt['path']
+            path = opt["path"]
             logger.info('Creating "{}"'.format(path))
-            if opt['type'] == 'dir':
+            if opt["type"] == "dir":
                 try:
                     os.makedirs(path)
                 except OSError as e:
                     if e.errno == errno.EEXIST:
-                        logger.warning('"{}" already exists, proceeding anyway'
-                                       .format(path))
+                        logger.warning(
+                            '"{}" already exists, proceeding anyway'.format(path)
+                        )
                     else:
                         # other errors should be fatal
                         raise
-            if opt['type'] == 'file':
+            if opt["type"] == "file":
                 os.mknod(path)
 
     def after_job(self, opts, job):
         for opt in opts:
-            path = opt['path']
+            path = opt["path"]
             logger.info('Deleting "{}"'.format(path))
-            if opt['type'] == 'dir':
+            if opt["type"] == "dir":
                 shutil.rmtree(path)
-            if opt['type'] == 'file':
+            if opt["type"] == "file":
                 os.unlink(path)

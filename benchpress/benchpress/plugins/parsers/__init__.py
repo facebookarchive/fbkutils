@@ -15,9 +15,9 @@ from .silo import SiloParser
 
 
 def register_parsers(factory):
-    factory.register('fio', FioParser)
-    factory.register('json', JSONParser)
-    factory.register('ltp', LtpParser)
-    factory.register('returncode', ReturncodeParser)
-    factory.register('schbench', SchbenchParser)
-    factory.register('silo', SiloParser)
+    factory.register("fio", FioParser)
+    factory.register("json", JSONParser)
+    factory.register("ltp", LtpParser)
+    factory.register("returncode", ReturncodeParser)
+    factory.register("schbench", SchbenchParser)
+    factory.register("silo", SiloParser)

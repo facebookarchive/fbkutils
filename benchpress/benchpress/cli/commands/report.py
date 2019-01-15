@@ -8,22 +8,21 @@
 
 import logging
 
-from .command import BenchpressCommand
 from benchpress.lib.history import History
 from benchpress.lib.reporter_factory import ReporterFactory
+
+from .command import BenchpressCommand
+
 
 logger = logging.getLogger(__name__)
 
 
 class ReportCommand(BenchpressCommand):
-
     def populate_parser(self, subparsers):
-        parser = subparsers.add_parser('report',
-                                       help='report latest job results')
+        parser = subparsers.add_parser("report", help="report latest job results")
         parser.set_defaults(command=self)
-        parser.add_argument('jobs', nargs='*', default=[], help='jobs to run')
-        parser.add_argument('reporter',
-                            choices=ReporterFactory.registered_names)
+        parser.add_argument("jobs", nargs="*", default=[], help="jobs to run")
+        parser.add_argument("reporter", choices=ReporterFactory.registered_names)
 
     def run(self, args, jobs):
         reporter = ReporterFactory.create(args.reporter)
@@ -44,8 +43,7 @@ class ReportCommand(BenchpressCommand):
 
             results = history.load_historical_results(job)
             if len(results) == 0:
-                logger.warn('No historical results for "%s", skipping',
-                            job.name)
+                logger.warn('No historical results for "%s", skipping', job.name)
                 continue
 
             latest = results[0]

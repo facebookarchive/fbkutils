@@ -10,6 +10,7 @@ import json
 import logging
 import os
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,16 +23,17 @@ class HistoryEntry(object):
         metrics (dict): run's exported metrics
         config (dict): dict of job config at run time
     """
+
     def __init__(self, record):
         """Create a HistoryEntry from saved dictionary output.
 
         Args:
             record (dict): saved run dictionary
         """
-        self.job_name = record['job']
-        self.timestamp = record['timestamp']
-        self.config = record['config']
-        self.metrics = record['metrics']
+        self.job_name = record["job"]
+        self.timestamp = record["timestamp"]
+        self.config = record["config"]
+        self.metrics = record["metrics"]
 
 
 class History(object):
@@ -63,17 +65,16 @@ class History(object):
         rootdir = os.path.join(self.path, job_name)
         for directory, _, files in os.walk(rootdir):
             for f in files:
-                with open(os.path.join(directory, f), 'r') as record:
+                with open(os.path.join(directory, f), "r") as record:
                     record = json.load(record)
                     try:
                         entry = HistoryEntry(record)
                         results.append(entry)
                     except KeyError as e:
-                        logger.error('Invalid entry format (missing {})'
-                                     .format(e))
+                        logger.error("Invalid entry format (missing {})".format(e))
                         raise e
 
-        logger.info('Loaded {} results from {}'.format(len(results), self.path))
+        logger.info("Loaded {} results from {}".format(len(results), self.path))
         # sort by most recent first
         return sorted(results, key=lambda r: r.timestamp, reverse=True)
 
@@ -104,19 +105,19 @@ class History(object):
             time (datetime.datetime): start time of the benchmark
         """
         job_name = job.safe_name
-        time = time.strftime('%Y-%m-%dT%H:%M:%SZ')
+        time = time.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         data = {
-            'job': job.name,
-            'timestamp': time,
-            'metrics': metrics,
-            'config': job.config,
+            "job": job.name,
+            "timestamp": time,
+            "metrics": metrics,
+            "config": job.config,
         }
 
         directory = os.path.join(self.path, job_name)
         os.makedirs(directory, exist_ok=True)
 
-        path = os.path.join(directory, time) + '.json'
+        path = os.path.join(directory, time) + ".json"
 
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(data, f, sort_keys=True, indent=2)

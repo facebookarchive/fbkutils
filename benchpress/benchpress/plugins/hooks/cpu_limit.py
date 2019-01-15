@@ -10,6 +10,7 @@ import logging
 
 from benchpress.lib.hook import Hook
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,13 +27,13 @@ class CpuLimit(Hook):
         try:
             int(mask, 16)
         except ValueError:
-            raise ValueError('{} is not a valid CPU mask'.format(mask))
+            raise ValueError("{} is not a valid CPU mask".format(mask))
 
         # modify the job config to run taskset with the given mask instead of
         # directly running the benchmark binary
-        binary = job.config['path']
+        binary = job.config["path"]
         job.args = [mask, binary] + job.args
-        job.binary = 'taskset'
+        job.binary = "taskset"
 
     def after_job(self, opts, job):
         pass

@@ -12,16 +12,15 @@ from benchpress.lib.parser import Parser
 
 
 class FioParser(Parser):
-
     def parse(self, stdout, stderr, returncode):
         metrics = {}
 
-        stdout = ''.join(stdout)
+        stdout = "".join(stdout)
 
         results = json.loads(stdout)
-        results = results['jobs']
+        results = results["jobs"]
         for job in results:
-            name = job['jobname']
+            name = job["jobname"]
             metrics[name] = job
 
         return metrics

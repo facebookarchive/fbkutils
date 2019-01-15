@@ -14,6 +14,4 @@ class ReturncodeParser(Parser):
     had a 0 exit code, and False all other times."""
 
     def parse(self, stdout, stderr, returncode):
-        return {
-            'success': returncode == 0,
-        }
+        return {"success": returncode == 0}

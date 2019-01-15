@@ -13,6 +13,7 @@ import subprocess
 
 from benchpress.lib.hook import Hook
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,25 +37,28 @@ class ShellHook(Hook):
             # running with shell=True means we should give command as a string
             # and not pre-process it
             split = shlex.split(cmd)
-            if split[0] == 'cd':
+            if split[0] == "cd":
                 assert len(split) == 2
                 dst = split[1]
                 logger.info('Switching to dir "%s"', dst)
                 os.chdir(dst)
             else:
                 logger.info('Running "%s"', cmd)
-                subprocess.check_call(cmd, shell=True,
-                                      stdout=subprocess.DEVNULL,
-                                      stderr=subprocess.DEVNULL)
+                subprocess.check_call(
+                    cmd,
+                    shell=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
 
     def before_job(self, opts, job=None):
         self.original_dir = os.getcwd()
-        if 'before' in opts:
-            self.run_commands(opts['before'])
+        if "before" in opts:
+            self.run_commands(opts["before"])
 
     def after_job(self, opts, job=None):
-        if 'after' in opts:
-            self.run_commands(opts['after'])
+        if "after" in opts:
+            self.run_commands(opts["after"])
 
         # cd back to the original dir in case a command changed it
         if os.getcwd() != self.original_dir:
