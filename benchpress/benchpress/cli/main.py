@@ -12,7 +12,6 @@ import sys
 
 import yaml
 from benchpress.cli.commands.list import ListCommand
-from benchpress.cli.commands.report import ReportCommand
 from benchpress.cli.commands.run import RunCommand
 from benchpress.lib.job import Job, JobSuite
 from benchpress.lib.reporter import StdoutReporter
@@ -25,7 +24,7 @@ def setup_parser():
     Returns:
         setup parser (argparse.ArgumentParser)
     """
-    commands = [ListCommand(), ReportCommand(), RunCommand()]
+    commands = [ListCommand(), RunCommand()]
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -49,18 +48,6 @@ def setup_parser():
         command.populate_parser(subparsers)
 
     subparsers.required = True
-
-    parser.add_argument(
-        "-r",
-        "--results",
-        metavar="results dir",
-        default="./results",
-        help="directory to load/store results",
-    )
-
-    parser.add_argument(
-        "--clowntown", action="store_true", help="lets you do potentially stupid things"
-    )
 
     parser.add_argument("--verbose", "-v", action="count", default=0)
 

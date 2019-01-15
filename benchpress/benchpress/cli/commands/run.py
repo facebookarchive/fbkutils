@@ -10,7 +10,6 @@ import logging
 from datetime import datetime, timezone
 
 from benchpress.cli.commands.command import BenchpressCommand
-from benchpress.lib.history import History
 from benchpress.lib.reporter_factory import ReporterFactory
 
 
@@ -36,25 +35,11 @@ class RunCommand(BenchpressCommand):
         jobs = jobs.values()
         print("Will run {} job(s)".format(len(jobs)))
 
-        history = History(args.results)
-        now = datetime.now(timezone.utc)
-
         for job in jobs:
             print('Running "{}": {}'.format(job.name, job.description))
-
-            if not args.clowntown and not history.is_job_config_consistent(job):
-                logger.error(
-                    'There was a previous run of "{}" that had a'
-                    " different configuration, this is likely to make"
-                    " your results confusing.".format(job.name)
-                )
-                logger.error("You can proceed anyway using --clowntown")
-                exit(3)
 
             metrics = job.run()
 
             reporter.report(job, metrics)
-
-            history.save_job_result(job, metrics, now)
 
         reporter.close()
