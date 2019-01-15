@@ -12,8 +12,8 @@ import subprocess
 import sys
 from subprocess import CalledProcessError, TimeoutExpired
 
-from .hook_factory import HookFactory
-from .parser_factory import ParserFactory
+from benchpress.lib.hook_factory import HookFactory
+from benchpress.lib.parser_factory import ParserFactory
 
 
 logger = logging.getLogger(__name__)

@@ -11,13 +11,12 @@ import logging
 import sys
 
 import yaml
+from benchpress.cli.commands.list import ListCommand
+from benchpress.cli.commands.report import ReportCommand
+from benchpress.cli.commands.run import RunCommand
 from benchpress.lib.job import Job, JobSuite
 from benchpress.lib.reporter import StdoutReporter
 from benchpress.lib.reporter_factory import ReporterFactory
-
-from .commands.list import ListCommand
-from .commands.report import ReportCommand
-from .commands.run import RunCommand
 
 
 def setup_parser():

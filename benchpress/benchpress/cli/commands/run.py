@@ -9,10 +9,9 @@
 import logging
 from datetime import datetime, timezone
 
+from benchpress.cli.commands.command import BenchpressCommand
 from benchpress.lib.history import History
 from benchpress.lib.reporter_factory import ReporterFactory
-
-from .command import BenchpressCommand
 
 
 logger = logging.getLogger(__name__)

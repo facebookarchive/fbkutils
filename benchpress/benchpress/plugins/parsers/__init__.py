@@ -6,12 +6,12 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
-from .fio import FioParser
-from .generic import JSONParser
-from .ltp import LtpParser
-from .returncode import ReturncodeParser
-from .schbench import SchbenchParser
-from .silo import SiloParser
+from benchpress.plugins.parsers.fio import FioParser
+from benchpress.plugins.parsers.generic import JSONParser
+from benchpress.plugins.parsers.ltp import LtpParser
+from benchpress.plugins.parsers.returncode import ReturncodeParser
+from benchpress.plugins.parsers.schbench import SchbenchParser
+from benchpress.plugins.parsers.silo import SiloParser
 
 
 def register_parsers(factory):

@@ -6,9 +6,9 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
-from .cpu_limit import CpuLimit
-from .file import FileHook
-from .shell import ShellHook
+from benchpress.plugins.hooks.cpu_limit import CpuLimit
+from benchpress.plugins.hooks.file import FileHook
+from benchpress.plugins.hooks.shell import ShellHook
 
 
 def register_hooks(factory):

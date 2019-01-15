@@ -6,8 +6,8 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
-from .factory import BaseFactory
-from .reporter import Reporter
+from benchpress.lib.factory import BaseFactory
+from benchpress.lib.reporter import Reporter
 
 
 ReporterFactory = BaseFactory(Reporter)
