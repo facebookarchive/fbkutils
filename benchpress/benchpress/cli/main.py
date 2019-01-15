@@ -13,7 +13,7 @@ import sys
 import yaml
 from benchpress.cli.commands.list import ListCommand
 from benchpress.cli.commands.run import RunCommand
-from benchpress.lib.job import Job, JobSuite
+from benchpress.lib.job import Job
 from benchpress.lib.reporter import StdoutReporter
 from benchpress.lib.reporter_factory import ReporterFactory
 
@@ -76,24 +76,8 @@ def main(args=sys.argv[1:]):
     with open(args.jobs_file) as jobs_file:
         job_configs = yaml.load(jobs_file)
 
-    # on the first pass, construct all normal jobs, then make job suites
     jobs = [Job(j, benchmarks[j["benchmark"]]) for j in job_configs if "tests" not in j]
     jobs = {j.name: j for j in jobs}
-    # after all the regulars jobs are created, create the job suites
-    for config in job_configs:
-        if "tests" in config:
-            suite_jobs = []
-            for name in config["tests"]:
-                try:
-                    suite_jobs.append(jobs[name])
-                except KeyError:
-                    logger.error(
-                        'Couldn\'t find job "%s" in suite "%s"', name, config["name"]
-                    )
-                    exit(1)
-
-            suite = JobSuite(config, suite_jobs)
-            jobs[suite.name] = suite
 
     logger.info("Loaded {} benchmarks and {} jobs".format(len(benchmarks), len(jobs)))
 

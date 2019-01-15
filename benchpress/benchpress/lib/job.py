@@ -171,26 +171,3 @@ class Job(object):
     @property
     def safe_name(self):
         return self.name.replace(" ", "_")
-
-
-class JobSuite(Job):
-    """JobSuite is a collection of jobs that will be run as a group.
-    The results of all the jobs in the suite are compiled into a single dict.
-    """
-
-    def __init__(self, config, jobs):
-        self.config = config
-        self.name = config["name"]
-        self.description = config["description"]
-        self.jobs = jobs
-
-    def run(self):
-        """Run jobs in the suite and merges the results into a single dict."""
-        results = {}
-        for job in self.jobs:
-            try:
-                results[job.safe_name] = job.run()
-            except Exception:
-                logger.error('Job "%s" failed', job.name)
-                raise
-        return results
