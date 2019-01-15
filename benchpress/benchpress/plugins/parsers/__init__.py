@@ -9,9 +9,11 @@
 from benchpress.plugins.parsers.fio import FioParser
 from benchpress.plugins.parsers.generic import JSONParser
 from benchpress.plugins.parsers.ltp import LtpParser
+from benchpress.plugins.parsers.packetdrill_parser import PacketdrillParser
 from benchpress.plugins.parsers.returncode import ReturncodeParser
 from benchpress.plugins.parsers.schbench import SchbenchParser
 from benchpress.plugins.parsers.silo import SiloParser
+from benchpress.plugins.parsers.xfstests_parser import XfstestsParser
 
 
 def register_parsers(factory):
@@ -21,3 +23,5 @@ def register_parsers(factory):
     factory.register("returncode", ReturncodeParser)
     factory.register("schbench", SchbenchParser)
     factory.register("silo", SiloParser)
+    factory.register("packetdrill", PacketdrillParser)
+    factory.register("xfstests", XfstestsParser)
