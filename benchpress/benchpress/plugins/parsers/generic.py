@@ -9,8 +9,9 @@
 import json
 import logging
 import re
+from typing import List
 
-from benchpress.lib.parser import Parser
+from benchpress.lib.parser import Parser, TestCaseResult, TestStatus
 
 
 JSON_LIKE_REGEX = r"\s*([{\[].*?[}\]]\s*[}\]]*)\s*"
@@ -18,7 +19,7 @@ JSON_LIKE_MATCHER = re.compile(JSON_LIKE_REGEX)
 
 
 class JSONParser(Parser):
-    def parse(self, stdout, stderr, returncode):
+    def find_json(self, stdout: List[str], stderr: List[str]):
         """Converts JSON output from either stdout or stderr into a dict.
 
         Assumes that either stdout or stderr contains a section of valid JSON,
@@ -29,7 +30,6 @@ class JSONParser(Parser):
         Args:
             stdout (list[str]): Process's line-by-line stdout output.
             stderr (list[str]): Process's line-by-line stderr output.
-            returncode (int): Process's exit status code.
 
         Returns:
             metrics (dict): Representation of either stdout or stderr.
@@ -51,3 +51,57 @@ class JSONParser(Parser):
 
         msg = "Couldn't not find or parse JSON from either stdout or stderr"
         raise ValueError(msg)
+
+    def flatten(self, d):
+        def items():
+            for key, value in d.items():
+                if isinstance(value, dict):
+                    for subkey, subvalue in self.flatten(value).items():
+                        yield key + "." + subkey, subvalue
+                else:
+                    yield key, value
+
+        return dict(items())
+
+    def parse(
+        self, stdout: List[str], stderr: List[str], returncode: int
+    ) -> List[TestCaseResult]:
+        dct = self.find_json(stdout, stderr)
+        dct = self.flatten(dct)
+
+        test_cases: List[TestCaseResult] = []
+        # try to parse a pass/fail output from each test case
+        for key, value in dct.items():
+            if isinstance(value, bool):
+                status = TestStatus.PASSED if value else TestStatus.FAILED
+                test_cases.append(TestCaseResult(name=key, status=status))
+            if isinstance(value, str):
+                passed = re.match(r"^pass(ed)?|succe(ss|ed)|true|T|1$", value, re.I)
+                status = TestStatus.PASSED if passed else TestStatus.FAILED
+                test_cases.append(TestCaseResult(name=key, status=status))
+            if isinstance(value, dict):
+                # TODO this is a janky way to handle a bunch of generic case formats
+                passed = value.get(
+                    "pass", value.get("passed", value.get("success", False))
+                )
+                status = TestStatus.PASSED if passed else TestStatus.FAILED
+                test_cases.append(
+                    TestCaseResult(
+                        name=key, status=status, details=value.get("details")
+                    )
+                )
+
+        # get a status for pseudo-case "exec" that is based on the exec code
+        status = TestStatus.PASSED if returncode == 0 else TestStatus.FAILED
+        test_cases.append(
+            TestCaseResult(
+                name="exec",
+                status=status,
+                details="stdout:\n"
+                + "\n".join(stdout)
+                + "\n\nstderr:\n"
+                + "\n".join(stderr),
+            )
+        )
+
+        return test_cases

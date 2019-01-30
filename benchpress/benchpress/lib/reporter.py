@@ -6,9 +6,14 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
+import dataclasses
 import json
 import sys
 from abc import ABCMeta, abstractmethod
+from typing import List
+
+from benchpress.lib.job import Job
+from benchpress.lib.parser import TestCaseResult, TestStatus
 
 
 class Reporter(object, metaclass=ABCMeta):
@@ -16,36 +21,42 @@ class Reporter(object, metaclass=ABCMeta):
     """
 
     @abstractmethod
-    def report(self, job, metrics):
-        """Save job metrics somewhere in existing monitoring infrastructure.
-
-        Args:
-            job (Job): job that was run
-            metrics (dict): metrics that were exported by job
-        """
+    def report(self, job: Job, results: List[TestCaseResult]):
+        """Save job metrics somewhere in existing monitoring infrastructure."""
         pass
 
     @abstractmethod
     def close(self):
-        """Do whatever necessary cleanup is required after all jobs are finished.
-        """
+        """Do whatever necessary cleanup is required after all jobs are finished."""
         pass
 
 
 class StdoutReporter(Reporter):
     """Default reporter implementation, logs a JSON object to stdout."""
 
-    def report(self, job, metrics):
+    def report(self, job: Job, results: List[TestCaseResult]):
         """Log JSON report to stdout.
         Attempt to detect whether a real person is running the program then
-        pretty print the JSON, otherwise print it without linebreaks and
-        unsorted keys.
+        pretty print, otherwise print it as JSON.
         """
         # use isatty as a proxy for if a real human is running this
         if sys.stdout.isatty():
-            json.dump(metrics, sys.stdout, sort_keys=True, indent=2)
+            for case in results:
+                color = (
+                    "\u001b[32m" if case.status == TestStatus.PASSED else "\u001b[31m"
+                )
+                print(f"{case.name}: {color}{case.status.name}\033[0m")
+                if case.details:
+                    lines = case.details.split("\n")
+                    for line in lines:
+                        print(f"  {line}")
+                if case.metrics:
+                    print("  metrics:")
+                    for key, value in case.metrics:
+                        print(f"    {key}={value}")
         else:
-            json.dump(metrics, sys.stdout)
+            dct = {c.name: dataclasses.asdict(c) for c in results}
+            json.dump(dct, sys.stdout)
         sys.stdout.write("\n")
 
     def close(self):

@@ -7,8 +7,9 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 import re
+from typing import List
 
-from benchpress.lib.parser import Parser
+from benchpress.lib.parser import Parser, TestCaseResult, TestStatus
 
 
 # <test name> <number> <status> : <extra stuff>
@@ -16,31 +17,34 @@ test_format_re = re.compile("\\w+\\s+\\d+\\s+T(FAIL|PASS|BROK|WARN|INFO).*")
 
 
 class LtpParser(Parser):
-    def parse(self, stdout, stderr, returncode):
+    def parse(
+        self, stdout: List[str], stderr: List[str], returncode: int
+    ) -> List[TestCaseResult]:
         # ltp run in quiet mode produces lines that are mostly a single line per
         # test with the test name and a status and optional message
-        metrics = {}
+        test_cases: List[TestCaseResult] = []
 
         for line in stdout:
             # make sure that the line matches the format of a test
             if not test_format_re.match(line):
                 continue
 
-            line = line.split()
+            split = line.split()
             # combine 0 and 1 because sometimes the first name string isn't
             # unique but the following number is
-            name = line[0] + "_" + line[1]
+            name = split[0] + "_" + split[1]
 
-            status = line[2]
+            status_name = split[2]
+            status = TestStatus.SKIPPED
             # test failure conditions
-            if status in ("TFAIL", "TBROK", "TWARN"):
-                status = False
-            elif status == "TPASS":
-                status = True
+            if status_name in ("TFAIL", "TBROK", "TWARN"):
+                status = TestStatus.FAILED
+            elif status_name == "TPASS":
+                status = TestStatus.PASSED
             else:
-                # if status is not one of these, just skip it
-                continue  # pragma: no cover
+                # if status is not one of these, skip it
+                continue
 
-            metrics[name] = status
+            test_cases.append(TestCaseResult(name=name, status=status))
 
-        return metrics
+        return test_cases

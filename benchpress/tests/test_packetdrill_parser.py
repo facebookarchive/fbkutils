@@ -8,7 +8,8 @@
 
 import unittest
 
-from benchpress.plugins.parsers.packetdrill_parser import PacketdrillParser, TestStatus
+from benchpress.lib.parser import TestCaseResult, TestStatus
+from benchpress.plugins.parsers.packetdrill_parser import PacketdrillParser
 from pyfakefs import fake_filesystem_unittest
 
 
@@ -20,11 +21,11 @@ class TestPacketdrillParser(fake_filesystem_unittest.TestCase):
     def test_output(self):
         stdout = ["001-passed 0", "002-failed 1"]
         results = self.parser.parse(stdout, [], 0)
-        self.assertDictEqual(
-            {
-                "001-passed": {"status": TestStatus.PASSED},
-                "002-failed": {"status": TestStatus.FAILED},
-            },
+        self.assertEqual(
+            [
+                TestCaseResult(name="001-passed", status=TestStatus.PASSED),
+                TestCaseResult(name="002-failed", status=TestStatus.FAILED),
+            ],
             results,
         )
 

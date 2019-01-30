@@ -8,6 +8,7 @@
 
 import unittest
 
+from benchpress.lib.parser import TestCaseResult, TestStatus
 from benchpress.plugins.parsers.ltp import LtpParser
 
 
@@ -44,16 +45,16 @@ class TestLtpParser(unittest.TestCase):
             "gf04        1  TWARN  :  Test warning",
             "gf05        1  TBROK  :  Test brok",
         ]
-        metrics = self.parser.parse(output, None, 0)
-        self.assertDictEqual(
-            {
-                "gf01_1": False,
-                "gf02_1": True,
-                "gf03_1": True,
-                "gf04_1": False,
-                "gf05_1": False,
-            },
-            metrics,
+        results = self.parser.parse(output, None, 0)
+        self.assertEqual(
+            [
+                TestCaseResult(name="gf01_1", status=TestStatus.FAILED),
+                TestCaseResult(name="gf02_1", status=TestStatus.PASSED),
+                TestCaseResult(name="gf03_1", status=TestStatus.PASSED),
+                TestCaseResult(name="gf04_1", status=TestStatus.FAILED),
+                TestCaseResult(name="gf05_1", status=TestStatus.FAILED),
+            ],
+            results,
         )
 
 

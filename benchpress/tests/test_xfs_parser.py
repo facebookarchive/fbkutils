@@ -9,7 +9,8 @@
 import os.path
 import unittest
 
-from benchpress.plugins.parsers.xfstests_parser import TestStatus, XfstestsParser
+from benchpress.lib.parser import TestCaseResult, TestStatus
+from benchpress.plugins.parsers.xfstests_parser import XfstestsParser
 from pyfakefs import fake_filesystem_unittest
 
 
@@ -25,11 +26,15 @@ class TestXfstestsParser(fake_filesystem_unittest.TestCase):
     def test_pass(self):
         stdout = ["generic/001  2s", "generic/002  2s ... 4s"]
         results = self.parser.parse(stdout, [], 0)
-        self.assertDictEqual(
-            {
-                "generic/001": {"status": TestStatus.PASSED, "duration_secs": 2.0},
-                "generic/002": {"status": TestStatus.PASSED, "duration_secs": 4.0},
-            },
+        self.assertEqual(
+            [
+                TestCaseResult(
+                    name="generic/001", status=TestStatus.PASSED, runtime=2.0
+                ),
+                TestCaseResult(
+                    name="generic/002", status=TestStatus.PASSED, runtime=4.0
+                ),
+            ],
             results,
         )
 
@@ -55,8 +60,13 @@ class TestXfstestsParser(fake_filesystem_unittest.TestCase):
             "more output blah blah",
         ]
         results = self.parser.parse(stdout, [], 0)
-        self.assertDictEqual(
-            {"generic/305": {"status": TestStatus.FAILED, "details": diff}}, results
+        self.assertEqual(
+            [
+                TestCaseResult(
+                    name="generic/305", status=TestStatus.FAILED, details=diff
+                )
+            ],
+            results,
         )
 
     def test_not_run(self):
@@ -72,17 +82,19 @@ class TestXfstestsParser(fake_filesystem_unittest.TestCase):
             "generic/002 0s ... [not run] bar",
         ]
         results = self.parser.parse(stdout, [], 0)
-        self.assertDictEqual(
-            {
-                "generic/001": {
-                    "status": TestStatus.PASSED,
-                    "details": "Not run: fire walk with me",
-                },
-                "generic/002": {
-                    "status": TestStatus.PASSED,
-                    "details": "Not run: black lodge",
-                },
-            },
+        self.assertEqual(
+            [
+                TestCaseResult(
+                    name="generic/001",
+                    status=TestStatus.SKIPPED,
+                    details="Not run: fire walk with me",
+                ),
+                TestCaseResult(
+                    name="generic/002",
+                    status=TestStatus.SKIPPED,
+                    details="Not run: black lodge",
+                ),
+            ],
             results,
         )
 
@@ -92,13 +104,14 @@ class TestXfstestsParser(fake_filesystem_unittest.TestCase):
 
         stdout = ["generic/001  [expunged]"]
         results = self.parser.parse(stdout, [], 0)
-        self.assertDictEqual(
-            {
-                "generic/001": {
-                    "status": TestStatus.PASSED,
-                    "details": "Excluded: this is the water",
-                }
-            },
+        self.assertEqual(
+            [
+                TestCaseResult(
+                    name="generic/001",
+                    status=TestStatus.OMITTED,
+                    details="Excluded: this is the water",
+                )
+            ],
             results,
         )
 
@@ -109,13 +122,14 @@ class TestXfstestsParser(fake_filesystem_unittest.TestCase):
 
         stdout = ["generic/001  filesystem is inconsistent"]
         results = self.parser.parse(stdout, [], 0)
-        self.assertDictEqual(
-            {
-                "generic/001": {
-                    "status": TestStatus.FAILED,
-                    "details": f"{full}:\nThis is not valid UTF-8\\xff\n",
-                }
-            },
+        self.assertEqual(
+            [
+                TestCaseResult(
+                    name="generic/001",
+                    status=TestStatus.FAILED,
+                    details=f"{full}:\nThis is not valid UTF-8\\xff\n",
+                )
+            ],
             results,
         )
 

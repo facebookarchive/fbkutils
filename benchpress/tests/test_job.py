@@ -17,6 +17,7 @@ from unittest.mock import MagicMock, call
 
 from benchpress.lib.hook_factory import HookFactory
 from benchpress.lib.job import Job
+from benchpress.lib.parser import TestCaseResult, TestStatus
 from benchpress.lib.parser_factory import ParserFactory
 
 
@@ -56,13 +57,17 @@ class TestJob(unittest.TestCase):
         self.job_config["metrics"] = ["key"]
 
         self.mock_benchmark["path"] = "echo"
-        self.mock_parser.parse.return_value = {"key": "hello"}
+        self.mock_parser.parse.return_value = [
+            TestCaseResult(name="key", status=TestStatus.PASSED)
+        ]
 
         job = Job(self.job_config, self.mock_benchmark)
 
         metrics = job.run()
         self.mock_parser.parse.assert_called_with([mock_data], [], 0)
-        self.assertDictEqual({"key": "hello"}, metrics)
+        self.assertEqual(
+            [TestCaseResult(name="key", status=TestStatus.PASSED)], metrics
+        )
 
     def test_run_fail(self):
         """Exit 1 raises an exception"""

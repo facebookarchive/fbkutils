@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 
-from benchpress.lib.parser import Parser
+from typing import List
 
-
-class TestStatus(object):
-    PASSED = 1
-    FAILED = 2
+from benchpress.lib.parser import Parser, TestCaseResult, TestStatus
 
 
 class PacketdrillParser(Parser):
@@ -15,24 +12,23 @@ class PacketdrillParser(Parser):
            test_name return_value
     So the parsing is simple:
         "test_name 0" => "test_name PASS"
-        "test_name none-zero" => "test_name FAIL"
+        "test_name non-zero" => "test_name FAIL"
     """
 
-    def __init__(self):
-        super().__init__()
-
-    def parse(self, stdout, stderr, returncode):
-        metrics = {}
+    def parse(
+        self, stdout: List[str], stderr: List[str], returncode: int
+    ) -> List[TestCaseResult]:
+        test_cases: List[TestCaseResult] = []
         for line in stdout:
             items = line.split()
             if len(items) != 2:
                 continue
 
             test_name = items[0]
-            test_metrics = {}
+            case = TestCaseResult(name=test_name, status=TestStatus.FAILED)
             if items[1] == "0":
-                test_metrics["status"] = TestStatus.PASSED
-            else:
-                test_metrics["status"] = TestStatus.FAILED
-            metrics[test_name] = test_metrics
-        return metrics
+                case.status = TestStatus.PASSED
+
+            test_cases.append(case)
+
+        return test_cases

@@ -11,8 +11,10 @@ import logging
 import subprocess
 import sys
 from subprocess import CalledProcessError, TimeoutExpired
+from typing import List
 
 from benchpress.lib.hook_factory import HookFactory
+from benchpress.lib.parser import TestCaseResult
 from benchpress.lib.parser_factory import ParserFactory
 
 
@@ -88,7 +90,7 @@ class Job(object):
                 l.append(str(val))
         return l
 
-    def run(self):
+    def run(self) -> List[TestCaseResult]:
         """Run the benchmark and return the metrics that are reported.
         """
         # take care of preprocessing setup via hook
@@ -101,7 +103,7 @@ class Job(object):
             logger.info('Starting "{}"'.format(self.name))
             cmd = [self.binary] + self.args
             try:
-                process = subprocess.run(
+                process: subprocess.CompletedProcess = subprocess.run(
                     cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,

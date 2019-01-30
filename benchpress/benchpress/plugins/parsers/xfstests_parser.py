@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
-
 import difflib
 import os.path
 import re
+from typing import List
 
-from benchpress.lib.parser import Parser
-
-
-class TestStatus(object):
-    PASSED = 1
-    FAILED = 2
+from benchpress.lib.parser import Parser, TestCaseResult, TestStatus
 
 
 class XfstestsParser(Parser):
@@ -18,7 +13,9 @@ class XfstestsParser(Parser):
         self.tests_dir = "xfstests/tests"
         self.results_dir = "xfstests/results"
 
-    def parse(self, stdout, stderr, returncode):
+    def parse(
+        self, stdout: List[str], stderr: List[str], returncode: int
+    ) -> List[TestCaseResult]:
         excluded = {}
         # The exclude list is one test per line optionally followed by a
         # comment explaining why the test is excluded.
@@ -40,29 +37,31 @@ class XfstestsParser(Parser):
         test_regex = re.compile(
             r"^(?P<test_name>\w+/\d+)\s+(?:\d+s\s+\.\.\.\s+)?(?P<status>.*)"
         )
-        metrics = {}
+        test_cases: List[TestCaseResult] = []
         for line in stdout:
             match = test_regex.match(line)
             if match:
                 test_name = match.group("test_name")
-                test_metrics = {}
+
+                case = TestCaseResult(name=test_name, status=TestStatus.FATAL)
 
                 status = match.group("status")
-                duration_match = re.fullmatch("(\d+(?:\.\d+)?)s", status)
+                duration_match = re.fullmatch(r"(\d+(?:\.\d+)?)s", status)
                 if duration_match:
-                    test_metrics["status"] = TestStatus.PASSED
-                    test_metrics["duration_secs"] = float(duration_match.group(1))
+                    case.status = TestStatus.PASSED
+                    case.runtime = float(duration_match.group(1))
                 elif status.startswith("[not run]"):
-                    test_metrics["status"] = TestStatus.PASSED
-                    test_metrics["details"] = self.not_run_details(test_name)
+                    case.status = TestStatus.SKIPPED
+                    case.details = self.not_run_details(test_name)
                 elif status.startswith("[expunged]"):
-                    test_metrics["status"] = TestStatus.PASSED
-                    test_metrics["details"] = self.excluded_details(excluded, test_name)
+                    case.status = TestStatus.OMITTED
+                    case.details = self.excluded_details(excluded, test_name)
                 else:
-                    test_metrics["status"] = TestStatus.FAILED
-                    test_metrics["details"] = self.run_details(test_name)
-                metrics[test_name] = test_metrics
-        return metrics
+                    case.status = TestStatus.FAILED
+                    case.details = self.run_details(test_name)
+
+                test_cases.append(case)
+        return test_cases
 
     def not_run_details(self, test_name):
         try:
