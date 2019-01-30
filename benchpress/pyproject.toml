@@ -14,6 +14,7 @@ homepage = "https://github.com/facebook/fbkutils"
 python = "^3.6"
 pyyaml = "^3.13"
 dataclasses = "^0.6.0"
+click = "^7.0"
 
 [tool.poetry.dev-dependencies]
 coverage = "^4.5"
@@ -21,7 +22,7 @@ pyfakefs = "^3.5"
 pytest = "^4.1"
 
 [tool.poetry.scripts]
-benchpress = 'benchpress_cli:entry_point'
+benchpress = 'benchpress.cli:benchpress'
 
 [build-system]
 requires = ["poetry>=0.12"]
