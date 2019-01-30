@@ -12,7 +12,13 @@ from benchpress.lib.reporter import StdoutReporter
 from benchpress.lib.reporter_factory import ReporterFactory
 
 
-if __name__ == "__main__":
+# this makes it possible to install as a script with poetry or to just run this
+# file as an executable
+def entry_point():
     # register a default class for reporting metrics
     ReporterFactory.register("default", StdoutReporter)
     main()
+
+
+if __name__ == "__main__":
+    entry_point()

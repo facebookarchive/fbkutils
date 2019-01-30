@@ -13,10 +13,7 @@ Installation
 `benchpress` supports `python` 3.3 and higher, and is currently tested on
 `python 3.3,3.4,3.5` and `3.6`.
 
-pip:  
-`pip` is the default Python package management system used to install tools or
-dependencies needed by other scripts.
-`benchpress`'s dependencies can be installed by running `pip3 install -r requirements.txt`.
+`benchpress` can be installed with `pip install fb-benchpress`
 
 Benchmark binaries also need to be installed. Running `./install_benchmarks.sh`
 will download and compile `fio` and `schbench` and put the resulting binaries

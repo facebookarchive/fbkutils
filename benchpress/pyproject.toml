@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "fb-benchpress"
+version = "0.1.0"
+description = "Facebook kernel team's test runner"
+authors = ["Vinnie Magro <vmagro@fb.com>"]
+license = "BSD-3-Clause"
+packages = [
+    { include = "benchpress" },
+]
+readme = "README.md"
+homepage = "https://github.com/facebook/fbkutils"
+
+[tool.poetry.dependencies]
+python = "^3.6"
+pyyaml = "^3.13"
+dataclasses = "^0.6.0"
+
+[tool.poetry.dev-dependencies]
+coverage = "^4.5"
+pyfakefs = "^3.5"
+pytest = "^4.1"
+
+[tool.poetry.scripts]
+benchpress = 'benchpress_cli:entry_point'
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+
+[flake8]
+max-line-length=80
