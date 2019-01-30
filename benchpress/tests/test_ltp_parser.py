@@ -19,40 +19,121 @@ class TestLtpParser(unittest.TestCase):
     def test_sample_output(self):
         """Can parse output from running ltp fs tests"""
         # sample output from running ltp fs tests
-        output = [
-            "INFO: creating /opt/ltp/results directory",
-            "Checking for required user/group ids",
-            "'nobody' user id and group found.",
-            "'bin' user id and group found.",
-            "'daemon' user id and group found.",
-            "Users group found.",
-            "Sys group found.",
-            "Required users/groups exist.",
-            "no big block device was specified on commandline.",
-            "Tests which require a big block device are disabled.",
-            "You can specify it with option -z",
-            "INFO: Test start time: Tue Jul 25 12:58:54 PDT 2017",
-            "COMMAND:    /opt/ltp/bin/ltp-pan  -q  -e -S   -a 20584     -n 20584  -p  -f /tmp/ltp-htqf01qm5r/alltests -l /opt/ltp/results/LTP_RUN_ON-2017_07_25-12h_58m_54s.log  -C /opt/ltp/output/LTP_RUN_ON-2017_07_25-12h_58m_54s.failed -T /opt/ltp/output/LTP_RUN_ON-2017_07_25-12h_58m_54s.tconf",  # noqa
-            "LOG File: /opt/ltp/results/LTP_RUN_ON-2017_07_25-12h_58m_54s.log",
-            "FAILED COMMAND File: /opt/ltp/output/LTP_RUN_ON-2017_07_25-12h_58m_54s.failed",  # noqa
-            "TCONF COMMAND File: /opt/ltp/output/LTP_RUN_ON-2017_07_25-12h_58m_54s.tconf",  # noqa
-            "Running tests.......",
-            "growfiles(gf01): 20631 growfiles.c/2037: 254087 tlibio.c/961 writev(6, iov, 1) nbyte:1 ret:-1, errno=28 No space left on device",  # noqa
-            "gf01        1  TFAIL  :  growfiles.c:132: Test failed",
-            "gf02        1  TPASS  :  Test passed",
-            "gf03        1  TINFO  :  Some useless info",
-            "gf03        1  TPASS  :  Test passed",
-            "gf04        1  TWARN  :  Test warning",
-            "gf05        1  TBROK  :  Test brok",
-        ]
-        results = self.parser.parse(output, None, 0)
+        output = """INFO: creating /root/ltp/output directory
+INFO: creating /root/ltp/results directory
+Checking for required user/group ids
+
+'nobody' user id and group found.
+'bin' user id and group found.
+'daemon' user id and group found.
+Users group found.
+Sys group found.
+Required users/groups exist.
+If some fields are empty or look unusual you may have an old version.
+Compare to the current minimal requirements in Documentation/Changes.
+
+<<<test_start>>>
+tag=gf14 stime=1548867875
+cmdline="growfiles -W gf14 -b -e 1 -u -i 0 -L 20 -w -l -C 1 -T 10 -f glseek19 -S 2 -d $TMPDIR"
+contacts=""
+analysis=exit
+<<<test_output>>>
+gf14        1  TBROK  :  Test passed
+<<<execution_status>>>
+initiation_status="ok"
+duration=15 termination_type=exited termination_id=0 corefile=no
+cutime=535 cstime=844
+<<<test_end>>>
+<<<test_start>>>
+tag=gf15 stime=1548867890
+cmdline="growfiles -W gf15 -b -e 1 -u -r 1-49600 -I r -u -i 0 -L 120 -f Lgfile1 -d $TMPDIR"
+contacts=""
+analysis=exit
+<<<test_output>>>
+gf15        1  TPASS  :  Test passed
+<<<execution_status>>>
+initiation_status="ok"
+duration=19 termination_type=exited termination_id=0 corefile=no
+cutime=1673 cstime=212
+<<<test_end>>>
+<<<test_start>>>
+tag=gf16 stime=1548867909
+cmdline="growfiles -W gf16 -b -e 1 -i 0 -L 120 -u -g 4090 -T 101 -t 408990 -l -C 10 -c 1000 -S 10 -f Lgf02_ -d $TMPDIR"
+contacts=""
+analysis=exit
+<<<test_output>>>
+gf16        1  TFAIL  :  Test passed
+<<<execution_status>>>
+initiation_status="ok"
+duration=121 termination_type=exited termination_id=0 corefile=no
+cutime=10074 cstime=1922
+<<<test_end>>>
+<<<test_start>>>
+tag=quota_remount_test01 stime=1548866311
+cmdline="quota_remount_test01.sh"
+tag=gf16 stime=1548867909
+cmdline="growfiles -W gf16 -b -e 1 -i 0 -L 120 -u -g 4090 -T 101 -t 408990 -l -C 10 -c 1000 -S 10 -f Lgf02_ -d $TMPDIR"
+contacts=""
+analysis=exit
+<<<test_output>>>
+incrementing stop
+quota_remount_test01    0  TINFO  :  Successfully mounted the File System
+quota_remount_test01    0  TINFO  :  Successfully Created Quota Files
+quotaon: using /tmp/ltp-gR1S51MtVi/mnt/aquota.group on /dev/loop2 [/tmp/ltp-gR1S51MtVi/mnt]: No such process
+quotaon: Quota format not supported in kernel.
+quotaon: using /tmp/ltp-gR1S51MtVi/mnt/aquota.user on /dev/loop2 [/tmp/ltp-gR1S51MtVi/mnt]: No such process
+quotaon: Quota format not supported in kernel.
+Could not turn quota on
+quota_remount_test01    1  TFAIL  :  ltpapicmd.c:188: Quota on Remount Failed
+gf16        1  TFAIL  :  Test passed
+<<<execution_status>>>
+initiation_status="ok"
+duration=1 termination_type=exited termination_id=2 corefile=no
+cutime=1 cstime=4
+duration=121 termination_type=exited termination_id=0 corefile=no
+cutime=10074 cstime=1922
+<<<test_end>>>
+        """
+        results = self.parser.parse(output.split("\n"), None, 0)
         self.assertEqual(
             [
-                TestCaseResult(name="gf01_1", status=TestStatus.FAILED),
-                TestCaseResult(name="gf02_1", status=TestStatus.PASSED),
-                TestCaseResult(name="gf03_1", status=TestStatus.PASSED),
-                TestCaseResult(name="gf04_1", status=TestStatus.FAILED),
-                TestCaseResult(name="gf05_1", status=TestStatus.FAILED),
+                TestCaseResult(
+                    name="gf14",
+                    status=TestStatus.FAILED,
+                    details="""
+gf14        1  TBROK  :  Test passed
+                """.strip(),
+                ),
+                TestCaseResult(
+                    name="gf15",
+                    status=TestStatus.PASSED,
+                    details="""
+gf15        1  TPASS  :  Test passed
+                """.strip(),
+                ),
+                TestCaseResult(
+                    name="gf16",
+                    status=TestStatus.FAILED,
+                    details="""
+gf16        1  TFAIL  :  Test passed
+                """.strip(),
+                ),
+                TestCaseResult(
+                    name="quota_remount_test01",
+                    status=TestStatus.FAILED,
+                    details="""
+incrementing stop
+quota_remount_test01    0  TINFO  :  Successfully mounted the File System
+quota_remount_test01    0  TINFO  :  Successfully Created Quota Files
+quotaon: using /tmp/ltp-gR1S51MtVi/mnt/aquota.group on /dev/loop2 [/tmp/ltp-gR1S51MtVi/mnt]: No such process
+quotaon: Quota format not supported in kernel.
+quotaon: using /tmp/ltp-gR1S51MtVi/mnt/aquota.user on /dev/loop2 [/tmp/ltp-gR1S51MtVi/mnt]: No such process
+quotaon: Quota format not supported in kernel.
+Could not turn quota on
+quota_remount_test01    1  TFAIL  :  ltpapicmd.c:188: Quota on Remount Failed
+gf16        1  TFAIL  :  Test passed
+                """.strip(),
+                ),
             ],
             results,
         )
