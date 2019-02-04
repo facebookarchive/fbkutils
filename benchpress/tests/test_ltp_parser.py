@@ -51,6 +51,7 @@ contacts=""
 analysis=exit
 <<<test_output>>>
 gf15        1  TPASS  :  Test passed
+gf15        2  TPASS  :  Test passed
 <<<execution_status>>>
 initiation_status="ok"
 duration=19 termination_type=exited termination_id=0 corefile=no
@@ -95,31 +96,57 @@ cutime=10074 cstime=1922
 <<<test_end>>>
         """
         results = self.parser.parse(output.split("\n"), None, 0)
+        self.maxDiff = None
         self.assertEqual(
             [
                 TestCaseResult(
-                    name="gf14",
+                    name="gf14_1",
                     status=TestStatus.FAILED,
                     details="""
 gf14        1  TBROK  :  Test passed
                 """.strip(),
                 ),
                 TestCaseResult(
-                    name="gf15",
+                    name="gf15_1",
                     status=TestStatus.PASSED,
                     details="""
 gf15        1  TPASS  :  Test passed
+gf15        2  TPASS  :  Test passed
                 """.strip(),
                 ),
                 TestCaseResult(
-                    name="gf16",
+                    name="gf15_2",
+                    status=TestStatus.PASSED,
+                    details="""
+gf15        1  TPASS  :  Test passed
+gf15        2  TPASS  :  Test passed
+                """.strip(),
+                ),
+                TestCaseResult(
+                    name="gf16_1",
                     status=TestStatus.FAILED,
                     details="""
 gf16        1  TFAIL  :  Test passed
                 """.strip(),
                 ),
                 TestCaseResult(
-                    name="quota_remount_test01",
+                    name="quota_remount_test01_1",
+                    status=TestStatus.FAILED,
+                    details="""
+incrementing stop
+quota_remount_test01    0  TINFO  :  Successfully mounted the File System
+quota_remount_test01    0  TINFO  :  Successfully Created Quota Files
+quotaon: using /tmp/ltp-gR1S51MtVi/mnt/aquota.group on /dev/loop2 [/tmp/ltp-gR1S51MtVi/mnt]: No such process
+quotaon: Quota format not supported in kernel.
+quotaon: using /tmp/ltp-gR1S51MtVi/mnt/aquota.user on /dev/loop2 [/tmp/ltp-gR1S51MtVi/mnt]: No such process
+quotaon: Quota format not supported in kernel.
+Could not turn quota on
+quota_remount_test01    1  TFAIL  :  ltpapicmd.c:188: Quota on Remount Failed
+gf16        1  TFAIL  :  Test passed
+                """.strip(),
+                ),
+                TestCaseResult(
+                    name="gf16_1",
                     status=TestStatus.FAILED,
                     details="""
 incrementing stop

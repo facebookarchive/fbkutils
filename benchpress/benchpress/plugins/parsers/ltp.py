@@ -6,14 +6,18 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
+import logging
 import re
 from typing import Iterable, List
 
 from benchpress.lib.parser import Parser, TestCaseResult, TestStatus
 
 
+logger = logging.getLogger(__name__)
+
+
 # <test name> <number> <status> : <extra stuff>
-test_format_re = re.compile("\\w+\\s+\\d+\\s+(T(?:FAIL|PASS|BROK|WARN|INFO)).*")
+test_format_re = re.compile(r"(\w+)+\s+(\d+)\s+(T(?:FAIL|PASS|BROK|WARN|INFO)).*")
 
 
 class LtpParser(Parser):
@@ -23,28 +27,30 @@ class LtpParser(Parser):
             if line == "<<<test_start>>>":
                 case_lines = []
             if line == "<<<test_end>>>":
-                name_match = re.match(r"^tag=(.*) stime=.*$", case_lines[1])
-                assert name_match is not None
-                name = name_match.group(1)
-
                 output_start = case_lines.index("<<<test_output>>>")
                 output_end = case_lines.index("<<<execution_status>>>")
                 output = case_lines[output_start + 1 : output_end]
 
-                status_line = output[-1]
-                match = test_format_re.match(status_line)
-                assert match is not None
-                status_name = match.group(1)
-                status = TestStatus.SKIPPED
-                if status_name in ("TFAIL", "TBROK", "TWARN"):
-                    status = TestStatus.FAILED
-                elif status_name == "TPASS":
-                    status = TestStatus.PASSED
-                case = TestCaseResult(
-                    name=name, status=status, details="\n".join(output)
-                )
-                yield case
-                continue
+                for status_line in output:
+                    match = test_format_re.match(status_line)
+                    if not match:
+                        continue
+                    case_name = match.group(1) + "_" + match.group(2)
+                    status_name = match.group(3)
+                    status = TestStatus.SKIPPED
+                    if status_name in ("TFAIL", "TBROK", "TWARN"):
+                        status = TestStatus.FAILED
+                    elif status_name == "TPASS":
+                        status = TestStatus.PASSED
+                    elif status_name == "TINFO":
+                        continue
+                    else:
+                        logger.warning(f"Encountered unknown status '{status_name}'")
+                        continue
+                    case = TestCaseResult(
+                        name=case_name, status=status, details="\n".join(output)
+                    )
+                    yield case
             case_lines.append(line)
 
     def parse(
