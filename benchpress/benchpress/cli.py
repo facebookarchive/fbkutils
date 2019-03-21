@@ -15,7 +15,7 @@ import click
 import yaml
 from benchpress.lib.reporter import StdoutReporter
 from benchpress.lib.reporter_factory import ReporterFactory
-from benchpress.suites import Suite
+from benchpress.suites.suite import DiscoveredTestCase, Suite
 
 
 # register reporter plugins before setting up the parser
@@ -52,28 +52,25 @@ def benchpress(ctx, verbose, suites):
 
 
 @benchpress.command()
-@click.option("--suite", multiple=True)
+@click.option("--suite", "-s")
+@click.option("--case", "-c", "cases", multiple=True)
 @click.pass_context
-def run(ctx, suite):
-    suite_names = suite
+def run(ctx, suite, cases):
     logger = logging.getLogger("benchpress.run")
 
     reporter = ReporterFactory.create("default")
-    suites = ctx.obj["suites"]
-    for name in suite_names:
-        if name not in suites:
-            logger.error('No suite "{}" found'.format(name))
-            sys.exit(1)
+    if suite not in ctx.obj["suites"]:
+        logger.error('No suite "{}" found'.format(suite))
+        sys.exit(1)
+    suite = ctx.obj["suites"][suite]
 
-    suites = {name: suites[name] for name in suite_names}
-    suites = suites.values()
-    click.echo("Will run {} suite(s)".format(len(suites)))
-
-    for suite in suites:
-        print('Running "{}": {}'.format(suite.name, suite.description))
-        results = suite.run()
-        reporter.report(suite, results)
-
+    print(f'Running "{suite.name}"')
+    if not cases:
+        cases = None
+    else:
+        cases = [DiscoveredTestCase(name=c, description="") for c in cases]
+    results = suite.run(cases)
+    reporter.report(suite, results)
     reporter.close()
 
 

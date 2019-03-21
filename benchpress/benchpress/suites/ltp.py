@@ -8,7 +8,7 @@
 
 import logging
 import re
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 from benchpress.lib.parser import TestCaseResult, TestStatus
 from benchpress.suites.suite import DiscoveredTestCase, Suite
@@ -17,6 +17,8 @@ from benchpress.suites.suite import DiscoveredTestCase, Suite
 logger = logging.getLogger(__name__)
 test_format_re = re.compile(r"(\w+)+\s+(\d+)\s+(T(?:FAIL|PASS|BROK|WARN|INFO)).*")
 
+test_case_re = re.compile(r"^(.*)_\d+$")
+
 
 class LtpSuite(Suite):
     NAME = "ltp"
@@ -24,6 +26,26 @@ class LtpSuite(Suite):
     def discover_cases(self) -> List[DiscoveredTestCase]:
         # TODO
         pass
+
+    def run(
+        self, cases: Optional[List[DiscoveredTestCase]] = None
+    ) -> Iterable[TestCaseResult]:
+        if cases:
+            names = []
+            for c in cases:
+                name = c.name
+                match = test_case_re.match(name)
+                if match:
+                    name = match.group(1)
+                    logger.warning(
+                        "LTP does not support running with a granularity less "
+                        "than a single test case, dropping the extra part "
+                        f"(using '{name}')"
+                    )
+                names.append(name)
+
+            self.args += ["-s"] + names
+        return super().run(cases)
 
     def parse(
         self, stdout: List[str], stderr: List[str], returncode: int
