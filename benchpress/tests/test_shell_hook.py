@@ -24,7 +24,7 @@ class TestShellHook(fake_filesystem_unittest.TestCase):
         self.original_dir = os.getcwd()
         self.hook = ShellHook()
 
-        self.fs.CreateDirectory(FAKEDIR)
+        self.fs.create_dir(FAKEDIR)
 
     def tearDown(self):
         os.chdir(self.original_dir)
@@ -33,22 +33,22 @@ class TestShellHook(fake_filesystem_unittest.TestCase):
         """Can cd to change the working directory of a test"""
         self.assertNotEqual(FAKEDIR, os.getcwd())
         self.assertEqual(self.original_dir, os.getcwd())
-        self.hook.before_job({"before": ["cd {}".format(FAKEDIR)]})
+        self.hook.before({"before": ["cd {}".format(FAKEDIR)]})
         self.assertEqual(FAKEDIR, os.getcwd())
 
     def test_cd_pre_reset(self):
         """cd in a before hook is reset in post"""
         self.assertNotEqual(FAKEDIR, os.getcwd())
         self.assertEqual(self.original_dir, os.getcwd())
-        self.hook.before_job({"before": ["cd {}".format(FAKEDIR)]})
+        self.hook.before({"before": ["cd {}".format(FAKEDIR)]})
         self.assertEqual(FAKEDIR, os.getcwd())
-        self.hook.after_job({"before": ["cd {}".format(FAKEDIR)]})
+        self.hook.after({"before": ["cd {}".format(FAKEDIR)]})
         self.assertEqual(self.original_dir, os.getcwd())
 
     @patch("subprocess.check_call")
     def test_pre_subprocess(self, check_call):
         """pre hook executes commands"""
-        self.hook.before_job({"before": ['echo "hello world" extra']})
+        self.hook.before({"before": ['echo "hello world" extra']})
         check_call.assert_called_once_with(
             'echo "hello world" extra',
             shell=True,
@@ -59,7 +59,7 @@ class TestShellHook(fake_filesystem_unittest.TestCase):
     @patch("subprocess.check_call")
     def test_post_subprocess(self, check_call):
         """post hook executes commands"""
-        self.hook.after_job({"after": ['echo "hello world" extra']})
+        self.hook.after({"after": ['echo "hello world" extra']})
         check_call.assert_called_once_with(
             'echo "hello world" extra',
             shell=True,
@@ -72,7 +72,7 @@ class TestShellHook(fake_filesystem_unittest.TestCase):
         """Failing subprocess raises error"""
         with self.assertRaises(subprocess.CalledProcessError):
             check_call.side_effect = subprocess.CalledProcessError(1, "")
-            self.hook.before_job({"before": ["true"]})
+            self.hook.before({"before": ["true"]})
 
 
 if __name__ == "__main__":

@@ -1,0 +1,12 @@
+- name: example-generic
+  runner: generic
+  description: simple test that outputs line by line results
+  path: ./example
+  args:
+    - generic
+- name: example-return
+  runner: generic
+  description: simple test that is just returncode
+  path: ./example
+  args:
+    - returncode

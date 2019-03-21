@@ -8,13 +8,14 @@
 
 import argparse
 import logging
+import os
 import sys
 
 import click
 import yaml
-from benchpress.lib.job import Job
 from benchpress.lib.reporter import StdoutReporter
 from benchpress.lib.reporter_factory import ReporterFactory
+from benchpress.suites import Suite
 
 
 # register reporter plugins before setting up the parser
@@ -24,10 +25,14 @@ ReporterFactory.register("default", StdoutReporter)
 
 @click.group()
 @click.option("-v", "--verbose", count=True, default=0)
-@click.option("-b", "--benchmarks", type=click.File("r"), default="benchmarks.yml")
-@click.option("-j", "--jobs", type=click.File("r"), default="jobs.yml")
+@click.option(
+    "-s",
+    "--suites",
+    type=click.File("r"),
+    default=lambda: os.environ.get("BENCHPRESS_SUITES", "suites.yml"),
+)
 @click.pass_context
-def benchpress(ctx, verbose, benchmarks, jobs):
+def benchpress(ctx, verbose, suites):
     ctx.ensure_object(dict)
 
     # warn is 30, should default to 30 when verbose=0
@@ -36,48 +41,54 @@ def benchpress(ctx, verbose, benchmarks, jobs):
     logging.basicConfig(format="%(levelname)s:%(name)s: %(message)s", level=log_level)
     logger = logging.getLogger(__name__)
 
-    logger.info('Loading benchmarks from "{}"'.format(benchmarks))
-    benchmarks = yaml.load(benchmarks)
+    logger.info('Loading suites from "{}"'.format(suites))
+    suite_configs = yaml.load(suites)
 
-    logger.info('Loading jobs from "{}"'.format(jobs))
-    job_configs = yaml.load(jobs)
+    suites = [Suite.instantiate(s) for s in suite_configs]
+    suites = {s.name: s for s in suites}
+    ctx.obj["suites"] = suites
 
-    jobs = [Job(j, benchmarks[j["benchmark"]]) for j in job_configs if "tests" not in j]
-    jobs = {j.name: j for j in jobs}
-    ctx.obj["jobs"] = jobs
-
-    logger.info("Loaded {} benchmarks and {} jobs".format(len(benchmarks), len(jobs)))
+    logger.info("Loaded {} test suites".format(len(suites)))
 
 
 @benchpress.command()
-@click.option("--job", multiple=True)
+@click.option("--suite", multiple=True)
 @click.pass_context
-def run(ctx, job):
-    job_names = job
+def run(ctx, suite):
+    suite_names = suite
     logger = logging.getLogger("benchpress.run")
 
     reporter = ReporterFactory.create("default")
-    jobs = ctx.obj["jobs"]
-    for name in job_names:
-        if name not in jobs:
-            logger.error('No job "{}" found'.format(name))
+    suites = ctx.obj["suites"]
+    for name in suite_names:
+        if name not in suites:
+            logger.error('No suite "{}" found'.format(name))
             sys.exit(1)
 
-    jobs = {name: jobs[name] for name in job_names}
-    jobs = jobs.values()
-    click.echo("Will run {} job(s)".format(len(jobs)))
+    suites = {name: suites[name] for name in suite_names}
+    suites = suites.values()
+    click.echo("Will run {} suite(s)".format(len(suites)))
 
-    for job in jobs:
-        print('Running "{}": {}'.format(job.name, job.description))
-        metrics = job.run()
-        reporter.report(job, metrics)
+    for suite in suites:
+        print('Running "{}": {}'.format(suite.name, suite.description))
+        results = suite.run()
+        reporter.report(suite, results)
 
     reporter.close()
 
 
 @benchpress.command("list")
+@click.argument("suite", required=False)
 @click.pass_context
-def list_jobs(ctx):
-    jobs = ctx.obj["jobs"]
-    for job in jobs.values():
-        click.echo("{}: {}".format(job.name, job.description))
+def list_suites(ctx, suite):
+    suites = ctx.obj["suites"]
+    if suite:
+        # list test cases in a suite
+        suite = suites[suite]
+        cases = suite.discover_cases()
+        print(f'Test cases in "{suite.name}":')
+        for case in cases:
+            print(f"  {case.name}: {case.description}")
+        return
+    for suite in suites.values():
+        click.echo("{}: {}".format(suite.name, suite.description))

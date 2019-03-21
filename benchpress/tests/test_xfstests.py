@@ -8,24 +8,25 @@
 
 import os.path
 import unittest
+from unittest.mock import MagicMock
 
 from benchpress.lib.parser import TestCaseResult, TestStatus
-from benchpress.plugins.parsers.xfstests_parser import XfstestsParser
+from benchpress.suites.xfstests import RESULTS_DIR, TESTS_DIR, XfstestsSuite
 from pyfakefs import fake_filesystem_unittest
 
 
-class TestXfstestsParser(fake_filesystem_unittest.TestCase):
+class TestXfstests(fake_filesystem_unittest.TestCase):
     def setUp(self):
         self.setUpPyfakefs()
-        self.parser = XfstestsParser()
-        self.fs.CreateDirectory(self.parser.tests_dir)
-        self.fs.CreateDirectory(os.path.join(self.parser.tests_dir, "generic"))
-        self.fs.CreateDirectory(self.parser.results_dir)
-        self.fs.CreateDirectory(os.path.join(self.parser.results_dir, "generic"))
+        self.parser = XfstestsSuite(MagicMock())
+        self.fs.create_dir(TESTS_DIR)
+        self.fs.create_dir(os.path.join(TESTS_DIR, "generic"))
+        self.fs.create_dir(RESULTS_DIR)
+        self.fs.create_dir(os.path.join(RESULTS_DIR, "generic"))
 
     def test_pass(self):
         stdout = ["generic/001  2s", "generic/002  2s ... 4s"]
-        results = self.parser.parse(stdout, [], 0)
+        results = list(self.parser.parse(stdout, [], 0))
         self.assertEqual(
             [
                 TestCaseResult(
@@ -39,16 +40,16 @@ class TestXfstestsParser(fake_filesystem_unittest.TestCase):
         )
 
     def test_output_mismatch(self):
-        out = os.path.join(self.parser.tests_dir, "generic", "305.out")
+        out = os.path.join(TESTS_DIR, "generic", "305.out")
         with open(out, "w") as f:
             f.write("expected\n")
-        out_bad = os.path.join(self.parser.results_dir, "generic", "305.out.bad")
+        out_bad = os.path.join(RESULTS_DIR, "generic", "305.out.bad")
         with open(out_bad, "w") as f:
             f.write("actual\n")
 
         diff = f"""\
---- {self.parser.tests_dir}/generic/305.out
-+++ {self.parser.results_dir}/generic/305.out.bad
+--- {TESTS_DIR}/generic/305.out
++++ {RESULTS_DIR}/generic/305.out.bad
 @@ -1 +1 @@
 -expected
 +actual
@@ -59,7 +60,7 @@ class TestXfstestsParser(fake_filesystem_unittest.TestCase):
             "something something",
             "more output blah blah",
         ]
-        results = self.parser.parse(stdout, [], 0)
+        results = list(self.parser.parse(stdout, [], 0))
         self.assertEqual(
             [
                 TestCaseResult(
@@ -70,10 +71,10 @@ class TestXfstestsParser(fake_filesystem_unittest.TestCase):
         )
 
     def test_not_run(self):
-        notrun1 = os.path.join(self.parser.results_dir, "generic", "001.notrun")
+        notrun1 = os.path.join(RESULTS_DIR, "generic", "001.notrun")
         with open(notrun1, "w") as f:
             f.write("fire walk with me\n")
-        notrun2 = os.path.join(self.parser.results_dir, "generic", "002.notrun")
+        notrun2 = os.path.join(RESULTS_DIR, "generic", "002.notrun")
         with open(notrun2, "w") as f:
             f.write("black lodge\n")
 
@@ -81,7 +82,7 @@ class TestXfstestsParser(fake_filesystem_unittest.TestCase):
             "generic/001        [not run] foo",
             "generic/002 0s ... [not run] bar",
         ]
-        results = self.parser.parse(stdout, [], 0)
+        results = list(self.parser.parse(stdout, [], 0))
         self.assertEqual(
             [
                 TestCaseResult(
@@ -103,7 +104,7 @@ class TestXfstestsParser(fake_filesystem_unittest.TestCase):
             f.write("generic/001 # this is the water\n")
 
         stdout = ["generic/001  [expunged]"]
-        results = self.parser.parse(stdout, [], 0)
+        results = list(self.parser.parse(stdout, [], 0))
         self.assertEqual(
             [
                 TestCaseResult(
@@ -116,12 +117,12 @@ class TestXfstestsParser(fake_filesystem_unittest.TestCase):
         )
 
     def test_invalid_unicode(self):
-        full = os.path.join(self.parser.results_dir, "generic", "001.full")
+        full = os.path.join(RESULTS_DIR, "generic", "001.full")
         with open(full, "wb") as f:
             f.write(b"This is not valid UTF-8\xff\n")
 
         stdout = ["generic/001  filesystem is inconsistent"]
-        results = self.parser.parse(stdout, [], 0)
+        results = list(self.parser.parse(stdout, [], 0))
         self.assertEqual(
             [
                 TestCaseResult(

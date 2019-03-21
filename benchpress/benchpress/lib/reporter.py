@@ -12,29 +12,28 @@ import sys
 from abc import ABCMeta, abstractmethod
 from typing import List
 
-from benchpress.lib.job import Job
 from benchpress.lib.parser import TestCaseResult, TestStatus
+from benchpress.suites import Suite
 
 
 class Reporter(object, metaclass=ABCMeta):
-    """A Reporter is used to record job results in your infrastructure.
-    """
+    """A Reporter is used to record suite results in your infrastructure."""
 
     @abstractmethod
-    def report(self, job: Job, results: List[TestCaseResult]):
-        """Save job metrics somewhere in existing monitoring infrastructure."""
+    def report(self, suite: Suite, results: List[TestCaseResult]):
+        """Save suite metrics somewhere in existing monitoring infrastructure."""
         pass
 
     @abstractmethod
     def close(self):
-        """Do whatever necessary cleanup is required after all jobs are finished."""
+        """Do whatever necessary cleanup is required after all suites are finished."""
         pass
 
 
 class StdoutReporter(Reporter):
     """Default reporter implementation, logs a JSON object to stdout."""
 
-    def report(self, job: Job, results: List[TestCaseResult]):
+    def report(self, suite: Suite, results: List[TestCaseResult]):
         """Log JSON report to stdout.
         Attempt to detect whether a real person is running the program then
         pretty print, otherwise print it as JSON.

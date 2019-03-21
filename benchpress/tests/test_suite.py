@@ -12,36 +12,31 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from collections import defaultdict
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, Mock, call
 
 from benchpress.lib.hook_factory import HookFactory
-from benchpress.lib.job import Job
 from benchpress.lib.parser import TestCaseResult, TestStatus
-from benchpress.lib.parser_factory import ParserFactory
+from benchpress.suites import Suite
 
 
 HookFactory.create = MagicMock()
-ParserFactory.create = MagicMock()
 
 
-class TestJob(unittest.TestCase):
+class TestSuite(unittest.TestCase):
     def setUp(self):
-        self.job_config = {"name": "test", "description": "desc", "args": []}
-        self.mock_benchmark = defaultdict(str)
+        self.suite_config = {"name": "test", "description": "desc", "args": []}
         self.mock_hook = MagicMock()
         HookFactory.create.return_value = self.mock_hook
-        self.mock_parser = MagicMock()
-        ParserFactory.create.return_value = self.mock_parser
+        Suite.parse = Mock()
 
     def test_arg_list(self):
         """Argument list is formatted correctly with lists or dicts"""
         self.assertListEqual(
-            ["--output-format=json", "a"], Job.arg_list(["--output-format=json", "a"])
+            ["--output-format=json", "a"], Suite.arg_list(["--output-format=json", "a"])
         )
 
         expected = ["--output-format", "json", "--file"]
-        actual = Job.arg_list({"output-format": "json", "file": None})
+        actual = Suite.arg_list({"output-format": "json", "file": None})
         # items are the same regardless of order
         self.assertCountEqual(expected, actual)
         # '--output-format' comes immediately before 'json'
@@ -50,120 +45,118 @@ class TestJob(unittest.TestCase):
     def test_run_succeed(self):
         """Echo is able to run and be parsed correctly
 
-        Run a job to echo some json and make sure it can be parse and is
+        Run a suite to echo some json and make sure it can be parse and is
         exported correctly."""
         mock_data = '{"key": "hello"}'
-        self.job_config["args"] = [mock_data]
-        self.job_config["metrics"] = ["key"]
+        self.suite_config["args"] = [mock_data]
+        self.suite_config["metrics"] = ["key"]
 
-        self.mock_benchmark["path"] = "echo"
-        self.mock_parser.parse.return_value = [
-            TestCaseResult(name="key", status=TestStatus.PASSED)
-        ]
+        self.suite_config["path"] = "echo"
 
-        job = Job(self.job_config, self.mock_benchmark)
+        suite = Suite(self.suite_config)
+        suite.parse = Mock(
+            return_value=[TestCaseResult(name="key", status=TestStatus.PASSED)]
+        )
 
-        metrics = job.run()
-        self.mock_parser.parse.assert_called_with([mock_data], [], 0)
+        metrics = suite.run()
+        suite.parse.assert_called_with([mock_data], [], 0)
         self.assertEqual(
             [TestCaseResult(name="key", status=TestStatus.PASSED)], metrics
         )
 
     def test_run_fail(self):
         """Exit 1 raises an exception"""
-        self.job_config["args"] = ["-c", 'echo "error" >&2; exit 1']
+        self.suite_config["args"] = ["-c", 'echo "error" >&2; exit 1']
 
-        self.mock_benchmark["path"] = "sh"
+        self.suite_config["path"] = "sh"
 
-        job = Job(self.job_config, self.mock_benchmark)
+        suite = Suite(self.suite_config)
 
         with self.assertRaises(subprocess.CalledProcessError) as e:
-            job.run()
+            suite.run()
         e = e.exception
-        self.assertEqual("stdout:\n\nstderr:\nerror", e.output.rstrip())
+        self.assertEqual("", e.stdout.strip())
+        self.assertEqual("error", e.stderr.strip())
 
     def test_run_fail_no_check_returncode(self):
         """Bad return code doesn't fail when check_returncode is False"""
-        self.job_config["args"] = ["-c", 'echo "error" >&2; exit 1']
+        self.suite_config["args"] = ["-c", 'echo "error" >&2; exit 1']
 
-        self.mock_benchmark["path"] = "sh"
-        self.mock_benchmark["check_returncode"] = False
+        self.suite_config["path"] = "sh"
+        self.suite_config["check_returncode"] = False
 
-        job = Job(self.job_config, self.mock_benchmark)
+        suite = Suite(self.suite_config)
 
-        # job.run won't raise an exception
-        job.run()
+        # suite.run won't raise an exception
+        suite.run()
 
     def test_run_no_binary(self):
         """Nonexistent binary raises an error"""
-        self.mock_benchmark["path"] = "somethingthatdoesntexist"
-        self.mock_benchmark["metrics"] = []
+        self.suite_config["path"] = "somethingthatdoesntexist"
+        self.suite_config["metrics"] = []
 
-        job = Job(self.job_config, self.mock_benchmark)
+        suite = Suite(self.suite_config)
 
         with self.assertRaises(OSError):
-            job.run()
+            suite.run()
 
     def test_run_parser_error(self):
         """A crashed parser raises an error"""
-        self.mock_benchmark["path"] = "true"
-        self.mock_benchmark["metrics"] = []
-        self.mock_parser.parse.side_effect = ValueError("")
+        self.suite_config["path"] = "true"
+        self.suite_config["metrics"] = []
 
-        job = Job(self.job_config, self.mock_benchmark)
+        suite = Suite(self.suite_config)
+        suite.parse = Mock(side_effect=ValueError(""))
 
         with self.assertRaises(ValueError):
-            job.run()
+            suite.run()
 
     def test_run_timeout(self):
         """Binary running past timeout raises an error"""
-        self.job_config["timeout"] = 0.1
-        self.mock_benchmark["path"] = "sleep"
-        self.job_config["args"] = ["1"]
+        self.suite_config["timeout"] = 0.1
+        self.suite_config["path"] = "sleep"
+        self.suite_config["args"] = ["1"]
 
-        job = Job(self.job_config, self.mock_benchmark)
+        suite = Suite(self.suite_config)
 
         with self.assertRaises(subprocess.TimeoutExpired):
-            job.run()
+            suite.run()
 
     def test_run_timeout_is_pass(self):
         """Binary running past timeout raises an error"""
-        self.job_config["timeout"] = 0.1
-        self.job_config["timeout_is_pass"] = True
-        self.mock_benchmark["path"] = "/bin/sh"
-        self.job_config["args"] = [
+        self.suite_config["timeout"] = 0.1
+        self.suite_config["timeout_is_pass"] = True
+        self.suite_config["path"] = "/bin/sh"
+        self.suite_config["args"] = [
             "-c",
             'echo "wow" && echo "err" > /dev/stderr && sleep 2',
         ]
 
-        self.mock_parser.parse.return_value = {"success": "True"}
+        suite = Suite(self.suite_config)
 
-        job = Job(self.job_config, self.mock_benchmark)
+        suite.run()
 
-        job.run()
-
-        self.mock_parser.parse.assert_called_with(["wow"], ["err"], 0)
+        suite.parse.assert_called_with(["wow"], ["err"], None)
 
     def test_tee_stdouterr(self):
         """tee_output option works correctly
 
-        With tee_option=True, the job should print the subprocess stdout lines
+        With tee_option=True, the suite should print the subprocess stdout lines
         starting with 'stdout:' and stderr starting with 'stderr:'"""
         mock_data = "line 1 from echo\nthis is the second line"
-        self.job_config["args"] = [mock_data]
-        self.job_config["metrics"] = ["key"]
-        self.job_config["tee_output"] = True
+        self.suite_config["args"] = [mock_data]
+        self.suite_config["metrics"] = ["key"]
+        self.suite_config["tee_output"] = True
 
-        self.mock_benchmark["path"] = "echo"
-        self.mock_parser.parse.return_value = {"key": "hello"}
+        self.suite_config["path"] = "echo"
 
-        job = Job(self.job_config, self.mock_benchmark)
+        suite = Suite(self.suite_config)
         # capture stdout/err
         orig_stdout, orig_stderr = sys.stdout, sys.stderr
         sys.stdout = io.StringIO()
         sys.stderr = io.StringIO()
 
-        job.run()
+        suite.run()
 
         expected = "stdout: line 1 from echo\nstdout: this is the second line\n"
         self.assertEqual(sys.stdout.getvalue(), expected)
@@ -173,12 +166,12 @@ class TestJob(unittest.TestCase):
         sys.stdout.truncate(0)
         sys.stdout.seek(0)
 
-        self.mock_benchmark["path"] = "sh"
-        self.job_config["args"] = ["-c", 'echo "error" >&2 && echo "from stdout"']
-        self.job_config["tee_output"] = True
+        self.suite_config["path"] = "sh"
+        self.suite_config["args"] = ["-c", 'echo "error" >&2 && echo "from stdout"']
+        self.suite_config["tee_output"] = True
 
-        job = Job(self.job_config, self.mock_benchmark)
-        job.run()
+        suite = Suite(self.suite_config)
+        suite.run()
 
         expected = "stdout: from stdout\nstderr: error\n"
         self.assertEqual(sys.stdout.getvalue(), expected)
@@ -189,18 +182,18 @@ class TestJob(unittest.TestCase):
     def test_tee_output_file(self):
         """tee_output can write to file."""
         mock_data = "line 1 from echo\nthis is the second line"
-        self.job_config["args"] = [mock_data]
-        self.job_config["metrics"] = ["key"]
+        self.suite_config["args"] = [mock_data]
+        self.suite_config["metrics"] = ["key"]
 
         fd, teefile = tempfile.mkstemp()
         os.close(fd)
 
-        self.mock_benchmark["path"] = "sh"
-        self.job_config["args"] = ["-c", 'echo "error" >&2 && echo "from stdout"']
-        self.job_config["tee_output"] = teefile
+        self.suite_config["path"] = "sh"
+        self.suite_config["args"] = ["-c", 'echo "error" >&2 && echo "from stdout"']
+        self.suite_config["tee_output"] = teefile
 
-        job = Job(self.job_config, self.mock_benchmark)
-        job.run()
+        suite = Suite(self.suite_config)
+        suite.run()
 
         expected = "stdout: from stdout\nstderr: error\n"
         with open(teefile, "r") as tmp:
@@ -208,9 +201,9 @@ class TestJob(unittest.TestCase):
         os.remove(teefile)
 
     def test_hooks(self):
-        """Job runs hooks before/after in stack order"""
-        self.mock_benchmark["path"] = "true"
-        self.job_config["hooks"] = [
+        """Suite runs hooks before/after in stack order"""
+        self.suite_config["path"] = "true"
+        self.suite_config["hooks"] = [
             {"hook": "first", "options": {"a": 1}},
             {"hook": "second", "options": {"b": 1}},
         ]
@@ -226,16 +219,16 @@ class TestJob(unittest.TestCase):
 
         HookFactory.create.side_effect = get_mock_hook
 
-        job = Job(self.job_config, self.mock_benchmark)
-        job.run()
+        suite = Suite(self.suite_config)
+        suite.run()
 
         self.assertListEqual(
             [
-                call.first.before_job({"a": 1}, job),
-                call.second.before_job({"b": 1}, job),
+                call.first.before({"a": 1}, suite),
+                call.second.before({"b": 1}, suite),
                 # post hooks run in reverse order
-                call.second.after_job({"b": 1}, job),
-                call.first.after_job({"a": 1}, job),
+                call.second.after({"b": 1}, suite),
+                call.first.after({"a": 1}, suite),
             ],
             mock.method_calls,
         )

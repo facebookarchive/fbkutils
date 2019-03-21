@@ -1,21 +1,49 @@
 #!/usr/bin/env python3
+# Copyright (c) 2017-present, Facebook, Inc.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree. An additional grant
+# of patent rights can be found in the PATENTS file in the same directory.
+
 import difflib
-import os.path
+import logging
+import os
 import re
-from typing import List
+from typing import Iterable, List
 
-from benchpress.lib.parser import Parser, TestCaseResult, TestStatus
+from benchpress.lib.parser import TestCaseResult, TestStatus
+from benchpress.suites.suite import DiscoveredTestCase, Suite
 
 
-class XfstestsParser(Parser):
-    def __init__(self):
-        super().__init__()
-        self.tests_dir = "xfstests/tests"
-        self.results_dir = "xfstests/results"
+logger = logging.getLogger(__name__)
+
+TESTS_DIR = "xfstests/tests"
+RESULTS_DIR = "xfstests/results"
+
+
+class XfstestsSuite(Suite):
+    NAME = "xfstests"
+
+    def discover_cases(self) -> List[DiscoveredTestCase]:
+        # TODO
+        return [DiscoveredTestCase(name="exec", description="does the test exit(0)")]
+
+    @staticmethod
+    def get_status_from_name(status: str):
+        status = status.upper()
+        try:
+            return TestStatus[status]
+        except KeyError:
+            try:
+                return TestStatus[status + "ED"]
+            except KeyError:
+                logger.warning(f'No such status "{status}(ED)"')
+                return None
 
     def parse(
         self, stdout: List[str], stderr: List[str], returncode: int
-    ) -> List[TestCaseResult]:
+    ) -> Iterable[TestCaseResult]:
         excluded = {}
         # The exclude list is one test per line optionally followed by a
         # comment explaining why the test is excluded.
@@ -37,7 +65,6 @@ class XfstestsParser(Parser):
         test_regex = re.compile(
             r"^(?P<test_name>\w+/\d+)\s+(?:\d+s\s+\.\.\.\s+)?(?P<status>.*)"
         )
-        test_cases: List[TestCaseResult] = []
         for line in stdout:
             match = test_regex.match(line)
             if match:
@@ -60,12 +87,11 @@ class XfstestsParser(Parser):
                     case.status = TestStatus.FAILED
                     case.details = self.run_details(test_name)
 
-                test_cases.append(case)
-        return test_cases
+                yield case
 
     def not_run_details(self, test_name):
         try:
-            notrun = os.path.join(self.results_dir, test_name + ".notrun")
+            notrun = os.path.join(RESULTS_DIR, test_name + ".notrun")
             with open(notrun, "r", errors="backslashreplace") as f:
                 return "Not run: " + f.read().strip()
         except OSError:
@@ -87,10 +113,10 @@ class XfstestsParser(Parser):
 
     def append_diff(self, test_name, details):
         try:
-            out_path = os.path.join(self.tests_dir, test_name + ".out")
+            out_path = os.path.join(TESTS_DIR, test_name + ".out")
             with open(out_path, "r", errors="backslashreplace") as f:
                 out = f.readlines()
-            out_bad_path = os.path.join(self.results_dir, test_name + ".out.bad")
+            out_bad_path = os.path.join(RESULTS_DIR, test_name + ".out.bad")
             with open(out_bad_path, "r", errors="backslashreplace") as f:
                 out_bad = f.readlines()
         except OSError:
@@ -100,7 +126,7 @@ class XfstestsParser(Parser):
         details.extend(diff)
 
     def append_full_output(self, test_name, details):
-        full_path = os.path.join(self.results_dir, test_name + ".full")
+        full_path = os.path.join(RESULTS_DIR, test_name + ".full")
         try:
             # There are some absurdly large full results.
             if os.path.getsize(full_path) < 100_000:
@@ -113,7 +139,7 @@ class XfstestsParser(Parser):
             pass
 
     def append_dmesg(self, test_name, details):
-        dmesg_path = os.path.join(self.results_dir, test_name + ".dmesg")
+        dmesg_path = os.path.join(RESULTS_DIR, test_name + ".dmesg")
         try:
             with open(dmesg_path, "r", errors="backslashreplace") as f:
                 if details:

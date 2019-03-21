@@ -7,16 +7,17 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 import unittest
+from unittest.mock import MagicMock
 
 from benchpress.lib.parser import TestCaseResult, TestStatus
-from benchpress.plugins.parsers.packetdrill_parser import PacketdrillParser
+from benchpress.suites.packetdrill import PacketdrillSuite
 from pyfakefs import fake_filesystem_unittest
 
 
-class TestPacketdrillParser(fake_filesystem_unittest.TestCase):
+class TestPacketdrill(fake_filesystem_unittest.TestCase):
     def setUp(self):
         self.setUpPyfakefs()
-        self.parser = PacketdrillParser()
+        self.parser = PacketdrillSuite(MagicMock())
 
     def test_output(self):
         stdout = ["001-passed 0", "002-failed 1"]

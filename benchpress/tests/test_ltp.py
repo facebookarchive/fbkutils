@@ -7,14 +7,15 @@
 # of patent rights can be found in the PATENTS file in the same directory.
 
 import unittest
+from unittest.mock import MagicMock
 
 from benchpress.lib.parser import TestCaseResult, TestStatus
-from benchpress.plugins.parsers.ltp import LtpParser
+from benchpress.suites.ltp import LtpSuite
 
 
-class TestLtpParser(unittest.TestCase):
+class TestLtp(unittest.TestCase):
     def setUp(self):
-        self.parser = LtpParser()
+        self.parser = LtpSuite(MagicMock())
 
     def test_sample_output(self):
         """Can parse output from running ltp fs tests"""
@@ -95,7 +96,7 @@ duration=121 termination_type=exited termination_id=0 corefile=no
 cutime=10074 cstime=1922
 <<<test_end>>>
         """
-        results = self.parser.parse(output.split("\n"), None, 0)
+        results = list(self.parser.parse(output.split("\n"), None, 0))
         self.maxDiff = None
         self.assertEqual(
             [

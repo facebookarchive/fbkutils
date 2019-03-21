@@ -21,7 +21,7 @@ class CpuLimit(Hook):
     the benchmark process, otherwise it's disabled.
     """
 
-    def before_job(self, opts, job):
+    def before(self, opts, job):
         mask = str(opts)
         # try to parse the mask as a hex string as a basic sanity check
         try:
@@ -35,5 +35,5 @@ class CpuLimit(Hook):
         job.args = [mask, binary] + job.args
         job.binary = "taskset"
 
-    def after_job(self, opts, job):
+    def after(self, opts, job):
         pass

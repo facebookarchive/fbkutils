@@ -10,17 +10,26 @@ import logging
 import re
 from typing import Iterable, List
 
-from benchpress.lib.parser import Parser, TestCaseResult, TestStatus
+from benchpress.lib.parser import TestCaseResult, TestStatus
+from benchpress.suites.suite import DiscoveredTestCase, Suite
 
 
 logger = logging.getLogger(__name__)
-
-
-# <test name> <number> <status> : <extra stuff>
 test_format_re = re.compile(r"(\w+)+\s+(\d+)\s+(T(?:FAIL|PASS|BROK|WARN|INFO)).*")
 
 
-class LtpParser(Parser):
+class LtpSuite(Suite):
+    NAME = "ltp"
+
+    def discover_cases(self) -> List[DiscoveredTestCase]:
+        # TODO
+        pass
+
+    def parse(
+        self, stdout: List[str], stderr: List[str], returncode: int
+    ) -> Iterable[TestCaseResult]:
+        return self.test_cases(stdout)
+
     def test_cases(self, stdout: List[str]) -> Iterable[TestCaseResult]:
         case_lines: List[str] = []
         for line in stdout:
@@ -52,8 +61,3 @@ class LtpParser(Parser):
                     )
                     yield case
             case_lines.append(line)
-
-    def parse(
-        self, stdout: List[str], stderr: List[str], returncode: int
-    ) -> List[TestCaseResult]:
-        return list(self.test_cases(stdout))

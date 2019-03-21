@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+
+import sys
+
+arg = sys.argv[1]
+
+if arg == 'generic':
+    print("case1: PASS")
+    print("case2 PASS")
+    print("case3 FAIL")
+    print("case4: FAIL")
+
+if arg == 'returncode':
+    print()
