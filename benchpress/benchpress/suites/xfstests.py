@@ -10,7 +10,7 @@ import difflib
 import logging
 import os
 import re
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 from benchpress.lib.parser import TestCaseResult, TestStatus
 from benchpress.suites.suite import DiscoveredTestCase, Suite
@@ -40,6 +40,18 @@ class XfstestsSuite(Suite):
             except KeyError:
                 logger.warning(f'No such status "{status}(ED)"')
                 return None
+
+    def run(
+        self, cases: Optional[List[DiscoveredTestCase]] = None
+    ) -> Iterable[TestCaseResult]:
+        if cases:
+            logger.warning(
+                "benchpress currently doesn't support running groups"
+                " of tests in xfstests, assuming you passed a list of individual"
+                " test cases to run"
+            )
+            self.args += [c.name for c in cases]
+        return super().run(cases)
 
     def parse(
         self, stdout: List[str], stderr: List[str], returncode: int
