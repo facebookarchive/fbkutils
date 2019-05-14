@@ -67,12 +67,14 @@ class GenericSuite(Suite):
                 case = self.parse_line(line)
                 if case:
                     yield case
-        # get a status for pseudo-case "exec" that is based on the exec code
+        # get a status for pseudo-case "generic" that is based on the exit code
+        # and contains the subprocess exit code
         status = TestStatus.PASSED if returncode == 0 else TestStatus.FAILED
         yield TestCaseResult(
-            name="exec",
+            name="generic",
             status=status,
-            details="stdout:\n"
+            details=f"exit code: {returncode}"
+            + "stdout:\n"
             + "\n".join(stdout)
             + "\n\nstderr:\n"
             + "\n".join(stderr),
