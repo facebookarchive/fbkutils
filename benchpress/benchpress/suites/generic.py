@@ -73,7 +73,7 @@ class GenericSuite(Suite):
         yield TestCaseResult(
             name="generic",
             status=status,
-            details=f"exit code: {returncode}"
+            details=f"exit code: {returncode}\n"
             + "stdout:\n"
             + "\n".join(stdout)
             + "\n\nstderr:\n"
