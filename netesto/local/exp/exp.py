@@ -189,9 +189,7 @@ def sortListRevCmp(s1, s2):
 
 #--- getFieldIndex
 def getFieldIndex(s):
-  if s in fieldDict:
-    return fieldDict[s]
-  return -1
+  return fieldDict.get(s, -1)
 
 #--- resetSelectedColDict()
 def resetSelectedColDict():
