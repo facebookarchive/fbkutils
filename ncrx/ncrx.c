@@ -21,9 +21,16 @@
 
 #include "ncrx.h"
 
+union sockaddr_in46 {
+	struct sockaddr		addr;
+	struct sockaddr_in6	in6;
+	struct sockaddr_in	in4;
+};
+
 int main(int argc, char **argv)
 {
 	char buf[NCRX_LINE_MAX + 1];
+	struct ncrx_param param = { .ack_intv = 1000 };
 	struct ncrx *ncrx;
 	struct sockaddr_in6 laddr = { };
 	uint64_t next_seq = 0, next_at = UINT64_MAX, now;
@@ -50,7 +57,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	ncrx = ncrx_create(NULL);
+	ncrx = ncrx_create(&param);
 	if (!ncrx) {
 		perror("ncrx_create");
 		return 1;
@@ -58,7 +65,7 @@ int main(int argc, char **argv)
 
 	while (1) {
 		struct pollfd pfd = { .fd = fd, .events = POLLIN };
-		struct sockaddr_in raddr;
+		union sockaddr_in46 raddr;
 		struct ncrx_msg *msg;
 		struct timespec ts;
 		socklen_t raddr_len = sizeof(raddr);
