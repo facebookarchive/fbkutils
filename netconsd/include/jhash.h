@@ -100,8 +100,8 @@ static inline __attribute__((pure)) uint32_t jhash2(const uint32_t *k,
 
 	/* Handle the last 3 uint32_t's: all the case statements fall through */
 	switch (length) {
-	case 3: c += k[2];
-	case 2: b += k[1];
+	case 3: c += k[2];	/* fall through */
+	case 2: b += k[1];	/* fall through */
 	case 1: a += k[0];
 		__jhash_final(a, b, c);
 	case 0:	/* Nothing left to add */
