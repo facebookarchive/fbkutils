@@ -71,7 +71,7 @@ static void parse_arguments(int argc, char **argv, struct netconsd_params *p)
 			goto done;
 		case 'h':
 			printf("Usage: %s [-w workers] [-l listeners] "
-			     "[-b mmsg_batch] [-p udp_listen_addr] [-u udp_listen_port] "
+			     "[-b mmsg_batch] [-a udp_listen_addr] [-u udp_listen_port] "
 			     "[-g '${interval}/${age}'] [output module path] "
 			     "[another output module path...]\n", argv[0]);
 
