@@ -305,11 +305,7 @@ static int open_acctfile(const char *p)
 {
 	int ret;
 
-	ret = unlink(p);
-	if (ret == -1 && errno != ENOENT)
-		fatal("Can't unlink '%s': %m\n", p);
-
-	ret = open(p, O_WRONLY | O_APPEND | O_CREAT | O_EXCL, 0400);
+	ret = open(p, O_WRONLY | O_APPEND | O_CREAT, 0400);
 	if (ret == -1)
 		fatal("Can't open '%s': %m\n", p);
 
