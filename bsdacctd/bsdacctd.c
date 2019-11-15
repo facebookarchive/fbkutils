@@ -325,7 +325,7 @@ static int open_acctfile(const char *p)
  */
 static long trim_acctfile(int fd, long sz)
 {
-	long off, realsz;
+	long off, realsz, punch_offset;
 	struct stat s;
 
 	/*
@@ -358,8 +358,9 @@ static long trim_acctfile(int fd, long sz)
 	 * If the file was truncated between the fstat() call and now, this
 	 * will punch a hole beyond st_size, which is harmless.
 	 */
+	punch_offset = realsz > off ? 0UL : off - realsz;
 	if (fallocate(fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
-		      off - realsz, acctfile_buffer))
+		      punch_offset, acctfile_buffer))
 		fatal("Can't punch hole: %m\n");
 
 	/*
