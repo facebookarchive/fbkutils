@@ -414,7 +414,7 @@ static void fill_acct(struct acct_v3 *dst, const struct taskstats *src)
 
 	*dst = (struct acct_v3){
 		.ac_flag = src->ac_flag,
-		.ac_version = ACCT_VERSION,
+		.ac_version = 3,
 		.ac_exitcode = src->ac_exitcode,
 		.ac_uid = src->ac_uid,
 		.ac_gid = src->ac_gid,
