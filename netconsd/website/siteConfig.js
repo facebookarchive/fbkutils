@@ -69,6 +69,11 @@ const siteConfig = {
   ogImage: 'img/bpf_logo.png',
   twitterImage: 'img/bpf_logo.png',
 
+  algolia: {
+    apiKey: 'd72e780917c72c5a9fa325cdf2d7ed01',
+    indexName: 'fbkutils', 
+  },
+
   // You may provide arbitrary config keys to be used as needed by your
   // template. For example, if you need your repo's URL...
   repoUrl: 'https://github.com/facebook/fbkutils/tree/master/netconsd',
