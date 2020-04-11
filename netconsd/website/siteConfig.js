@@ -10,6 +10,10 @@ const users = [
 ];
 
 const siteConfig = {
+  algolia: {
+    apiKey: '5d3ec58089ecfafc5b888c1aca10cee7',
+    indexName: 'netconsd'
+  },
   title: 'netconsd' /* title for your website */,
   tagline: 'Extending the Linux netconsole',
   url: 'https://facebook.github.io' /* your website url */,
