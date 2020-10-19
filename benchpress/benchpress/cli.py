@@ -6,14 +6,13 @@
 # LICENSE file in the root directory of this source tree. An additional grant
 # of patent rights can be found in the PATENTS file in the same directory.
 
-import argparse
 import logging
 import os
 import sys
 
 import click
 import yaml
-from benchpress.lib.reporter import StdoutReporter
+from benchpress.lib.reporter import JSONReporter, StdoutReporter
 from benchpress.lib.reporter_factory import ReporterFactory
 from benchpress.suites.suite import DiscoveredTestCase, Suite
 
@@ -21,6 +20,7 @@ from benchpress.suites.suite import DiscoveredTestCase, Suite
 # register reporter plugins before setting up the parser
 ReporterFactory.register("stdout", StdoutReporter)
 ReporterFactory.register("default", StdoutReporter)
+ReporterFactory.register("json", JSONReporter)
 
 
 @click.group()
@@ -54,8 +54,9 @@ def benchpress(ctx, verbose, suites):
 @benchpress.command()
 @click.option("--suite", "-s")
 @click.option("--case", "-c", "cases", multiple=True)
+@click.option("--json", "-j", "output_json", is_flag=True)
 @click.pass_context
-def run(ctx, suite, cases):
+def run(ctx, suite, cases, output_json):
     logger = logging.getLogger("benchpress.run")
 
     reporter = ReporterFactory.create("default")
@@ -70,6 +71,8 @@ def run(ctx, suite, cases):
     else:
         cases = [DiscoveredTestCase(name=c, description="") for c in cases]
     results = suite.run(cases)
+    if output_json:
+        reporter = ReporterFactory.create("json")
     reporter.report(suite, results)
     reporter.close()
 

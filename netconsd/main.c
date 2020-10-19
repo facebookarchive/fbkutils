@@ -74,10 +74,7 @@ static void parse_arguments(int argc, char **argv, struct netconsd_params *p)
 			     "[-b mmsg_batch] [-a udp_listen_addr] [-u udp_listen_port] "
 			     "[-g '${interval}/${age}'] [output module path] "
 			     "[another output module path...]\n", argv[0]);
-
-			/*
-			 * Fall through
-			 */
+			exit(0);
 		default:
 			exit(1);
 		}

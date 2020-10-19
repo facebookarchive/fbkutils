@@ -33,7 +33,7 @@ class TestCaseResult(object):
     description: Optional[str] = None
     """more details about what this test case is meant to test"""
 
-    details: Optional[str] = None
+    details: Optional[str] = ""
     """detailed output from this test case for a debugging aid"""
 
     runtime: Optional[float] = None

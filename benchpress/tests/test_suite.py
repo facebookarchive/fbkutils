@@ -114,8 +114,8 @@ class TestSuite(unittest.TestCase):
     def test_run_timeout(self):
         """Binary running past timeout raises an error"""
         self.suite_config["timeout"] = 0.1
-        self.suite_config["path"] = "sleep"
-        self.suite_config["args"] = ["1"]
+        self.suite_config["path"] = "/bin/sh"
+        self.suite_config["args"] = ["-c", "yes"]
 
         suite = Suite(self.suite_config)
 
@@ -136,7 +136,7 @@ class TestSuite(unittest.TestCase):
 
         suite.run()
 
-        suite.parse.assert_called_with(["wow"], ["err"], None)
+        suite.parse.assert_called_with(["timed out as expected"], [], 0)
 
     def test_tee_stdouterr(self):
         """tee_output option works correctly

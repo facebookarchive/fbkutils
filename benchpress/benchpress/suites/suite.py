@@ -99,16 +99,19 @@ class Suite(metaclass=SuiteMeta):
         logger.info('Starting "{}"'.format(self.name))
         cmd = [self.binary] + self.args
         try:
-            proc = subprocess.run(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=self.check_returncode,
-                timeout=self.timeout,
-                encoding="utf-8",
+            proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
             )
-
-            stdout, stderr = proc.stdout, proc.stderr
+            stdout, stderr = proc.communicate(None, timeout=self.timeout)
+            # other parts of the code rely on stdout/err being strings on the
+            # process itself (this is how subprocess.run works)
+            proc.stdout = stdout
+            proc.stderr = stderr
+            if self.check_returncode:
+                if proc.returncode != 0:
+                    raise CalledProcessError(
+                        proc.returncode, cmd, output=stdout, stderr=stderr
+                    )
             # optionally copy stdout/err of the child process to our own
             if self.tee_output:
                 # default to stdout if no filename given
@@ -134,6 +137,9 @@ class Suite(metaclass=SuiteMeta):
         except CalledProcessError as e:
             logger.error(e.output)
             raise  # make sure it passes the exception up the chain
+        except TimeoutExpired:
+            proc.kill()
+            raise
 
     def discover_cases(self) -> List[DiscoveredTestCase]:
         return [DiscoveredTestCase(name="exec", description="does the test exit(0)")]
@@ -163,8 +169,12 @@ class Suite(metaclass=SuiteMeta):
                 )
                 raise
             # if timeout was success, parse the output
-            stdout = e.stdout.splitlines()
-            stderr = e.stderr.splitlines()
-            return self.parse(stdout, stderr, None)
+            # we cannot get output from a timed out process that has children
+            # because of how Popen.communicate works
+            stdout = ["timed out as expected"]
+            stderr = []
+            # for generic tests, set the exit code to 0 even though it didn't
+            # actually pass
+            return self.parse(stdout, stderr, 0)
         finally:
             self.run_post_hooks()

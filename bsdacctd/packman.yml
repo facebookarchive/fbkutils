@@ -1,0 +1,8 @@
+packages:
+  fb-bsdacctd:
+    packager: kernel
+    summary: BSDv3 Accounting in Userspace
+    rules:
+      buck:fbkutils/bsdacctd:bsdacctd:
+        fbkutils/bsdacctd/bsdacctd:
+          path: /usr/local/bin/bsdacctd
