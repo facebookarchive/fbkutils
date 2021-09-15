@@ -1,14 +1,18 @@
 fbkutils: Linux kernel utilities from Facebook
 
+NOTE: this repo is no longer updated
+
 ================================================================================
 
 ncrx:		A library for processing extended netconsole messages from the
 		Linux kernel. See Documentation/networking/netconsole.txt in the
 		kernel source for details about extended netconsole.
+		Moved to https://github.com/facebook/netconsd
 
 netconsd:	A daemon which uses libncrx to receive and process netconsole
 		messages from a large number of remote hosts. We use this daemon
 		for collecting kernel logs from all the servers at Facebook.
+		Moved to https://github.com/facebook/netconsd
 
 netesto:	NEtwork TESting TOls, a set of tools for network testing. It
 		allows one machine, the controller, to run network load tests
