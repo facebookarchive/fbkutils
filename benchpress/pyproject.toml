@@ -12,7 +12,7 @@ homepage = "https://github.com/facebook/fbkutils"
 
 [tool.poetry.dependencies]
 python = "^3.6"
-pyyaml = "^3.13"
+pyyaml = ">=3.13,<6.0"
 dataclasses = "^0.6.0"
 click = "^7.0"
 
